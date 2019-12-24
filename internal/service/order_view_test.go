@@ -222,10 +222,54 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPublic_Ok() {
 		suite.projectFixedAmount,
 		suite.paymentMethod,
 	)
+
+	assert.False(suite.T(), suite.projectFixedAmount.IsProduction())
 	orderPublic, err := suite.service.orderView.GetOrderBy(context.TODO(), order.Id, "", "", new(billing.OrderViewPublic))
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderPublic)
 	assert.IsType(suite.T(), &billing.OrderViewPublic{}, orderPublic)
+	op := orderPublic.(*billing.OrderViewPublic)
+	assert.False(suite.T(), op.IsProduction)
+}
+
+func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPublic_ProductionProject_Ok() {
+	productionProject := &billing.Project{
+		Id:                       primitive.NewObjectID().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test prod project 1"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test prod project 1 secret key",
+		Status:                   pkg.ProjectStatusInProduction,
+		MerchantId:               suite.merchant.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
+	}
+
+	if err := suite.service.project.Insert(context.TODO(), productionProject); err != nil {
+		suite.FailNow("Insert project test data failed", "%v", err)
+	}
+
+	order := helperCreateAndPayOrder(
+		suite.Suite,
+		suite.service,
+		100,
+		"USD",
+		"RU",
+		productionProject,
+		suite.paymentMethod,
+	)
+
+	assert.True(suite.T(), productionProject.IsProduction())
+	orderPublic, err := suite.service.orderView.GetOrderBy(context.TODO(), order.Id, "", "", new(billing.OrderViewPublic))
+	assert.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), orderPublic)
+	assert.IsType(suite.T(), &billing.OrderViewPublic{}, orderPublic)
+	op := orderPublic.(*billing.OrderViewPublic)
+	assert.True(suite.T(), op.IsProduction)
 }
 
 func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPrivate_Ok() {
@@ -347,6 +391,11 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_OnlySales()
 	var orders []*billing.Order
 	numberOfOrders := 3
 
+	suite.projectFixedAmount.Status = pkg.ProjectStatusInProduction
+	if err := suite.service.project.Update(context.TODO(), suite.projectFixedAmount); err != nil {
+		suite.FailNow("Update project test data failed", "%v", err)
+	}
+
 	count := 0
 	for count < numberOfOrders {
 		order := helperCreateAndPayOrder(
@@ -423,6 +472,11 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetRoyaltySummary_Ok_SalesAndRef
 	countries := []string{"RU", "FI"}
 	var orders []*billing.Order
 	numberOfOrders := 3
+
+	suite.projectFixedAmount.Status = pkg.ProjectStatusInProduction
+	if err := suite.service.project.Update(context.TODO(), suite.projectFixedAmount); err != nil {
+		suite.FailNow("Update project test data failed", "%v", err)
+	}
 
 	count := 0
 	for count < numberOfOrders {

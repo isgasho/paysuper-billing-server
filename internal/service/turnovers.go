@@ -10,6 +10,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,10 +30,6 @@ const (
 var (
 	errorTurnoversCurrencyRatesPolicyNotSupported = newBillingServerErrorMsg("to000001", "vat currency rates policy not supported")
 	errorTurnoversExchangeFailed                  = newBillingServerErrorMsg("to000002", "currency exchange failed")
-
-	accountingEntriesForTurnover = []string{
-		pkg.AccountingEntryTypeRealGrossRevenue,
-	}
 )
 
 type turnoverQueryResItem struct {
@@ -179,14 +176,22 @@ func (s *Service) getTurnover(
 ) (amount float64, err error) {
 
 	matchQuery := bson.M{
-		"created_at":           bson.M{"$gte": from, "$lte": to},
-		"type":                 bson.M{"$in": accountingEntriesForTurnover},
+		"pm_order_close_date": bson.M{
+			"$gte": from,
+			"$lte": to,
+		},
 		"operating_company_id": operatingCompanyId,
+		"is_production":        true,
+		"type":                 pkg.OrderTypeOrder,
+		"status":               constant.OrderPublicStatusProcessed,
+		"payment_gross_revenue_origin": bson.M{
+			"$ne": nil,
+		},
 	}
 	if countryCode != "" {
-		matchQuery["country"] = countryCode
+		matchQuery["country_code"] = countryCode
 	} else {
-		matchQuery["country"] = bson.M{"$ne": ""}
+		matchQuery["country_code"] = bson.M{"$ne": ""}
 	}
 
 	query := []bson.M{
@@ -197,17 +202,33 @@ func (s *Service) getTurnover(
 
 	switch currencyPolicy {
 	case pkg.VatCurrencyRatesPolicyOnDay:
-		query = append(query, bson.M{"$group": bson.M{"_id": "$local_currency", "amount": bson.M{"$sum": "$local_amount"}}})
+		query = append(query, bson.M{
+			"$group": bson.M{
+				"_id": "$payment_gross_revenue_local.currency",
+				"amount": bson.M{
+					"$sum": "$payment_gross_revenue_local.amount",
+				},
+			},
+		})
 		break
+
 	case pkg.VatCurrencyRatesPolicyLastDay:
-		query = append(query, bson.M{"$group": bson.M{"_id": "$original_currency", "amount": bson.M{"$sum": "$original_amount"}}})
+		query = append(query, bson.M{
+			"$group": bson.M{
+				"_id": "$payment_gross_revenue_origin.currency",
+				"amount": bson.M{
+					"$sum": "$payment_gross_revenue_origin.amount",
+				},
+			},
+		})
 		break
+
 	default:
 		err = errorTurnoversCurrencyRatesPolicyNotSupported
 		return
 	}
 
-	cursor, err := s.db.Collection(collectionAccountingEntry).Aggregate(ctx, query)
+	cursor, err := s.db.Collection(collectionOrderView).Aggregate(ctx, query)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -217,7 +238,7 @@ func (s *Service) getTurnover(
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		return
@@ -230,7 +251,7 @@ func (s *Service) getTurnover(
 		zap.L().Error(
 			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionOrderView),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		return

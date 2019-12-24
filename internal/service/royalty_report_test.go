@@ -51,9 +51,11 @@ type RoyaltyReportTestSuite struct {
 	project   *billing.Project
 	project1  *billing.Project
 	project2  *billing.Project
+	project3  *billing.Project
 	merchant  *billing.Merchant
 	merchant1 *billing.Merchant
 	merchant2 *billing.Merchant
+	merchant3 *billing.Merchant
 
 	paymentMethod *billing.PaymentMethod
 	paymentSystem *billing.PaymentSystem
@@ -138,8 +140,15 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 	}
 
 	suite.merchant, suite.project, suite.paymentMethod, suite.paymentSystem = helperCreateEntitiesForTests(suite.Suite, suite.service)
+
+	suite.project.Status = pkg.ProjectStatusInProduction
+	if err := suite.service.project.Update(context.TODO(), suite.project); err != nil {
+		suite.FailNow("Update project test data failed", "%v", err)
+	}
+
 	suite.merchant1 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0, suite.merchant.OperatingCompanyId)
 	suite.merchant2 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0, suite.merchant.OperatingCompanyId)
+	suite.merchant3 = helperCreateMerchant(suite.Suite, suite.service, "USD", "RU", suite.paymentMethod, 0, suite.merchant.OperatingCompanyId)
 
 	suite.project1 = &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -152,7 +161,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		IsProductsCheckout:       false,
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
-		Status:                   pkg.ProjectStatusDraft,
+		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               suite.merchant1.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
 	}
@@ -167,12 +176,28 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 		IsProductsCheckout:       false,
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 2 secret key",
-		Status:                   pkg.ProjectStatusDraft,
+		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               suite.merchant2.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
 	}
 
-	projects := []*billing.Project{suite.project1, suite.project2}
+	suite.project3 = &billing.Project{
+		Id:                       primitive.NewObjectID().Hex(),
+		CallbackCurrency:         "RUB",
+		CallbackProtocol:         "default",
+		LimitsCurrency:           "USD",
+		MaxPaymentAmount:         15000,
+		MinPaymentAmount:         1,
+		Name:                     map[string]string{"en": "test project 2"},
+		IsProductsCheckout:       false,
+		AllowDynamicRedirectUrls: true,
+		SecretKey:                "test project 2 secret key",
+		Status:                   pkg.ProjectStatusDraft,
+		MerchantId:               suite.merchant3.Id,
+		VatPayer:                 pkg.VatPayerBuyer,
+	}
+
+	projects := []*billing.Project{suite.project1, suite.project2, suite.project3}
 	err = suite.service.project.MultipleInsert(context.TODO(), projects)
 
 	if err != nil {
@@ -1244,4 +1269,29 @@ func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_GetRoyaltyReport_Ok() {
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotEmpty(suite.T(), rsp1.Item)
 	assert.Equal(suite.T(), rsp1.Item, report)
+}
+
+func (suite *RoyaltyReportTestSuite) TestRoyaltyReport_CreateRoyaltyReport_OnlyTestOrders_Ok() {
+	projects := []*billing.Project{suite.project3}
+
+	for _, v := range projects {
+		for i := 0; i < 5; i++ {
+			suite.createOrder(v)
+		}
+	}
+	err := suite.service.updateOrderView(context.TODO(), []string{})
+	assert.NoError(suite.T(), err)
+
+	req := &grpc.CreateRoyaltyReportRequest{}
+	rsp := &grpc.CreateRoyaltyReportRequest{}
+	err = suite.service.CreateRoyaltyReport(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), rsp.Merchants)
+
+	var reports []*billing.RoyaltyReport
+	cursor, err := suite.service.db.Collection(collectionRoyaltyReport).Find(context.TODO(), bson.M{})
+	assert.NoError(suite.T(), err)
+	err = cursor.All(context.TODO(), &reports)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), reports)
 }

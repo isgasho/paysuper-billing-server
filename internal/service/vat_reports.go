@@ -298,6 +298,7 @@ func (s *Service) GetVatReportTransactions(
 		},
 		"country_code":         vr.Country,
 		"operating_company_id": vr.OperatingCompanyId,
+		"is_production":        true,
 	}
 
 	n, err := s.orderView.CountTransactions(ctx, match)
@@ -770,6 +771,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		"country_code":         country.IsoCodeA2,
 		"is_vat_deduction":     false,
 		"operating_company_id": operatingCompanyId,
+		"is_production":        true,
 	}
 
 	query := []bson.M{

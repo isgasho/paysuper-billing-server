@@ -362,7 +362,7 @@ func (suite *EntityTestSuite) TearDownTest() {
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project, suite.paymentMethod.Group, "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project.IsProduction(), suite.paymentMethod.Group, "RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -371,7 +371,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Ok(
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_GroupError() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project, "group_from_my_head", "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project.IsProduction(), "group_from_my_head", "RUB")
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)
@@ -379,7 +379,7 @@ func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_Gro
 }
 
 func (suite *EntityTestSuite) TestProject_GetPaymentMethodByGroupAndCurrency_CurrencyError() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project, suite.paymentMethod.Group, "XDR")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(ctx, suite.project.IsProduction(), suite.paymentMethod.Group, "XDR")
 
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), pm)

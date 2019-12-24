@@ -392,13 +392,13 @@ func (s *Service) DeletePaymentMethodTestSettings(
 
 type PaymentMethodInterface interface {
 	GetAll(ctx context.Context) (map[string]*billing.PaymentMethod, error)
-	GetByGroupAndCurrency(ctx context.Context, project *billing.Project, group string, currency string) (*billing.PaymentMethod, error)
+	GetByGroupAndCurrency(ctx context.Context, isProduction bool, group string, currency string) (*billing.PaymentMethod, error)
 	GetById(context.Context, string) (*billing.PaymentMethod, error)
 	MultipleInsert(context.Context, []*billing.PaymentMethod) error
 	Insert(context.Context, *billing.PaymentMethod) error
 	Update(context.Context, *billing.PaymentMethod) error
-	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand string, project *billing.Project) (*billing.PaymentMethodParams, error)
-	ListByParams(ctx context.Context, project *billing.Project, currency, mccCode, operatingCompanyId string) ([]*billing.PaymentMethod, error)
+	GetPaymentSettings(paymentMethod *billing.PaymentMethod, currency, mccCode, operatingCompanyId, paymentMethodBrand string, isProduction bool) (*billing.PaymentMethodParams, error)
+	ListByOrder(ctx context.Context, order *billing.Order) ([]*billing.PaymentMethod, error)
 }
 
 type paymentMethods struct {
@@ -445,7 +445,7 @@ func (h *PaymentMethod) GetAll(ctx context.Context) (map[string]*billing.Payment
 
 func (h *PaymentMethod) GetByGroupAndCurrency(
 	ctx context.Context,
-	project *billing.Project,
+	isProduction bool,
 	group string,
 	currency string,
 ) (*billing.PaymentMethod, error) {
@@ -459,7 +459,7 @@ func (h *PaymentMethod) GetByGroupAndCurrency(
 
 	field := fieldTestSettings
 
-	if project.IsProduction() {
+	if isProduction {
 		field = fieldProductionSettings
 	}
 
@@ -573,11 +573,11 @@ func (h *PaymentMethod) GetPaymentSettings(
 	mccCode string,
 	operatingCompanyId string,
 	paymentMethodBrand string,
-	project *billing.Project,
+	isProduction bool,
 ) (*billing.PaymentMethodParams, error) {
 	settings := paymentMethod.TestSettings
 
-	if project.IsProduction() == true {
+	if isProduction == true {
 		settings = paymentMethod.ProductionSettings
 	}
 
@@ -595,7 +595,7 @@ func (h *PaymentMethod) GetPaymentSettings(
 
 	setting.Currency = currency
 
-	if project.IsProduction() == true {
+	if isProduction == true {
 		setting.ApiUrl = h.svc.cfg.CardPayApiUrl
 	} else {
 		setting.ApiUrl = h.svc.cfg.CardPayApiSandboxUrl
@@ -604,20 +604,19 @@ func (h *PaymentMethod) GetPaymentSettings(
 	return setting, nil
 }
 
-func (h *PaymentMethod) ListByParams(
+func (h *PaymentMethod) ListByOrder(
 	ctx context.Context,
-	project *billing.Project,
-	currency, mccCode, operatingCompanyId string,
+	order *billing.Order,
 ) ([]*billing.PaymentMethod, error) {
 	val := new(PaymentMethods)
 
-	field := "test_settings"
+	field := fieldTestSettings
 
-	if project.IsProduction() {
-		field = "production_settings"
+	if order.IsProduction {
+		field = fieldProductionSettings
 	}
 
-	key := fmt.Sprintf(cachePaymentMethodModeCurrencyMccCompany, field, currency, mccCode, operatingCompanyId)
+	key := fmt.Sprintf(cachePaymentMethodModeCurrencyMccCompany, field, order.Currency, order.MccCode, order.OperatingCompanyId)
 	err := h.svc.cacher.Get(key, &val)
 
 	if err == nil {
@@ -629,9 +628,9 @@ func (h *PaymentMethod) ListByParams(
 		"is_active": true,
 		field: bson.M{
 			"$elemMatch": bson.M{
-				"currency":             currency,
-				"mcc_code":             mccCode,
-				"operating_company_id": operatingCompanyId,
+				"currency":             order.Currency,
+				"mcc_code":             order.MccCode,
+				"operating_company_id": order.OperatingCompanyId,
 			},
 		},
 	}

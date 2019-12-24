@@ -196,7 +196,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetById_NotFound() {
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetByGroupAndCurrency_Ok() {
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, suite.pmQiwi.Group, "RUB")
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), suite.pmQiwi.Group, "RUB")
 
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
@@ -204,11 +204,11 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetByGroupAndCurrency_Ok(
 }
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetByGroupAndCurrency_NotFound() {
-	_, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, "unknown", "RUB")
+	_, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), "unknown", "RUB")
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
 
-	_, err = suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, suite.pmQiwi.Group, "")
+	_, err = suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), suite.pmQiwi.Group, "")
 	assert.Error(suite.T(), err)
 	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionPaymentMethod))
 }
@@ -268,8 +268,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_Update_ErrorCacheUpdate()
 
 func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorNoTestSettings() {
 	method := &billing.PaymentMethod{}
-	project := &billing.Project{}
-	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", project)
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", false)
 
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), err, orderErrorPaymentMethodEmptySettings)
@@ -305,7 +304,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_OkTest
 	err = suite.service.project.Update(context.TODO(), suite.project)
 	assert.NoError(suite.T(), err)
 
-	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", suite.project)
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "RUB", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", suite.project.IsProduction())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), method.ProductionSettings[key].Secret, settings.Secret)
 }
@@ -319,7 +318,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_ErrorN
 	project := &billing.Project{
 		Status: pkg.ProjectStatusInProduction,
 	}
-	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", project)
+	_, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", project.IsProduction())
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), err, orderErrorPaymentMethodEmptySettings)
 }
@@ -350,7 +349,7 @@ func (suite *PaymentMethodTestSuite) TestPaymentMethod_GetPaymentSettings_Ok() {
 	err := suite.service.paymentMethod.Insert(context.TODO(), method)
 	assert.NoError(suite.T(), err)
 
-	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", suite.project)
+	settings, err := suite.service.paymentMethod.GetPaymentSettings(method, "EUR", pkg.MccCodeLowRisk, suite.operatingCompany.Id, "VISA", suite.project.IsProduction())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), method.TestSettings[key].Secret, settings.Secret)
 }

@@ -294,6 +294,7 @@ type MgoOrder struct {
 	BillingCountryChangedByUser bool                           `bson:"billing_country_changed_by_user"`
 	IsRefundAllowed             bool                           `bson:"is_refund_allowed"`
 	VatPayer                    string                         `bson:"vat_payer"`
+	IsProduction                bool                           `bson:"is_production"`
 }
 
 type MgoOrderItem struct {
@@ -760,6 +761,7 @@ type MgoOrderViewPrivate struct {
 	IsHighRisk                                 bool                           `bson:"is_high_risk"`
 	RefundAllowed                              bool                           `bson:"refund_allowed"`
 	VatPayer                                   string                         `bson:"vat_payer"`
+	IsProduction                               bool                           `bson:"is_production"`
 }
 
 type MgoOrderViewPublic struct {
@@ -813,6 +815,7 @@ type MgoOrderViewPublic struct {
 	IsIpCountryMismatchBin                  bool                           `bson:"is_ip_country_mismatch_bin"`
 	BillingCountryChangedByUser             bool                           `bson:"billing_country_changed_by_user"`
 	VatPayer                                string                         `bson:"vat_payer"`
+	IsProduction                            bool                           `bson:"is_production"`
 }
 
 type MgoKey struct {
@@ -1724,6 +1727,7 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 		BillingCountryChangedByUser: m.BillingCountryChangedByUser,
 		IsRefundAllowed:             m.IsRefundAllowed,
 		VatPayer:                    m.VatPayer,
+		IsProduction:                m.IsProduction,
 	}
 
 	if m.Refund != nil {
@@ -2023,6 +2027,7 @@ func (m *Order) UnmarshalBSON(raw []byte) error {
 	m.IsVatDeduction = decoded.IsVatDeduction
 	m.CountryCode = decoded.CountryCode
 	m.VatPayer = decoded.VatPayer
+	m.IsProduction = decoded.IsProduction
 
 	m.PaymentMethodOrderClosedAt, err = ptypes.TimestampProto(decoded.PaymentMethodOrderClosedAt)
 	if err != nil {
@@ -4363,6 +4368,7 @@ func (m *OrderViewPrivate) UnmarshalBSON(raw []byte) error {
 	m.IsHighRisk = decoded.IsHighRisk
 	m.RefundAllowed = decoded.RefundAllowed
 	m.VatPayer = decoded.VatPayer
+	m.IsProduction = decoded.IsProduction
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
@@ -4444,6 +4450,7 @@ func (m *OrderViewPublic) UnmarshalBSON(raw []byte) error {
 	m.IsIpCountryMismatchBin = decoded.IsIpCountryMismatchBin
 	m.BillingCountryChangedByUser = decoded.BillingCountryChangedByUser
 	m.VatPayer = decoded.VatPayer
+	m.IsProduction = decoded.IsProduction
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {
