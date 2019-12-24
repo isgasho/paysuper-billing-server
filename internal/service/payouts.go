@@ -54,6 +54,7 @@ var (
 	errorPayoutStatusChangeIsForbidden = newBillingServerErrorMsg("po000014", "status change is forbidden")
 	errorPayoutManualPayoutsDisabled   = newBillingServerErrorMsg("po000015", "manual payouts disabled")
 	errorPayoutAutoPayoutsDisabled     = newBillingServerErrorMsg("po000016", "auto payouts disabled")
+	errorPayoutAutoPayoutsWithErrors   = newBillingServerErrorMsg("po000017", "auto payouts creation finished with errors")
 
 	statusForUpdateBalance = map[string]bool{
 		pkg.PayoutDocumentStatusPending: true,
@@ -350,6 +351,8 @@ func (s *Service) AutoCreatePayoutDocuments(
 	}
 	res := &grpc.CreatePayoutDocumentResponse{}
 
+	wasErrors := false
+
 	for _, m := range merchants {
 		req1.MerchantId = m.Id
 		err = s.createPayoutDocument(ctx, m, req1, res)
@@ -363,10 +366,11 @@ func (s *Service) AutoCreatePayoutDocuments(
 				zap.Error(err),
 				zap.String("merchantId", m.Id),
 			)
-			return err
+			wasErrors = true
+			continue
 		}
 		if res.Status != pkg.ResponseStatusOk {
-			if res.Message == errorPayoutAmountInvalid {
+			if res.Message == errorPayoutAmountInvalid || res.Message == errorPayoutSourcesNotFound {
 				continue
 			}
 			zap.L().Error(
@@ -375,8 +379,15 @@ func (s *Service) AutoCreatePayoutDocuments(
 				zap.Any("message", res.Message),
 				zap.String("merchantId", m.Id),
 			)
-			return err
+			wasErrors = true
+			continue
 		}
+	}
+
+	if wasErrors {
+		zap.L().Warn("auto-creation of payout documents finished with errors")
+
+		return errorPayoutAutoPayoutsWithErrors
 	}
 
 	zap.L().Info("auto-creation of payout documents finished")
