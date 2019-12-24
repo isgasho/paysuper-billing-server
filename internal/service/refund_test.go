@@ -5,7 +5,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
