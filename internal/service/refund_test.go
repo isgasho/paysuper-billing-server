@@ -1722,6 +1722,10 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.NotNil(suite.T(), originalOrder)
 	assert.False(suite.T(), originalOrder.IsRefundAllowed)
 
+	oid, err = primitive.ObjectIDFromHex(refund.OriginalOrder.Id)
+	assert.NoError(suite.T(), err)
+	filter = bson.M{"_id": oid}
+
 	// check RefundAllowed flag for original order has correct value on order view
 	originalOrderViewPublic := new(billing.OrderViewPublic)
 	err = suite.service.db.Collection(collectionOrderView).FindOne(context.TODO(), filter).Decode(&originalOrderViewPublic)
