@@ -89,11 +89,11 @@ func (s *Service) CreateToken(
 	processor := &OrderCreateRequestProcessor{
 		Service: s,
 		request: &billing.OrderCreateRequest{
-			ProjectId:               req.Settings.ProjectId,
-			Amount:                  req.Settings.Amount,
-			Currency:                req.Settings.Currency,
-			Products:                req.Settings.ProductsIds,
-			PlatformId:              req.Settings.PlatformId,
+			ProjectId:  req.Settings.ProjectId,
+			Amount:     req.Settings.Amount,
+			Currency:   req.Settings.Currency,
+			Products:   req.Settings.ProductsIds,
+			PlatformId: req.Settings.PlatformId,
 		},
 		checked: &orderCreateRequestProcessorChecked{
 			user: &billing.OrderUser{},
@@ -784,6 +784,12 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	res, err := rsa.DecryptOAEP(hash, cryptoRand.Reader, s.cfg.CookiePrivateKey, bCookie, nil)
 
 	if err != nil {
+		zap.L().Info(
+			"debug_1",
+			zap.String("public_key", s.cfg.CookiePublicKeyBase64),
+			zap.String("private_key", s.cfg.CookiePrivateKeyBase64),
+		)
+
 		zap.L().Error("Customer cookie decrypt failed", zap.Error(err))
 		return nil, err
 	}
