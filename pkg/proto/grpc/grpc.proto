@@ -520,6 +520,8 @@ message PaymentFormJsonData {
     double vat_rate = 28;
     // @inject_tag: json:"vat_payer"
     string vat_payer = 29;
+    // @inject_tag: json:"is_production"
+    bool is_production = 30;
 }
 
 message PaymentFormJsonDataResponse {

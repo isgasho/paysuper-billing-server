@@ -880,6 +880,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	}
 	rsp.Item.Lang = order.User.Locale
 	rsp.Item.VatPayer = order.VatPayer
+	rsp.Item.IsProduction = order.IsProduction
 }
 
 func (s *Service) PaymentCreateProcess(
