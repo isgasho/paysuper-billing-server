@@ -258,8 +258,11 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	err := suite.service.paymentSystem.Update(context.TODO(), suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	for _, order := range orders {
-		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
+	for i, order := range orders {
+		if i%3 == 0 {
+			continue
+		}
+		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 		assert.NotNil(suite.T(), refund)
 	}
 
@@ -281,13 +284,13 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), report.Country, "RU")
 	assert.Equal(suite.T(), report.Currency, "RUB")
-	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
-	assert.EqualValues(suite.T(), report.GrossRevenue, 900)
-	assert.EqualValues(suite.T(), report.VatAmount, 150)
+	assert.EqualValues(suite.T(), report.TransactionsCount, 25)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 600)
+	assert.EqualValues(suite.T(), report.VatAmount, 100)
 	assert.EqualValues(suite.T(), report.FeesAmount, 144.38)
 	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
-	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 1800)
-	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 13183.1)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 600)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 4393.9)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "FI"}, &repRes)
@@ -300,13 +303,13 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), report.Country, "FI")
 	assert.Equal(suite.T(), report.Currency, "EUR")
-	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
-	assert.EqualValues(suite.T(), report.GrossRevenue, 81.31)
-	assert.EqualValues(suite.T(), report.VatAmount, 13.55)
+	assert.EqualValues(suite.T(), report.TransactionsCount, 25)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 54.2)
+	assert.EqualValues(suite.T(), report.VatAmount, 9.03)
 	assert.EqualValues(suite.T(), report.FeesAmount, 8.89)
 	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
-	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 162)
-	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 188.33)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 54)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 62.77)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	assert.NoError(suite.T(), err)
