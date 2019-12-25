@@ -24,7 +24,7 @@ import (
 type TokenTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	project                            *billing.Project
 	projectWithProducts                *billing.Project
@@ -359,7 +359,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

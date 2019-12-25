@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -111,7 +112,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 		}
 		req.Region = country.PayerTariffRegion
 	} else {
-		exists := s.country.IsTariffRegionExists(req.Region)
+		exists := s.country.IsTariffRegionSupported(req.Region)
 		if !exists {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
@@ -127,12 +128,12 @@ func (s *Service) SetPaymentChannelCostSystem(
 		res.Message = errorPaymentChannelSystemCurrency
 		return nil
 	}
-	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+	if !helper.Contains(sCurr.Currencies, req.FixAmountCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemCurrency
 		return nil
 	}
-	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+	if !helper.Contains(pkg.SupportedMccCodes, req.MccCode) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemMccCode
 		return nil
@@ -354,7 +355,6 @@ func (h PaymentChannelCostSystem) Get(
 			return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 		}
 	}
-
 
 	if len(set.Set) == 0 {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)

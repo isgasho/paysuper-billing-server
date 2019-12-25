@@ -47,6 +47,11 @@ func (suite *OrderTestSuite) TearDownTest() {
 	}
 }
 
+func (suite *CountryTestSuite) TestCountry_NewOrderRepository_Ok() {
+	repository := NewOrderRepository(suite.db)
+	assert.IsType(suite.T(), &orderRepository{}, repository)
+}
+
 func (suite *OrderTestSuite) TestOrder_Insert_Ok() {
 	order := &billing.Order{
 		Id: primitive.NewObjectID().Hex(),

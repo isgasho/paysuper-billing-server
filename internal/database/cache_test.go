@@ -1,4 +1,4 @@
-package service
+package database
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
+	"github.com/paysuper/paysuper-billing-server/internal/service"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -19,7 +19,7 @@ import (
 
 type CacheTestSuite struct {
 	suite.Suite
-	service *Service
+	service *service.Service
 	redis   redis.Cmdable
 	cache   CacheInterface
 	log     *zap.Logger
@@ -33,7 +33,7 @@ func (suite *CacheTestSuite) SetupTest() {
 	cfg, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
-	suite.redis = database.NewRedis(
+	suite.redis = NewRedis(
 		&redis.Options{
 			Addr:     cfg.RedisHost,
 			Password: cfg.RedisPassword,
@@ -42,7 +42,7 @@ func (suite *CacheTestSuite) SetupTest() {
 	suite.cache, err = NewCacheRedis(suite.redis, "cache")
 	assert.NoError(suite.T(), err)
 
-	suite.service = NewBillingService(
+	suite.service = service.NewBillingService(
 		nil,
 		cfg,
 		mocks.NewGeoIpServiceTestOk(),

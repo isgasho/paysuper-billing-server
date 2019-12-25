@@ -374,7 +374,13 @@ var (
 
 	SupportedMccCodes = []string{MccCodeLowRisk, MccCodeHighRisk}
 
-	SupportedTariffRegions = []string{TariffRegionRussiaAndCis, TariffRegionEurope, TariffRegionAsia, TariffRegionLatAm, TariffRegionWorldwide}
+	SupportedTariffRegions = []string{
+		TariffRegionRussiaAndCis,
+		TariffRegionEurope,
+		TariffRegionAsia,
+		TariffRegionLatAm,
+		TariffRegionWorldwide,
+	}
 
 	CountryPhoneCodes = map[int32]string{
 		7:    "RU",

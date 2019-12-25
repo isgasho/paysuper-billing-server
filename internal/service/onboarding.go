@@ -10,6 +10,7 @@ import (
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
 	"github.com/paysuper/document-signer/pkg/proto"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -321,7 +322,7 @@ func (s *Service) ChangeMerchant(
 
 	if req.Banking != nil {
 		if req.Banking.Currency != "" {
-			if !contains(s.supportedCurrencies, req.Banking.Currency) {
+			if !helper.Contains(s.supportedCurrencies, req.Banking.Currency) {
 				rsp.Status = pkg.ResponseStatusBadData
 				rsp.Message = merchantErrorCurrencyNotFound
 				return nil
@@ -1062,7 +1063,7 @@ func (s *Service) ChangeMerchantPaymentMethod(
 	req.Integration.Integrated = req.HasIntegration()
 
 	if req.HasPerTransactionCurrency() {
-		if !contains(s.supportedCurrencies, req.GetPerTransactionCurrency()) {
+		if !helper.Contains(s.supportedCurrencies, req.GetPerTransactionCurrency()) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = orderErrorCurrencyNotFound
 

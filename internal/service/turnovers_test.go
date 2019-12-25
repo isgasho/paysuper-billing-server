@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/now"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -29,7 +30,7 @@ type TurnoversTestSuite struct {
 	suite.Suite
 	service          *Service
 	log              *zap.Logger
-	cache            CacheInterface
+	cache            database.CacheInterface
 	country          *billing.Country
 	operatingCompany *billing.OperatingCompany
 }
@@ -56,7 +57,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -252,7 +253,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "EUR", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.Equal(suite.T(), at.Amount, worldAmount)
 
-	countries, err := suite.service.country.GetCountriesWithVatEnabled(context.TODO())
+	countries, err := suite.service.country.FindByVatEnabled(context.TODO())
 	assert.NoError(suite.T(), err)
 
 	n, err := suite.service.db.Collection(collectionAnnualTurnovers).CountDocuments(context.TODO(), bson.M{})

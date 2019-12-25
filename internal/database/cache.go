@@ -1,4 +1,4 @@
-package service
+package database
 
 import (
 	"encoding/json"
@@ -12,6 +12,8 @@ const (
 	CacheVersionKey = "cache:versions"
 
 	versionLimit = 2
+
+	errorInterfaceCast = "unable to cast interface to object %s"
 )
 
 type CacheInterface interface {

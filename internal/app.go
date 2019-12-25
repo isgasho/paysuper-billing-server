@@ -198,7 +198,7 @@ func (app *Application) Init() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-	cache, err := service.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
+	cache, err := database.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
 
 	if err != nil {
 		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -106,7 +107,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 		}
 		req.Region = country.PayerTariffRegion
 	} else {
-		exists := s.country.IsTariffRegionExists(req.Region)
+		exists := s.country.IsTariffRegionSupported(req.Region)
 		if !exists {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
@@ -120,17 +121,17 @@ func (s *Service) SetMoneyBackCostMerchant(
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
-	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+	if !helper.Contains(sCurr.Currencies, req.PayoutCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
-	if !contains(sCurr.Currencies, req.FixAmountCurrency) {
+	if !helper.Contains(sCurr.Currencies, req.FixAmountCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
-	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+	if !helper.Contains(pkg.SupportedMccCodes, req.MccCode) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantMccCode
 		return nil

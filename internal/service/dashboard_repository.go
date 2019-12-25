@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/now"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.mongodb.org/mongo-driver/bson"
@@ -438,7 +439,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 	merchantId, period, cacheKeyMask string,
 	status interface{},
 	db *mongodb.Source,
-	cache CacheInterface,
+	cache database.CacheInterface,
 	ctx context.Context,
 ) (*DashboardReportProcessor, error) {
 	current := time.Now()

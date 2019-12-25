@@ -48,6 +48,11 @@ func (suite *RefundTestSuite) TearDownTest() {
 	}
 }
 
+func (suite *CountryTestSuite) TestCountry_NewRefundRepository_Ok() {
+	repository := NewRefundRepository(suite.db)
+	assert.IsType(suite.T(), &refundRepository{}, repository)
+}
+
 func (suite *RefundTestSuite) TestRefund_Insert_Ok() {
 	refund := &billing.Refund{
 		Id:        primitive.NewObjectID().Hex(),
