@@ -463,10 +463,10 @@ func (p *createRefundProcessor) processCreateRefund() (*billing.Refund, error) {
 			Id:   order.Id,
 			Uuid: order.Uuid,
 		},
-		Amount:    p.request.Amount,
+		Amount:    order.ChargeAmount,
 		CreatorId: p.request.CreatorId,
 		Reason:    fmt.Sprintf(refundDefaultReasonMask, p.checked.order.Id),
-		Currency:  p.checked.order.ChargeCurrency,
+		Currency:  order.ChargeCurrency,
 		Status:    pkg.RefundStatusCreated,
 		CreatedAt: ptypes.TimestampNow(),
 		UpdatedAt: ptypes.TimestampNow(),
@@ -525,7 +525,7 @@ func (p *createRefundProcessor) processRefundsByOrder() error {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorUnknown)
 	}
 
-	if p.checked.order.ChargeAmount < (refundedAmount + p.request.Amount) {
+	if refundedAmount > 0 {
 		return newBillingServerResponseError(pkg.ResponseStatusBadData, refundErrorPaymentAmountLess)
 	}
 
