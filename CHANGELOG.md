@@ -1,7 +1,27 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2019-12-24
+
+###Added
+- The centrifugo has been split into multiple instances for sending notification to the Dashboard and the payment form.
+- Added an API method for VAT calculating in a payment process.
+
+### Changed
+- Changed the Project settings for VAT calculation. Added some options: to disable VAT for a customer in a payment process, to include VAT in a total payment amount.
+- Changed the card number checking for the China UnionPay card validation.
+- Update project's dependencies.
+
+### Removed
+- Removed the file `.gitlab-ci.yml`.
+
+### Fixed
+- Fix for a customer's country detection if it had not been determined by a user's IP address.
+
+***
+
 ## [1.0.0] - 2019-12-19
+
 ###Added
 - Limiting payments by country depending on the country issuing of the customer's bank card.
 - The logic of the rounding method for a payment amount for various currencies considering the presence or absence of a currency's fractional part.
