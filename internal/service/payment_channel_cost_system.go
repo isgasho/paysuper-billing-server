@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 )
 
 const (
@@ -354,7 +354,6 @@ func (h PaymentChannelCostSystem) Get(
 			return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
 		}
 	}
-
 
 	if len(set.Set) == 0 {
 		return nil, fmt.Errorf(errorNotFound, collectionPaymentChannelCostSystem)
