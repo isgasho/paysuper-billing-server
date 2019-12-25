@@ -267,6 +267,10 @@ func (s *Service) getOrdersList(
 		}
 	}
 
+	if req.HideTest == true {
+		query["is_production"] = true
+	}
+
 	count, err := s.db.Collection(source).CountDocuments(ctx, query)
 
 	if err != nil {
