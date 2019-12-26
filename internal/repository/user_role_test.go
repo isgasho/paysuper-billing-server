@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -24,7 +22,6 @@ import (
 type UserRoleTestSuite struct {
 	suite.Suite
 	db         *mongodb.Source
-	cache      database.CacheInterface
 	repository *userRoleRepository
 	log        *zap.Logger
 }
@@ -34,7 +31,7 @@ func Test_UserRole(t *testing.T) {
 }
 
 func (suite *UserRoleTestSuite) SetupTest() {
-	cfg, err := config.NewConfig()
+	_, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
 	suite.log, err = zap.NewProduction()
@@ -43,16 +40,7 @@ func (suite *UserRoleTestSuite) SetupTest() {
 	suite.db, err = mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	rds := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-	suite.cache, err = database.NewCacheRedis(rds, cfg.CacheRedis.Version)
-
-	suite.repository = &userRoleRepository{db: suite.db, cache: suite.cache}
+	suite.repository = &userRoleRepository{db: suite.db, cache: &mocks.CacheInterface{}}
 }
 
 func (suite *UserRoleTestSuite) TearDownTest() {
@@ -65,8 +53,8 @@ func (suite *UserRoleTestSuite) TearDownTest() {
 	}
 }
 
-func (suite *CountryTestSuite) TestCountry_NewUserRoleRepository_Ok() {
-	repository := NewUserRoleRepository(suite.db, suite.cache)
+func (suite *UserRoleTestSuite) TestCountry_NewUserRoleRepository_Ok() {
+	repository := NewUserRoleRepository(suite.db, &mocks.CacheInterface{})
 	assert.IsType(suite.T(), &userRoleRepository{}, repository)
 }
 
