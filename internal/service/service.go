@@ -89,7 +89,6 @@ type Service struct {
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
-	userRoleRepository         UserRoleServiceInterface
 	userProfileRepository      UserProfileRepositoryInterface
 	keyProductRepository       KeyProductRepositoryInterface
 	centrifugoPaymentForm      CentrifugoInterface
@@ -100,10 +99,11 @@ type Service struct {
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
+	casbinService              casbinProto.CasbinService
 	country                    repository.CountryRepositoryInterface
 	refundRepository           repository.RefundRepositoryInterface
 	orderRepository            repository.OrderRepositoryInterface
-	casbinService              casbinProto.CasbinService
+	userRoleRepository         repository.UserRoleRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -180,7 +180,6 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
-	s.userRoleRepository = newUserRoleRepository(s)
 	s.userProfileRepository = newUserProfileRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
 	s.centrifugoPaymentForm = newCentrifugo(s.cfg.CentrifugoPaymentForm, tools.NewLoggedHttpClient(zap.S()))
@@ -192,6 +191,7 @@ func (s *Service) Init() (err error) {
 	s.refundRepository = repository.NewRefundRepository(s.db)
 	s.orderRepository = repository.NewOrderRepository(s.db)
 	s.country = repository.NewCountryRepository(s.db, s.cacher)
+	s.userRoleRepository = repository.NewUserRoleRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
