@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -24,7 +22,6 @@ import (
 type CountryTestSuite struct {
 	suite.Suite
 	db         *mongodb.Source
-	cache      database.CacheInterface
 	repository *countryRepository
 	log        *zap.Logger
 }
@@ -34,7 +31,7 @@ func Test_Country(t *testing.T) {
 }
 
 func (suite *CountryTestSuite) SetupTest() {
-	cfg, err := config.NewConfig()
+	_, err := config.NewConfig()
 	assert.NoError(suite.T(), err, "Config load failed")
 
 	suite.log, err = zap.NewProduction()
@@ -43,16 +40,7 @@ func (suite *CountryTestSuite) SetupTest() {
 	suite.db, err = mongodb.NewDatabase()
 	assert.NoError(suite.T(), err, "Database connection failed")
 
-	rds := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cfg.CacheRedis.Address,
-		Password:     cfg.CacheRedis.Password,
-		MaxRetries:   cfg.CacheRedis.MaxRetries,
-		MaxRedirects: cfg.CacheRedis.MaxRedirects,
-		PoolSize:     cfg.CacheRedis.PoolSize,
-	})
-	suite.cache, err = database.NewCacheRedis(rds, cfg.CacheRedis.Version)
-
-	suite.repository = &countryRepository{db: suite.db, cache: suite.cache}
+	suite.repository = &countryRepository{db: suite.db, cache: &mocks.CacheInterface{}}
 }
 
 func (suite *CountryTestSuite) TearDownTest() {
@@ -66,12 +54,23 @@ func (suite *CountryTestSuite) TearDownTest() {
 }
 
 func (suite *CountryTestSuite) TestCountry_NewCountryRepository_Ok() {
-	repository := NewCountryRepository(suite.db, suite.cache)
+	repository := NewCountryRepository(suite.db, &mocks.CacheInterface{})
 	assert.IsType(suite.T(), &countryRepository{}, repository)
 }
 
 func (suite *CountryTestSuite) TestCountry_Insert_Ok() {
 	country := suite.getCountryTemplate()
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything).Return(errors.New("error"))
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -101,6 +100,17 @@ func (suite *CountryTestSuite) TestCountry_Insert_ErrorCache() {
 
 func (suite *CountryTestSuite) TestCountry_MultipleInsert_Ok() {
 	country := suite.getCountryTemplate()
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything).Return(errors.New("error"))
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	country.VatThreshold = nil
 	list := []*billing.Country{country}
 	err := suite.repository.MultipleInsert(context.TODO(), list)
@@ -134,10 +144,24 @@ func (suite *CountryTestSuite) TestCountry_MultipleInsert_ErrorCache() {
 
 func (suite *CountryTestSuite) TestCountry_Update_Ok() {
 	country := suite.getCountryTemplate()
+	updatedCode := "UA"
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Times(1).Return(nil)
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, updatedCode), mock.Anything, time.Duration(0)).Times(2).Return(nil)
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, updatedCode), mock.Anything, time.Duration(0)).Times(3).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, updatedCode), mock.Anything).Return(errors.New("error"))
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
-	country.IsoCodeA2 = "UA"
+	country.IsoCodeA2 = updatedCode
 	err = suite.repository.Update(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -155,6 +179,16 @@ func (suite *CountryTestSuite) TestCountry_Update_ErrorInvalidId() {
 
 func (suite *CountryTestSuite) TestCountry_Update_ErrorDb() {
 	country := suite.getCountryTemplate()
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -185,6 +219,17 @@ func (suite *CountryTestSuite) TestCountry_Update_ErrorCache() {
 
 func (suite *CountryTestSuite) TestCountry_GetByIsoCodeA2_NotFound() {
 	country := suite.getCountryTemplate()
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.Id), mock.Anything).Return(errors.New("error"))
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -273,6 +318,18 @@ func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_ErrorSetCache() {
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipVatDisable() {
 	country := suite.getCountryTemplate()
 	country.VatEnabled = false
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Times(1).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", cacheCountriesWithVatEnabled, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountriesWithVatEnabled, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -284,6 +341,18 @@ func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipVatDisable() {
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipUS() {
 	country := suite.getCountryTemplate()
 	country.IsoCodeA2 = "US"
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Times(1).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", cacheCountriesWithVatEnabled, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountriesWithVatEnabled, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -295,6 +364,18 @@ func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipUS() {
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipEmptyRatePolicy() {
 	country := suite.getCountryTemplate()
 	country.VatCurrencyRatesPolicy = ""
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Times(1).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", cacheCountriesWithVatEnabled, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountriesWithVatEnabled, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -306,6 +387,18 @@ func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipEmptyRatePolicy(
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipEmptyPeriodMonth() {
 	country := suite.getCountryTemplate()
 	country.VatPeriodMonth = int32(0)
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Times(1).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", cacheCountriesWithVatEnabled, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountriesWithVatEnabled, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -320,6 +413,18 @@ func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_Ok() {
 	country.IsoCodeA2 = "RU"
 	country.VatCurrencyRatesPolicy = "yes"
 	country.VatPeriodMonth = int32(1)
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Times(1).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", cacheCountriesWithVatEnabled, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountriesWithVatEnabled, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -350,6 +455,11 @@ func (suite *CountryTestSuite) TestCountry_GetAll_ErrorSetCache() {
 }
 
 func (suite *CountryTestSuite) TestCountry_GetAll_EmptyList() {
+	cache := &mocks.CacheInterface{}
+	cache.On("Get", cacheCountryAll, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountryAll, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	list, err := suite.repository.GetAll(context.TODO())
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), list.Countries, 0)
@@ -357,6 +467,18 @@ func (suite *CountryTestSuite) TestCountry_GetAll_EmptyList() {
 
 func (suite *CountryTestSuite) TestCountry_GetAll_NotEmptyList() {
 	country := suite.getCountryTemplate()
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", cacheCountryAll, mock.Anything).Return(errors.New("error"))
+	cache.On("Set", cacheCountryAll, mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -392,6 +514,18 @@ func (suite *CountryTestSuite) TestCountry_FindByHighRisk_NotEmptyListHighRisk()
 	country := suite.getCountryTemplate()
 	country.PaymentsAllowed = false
 	country.HighRiskPaymentsAllowed = true
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryRisk, true), mock.Anything).Return(errors.New("error"))
+	cache.On("Set", fmt.Sprintf(cacheCountryRisk, true), mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
@@ -406,6 +540,18 @@ func (suite *CountryTestSuite) TestCountry_FindByHighRisk_NotEmptyListLowRisk() 
 	country := suite.getCountryTemplate()
 	country.PaymentsAllowed = true
 	country.HighRiskPaymentsAllowed = false
+
+	cache := &mocks.CacheInterface{}
+	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Return(nil)
+	cache.On("Delete", cacheCountryAll).Return(nil)
+	cache.On("Delete", cacheCountryRegions).Return(nil)
+	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
+	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryRisk, false), mock.Anything).Return(errors.New("error"))
+	cache.On("Set", fmt.Sprintf(cacheCountryRisk, false), mock.Anything, time.Duration(0)).Return(nil)
+	suite.repository.cache = cache
+
 	err := suite.repository.Insert(context.TODO(), country)
 	assert.NoError(suite.T(), err)
 
