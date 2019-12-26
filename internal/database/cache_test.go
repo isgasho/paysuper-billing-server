@@ -5,11 +5,7 @@ import (
 	"github.com/go-redis/redis"
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/internal/service"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
@@ -19,10 +15,9 @@ import (
 
 type CacheTestSuite struct {
 	suite.Suite
-	service *service.Service
-	redis   redis.Cmdable
-	cache   CacheInterface
-	log     *zap.Logger
+	redis redis.Cmdable
+	cache CacheInterface
+	log   *zap.Logger
 }
 
 func Test_Cache(t *testing.T) {
@@ -41,27 +36,6 @@ func (suite *CacheTestSuite) SetupTest() {
 	)
 	suite.cache, err = NewCacheRedis(suite.redis, "cache")
 	assert.NoError(suite.T(), err)
-
-	suite.service = service.NewBillingService(
-		nil,
-		cfg,
-		mocks.NewGeoIpServiceTestOk(),
-		mocks.NewRepositoryServiceOk(),
-		mocks.NewTaxServiceOkMock(),
-		nil,
-		nil,
-		suite.cache,
-		mocks.NewCurrencyServiceMockOk(),
-		mocks.NewDocumentSignerMockOk(),
-		&reportingMocks.ReporterService{},
-		mocks.NewFormatterOK(),
-		mocks.NewBrokerMockOk(),
-		&casbinMocks.CasbinService{},
-	)
-
-	if err := suite.service.Init(); err != nil {
-		suite.FailNow("Billing service initialization failed", "%v", err)
-	}
 }
 
 func (suite *CacheTestSuite) TearDownTest() {
