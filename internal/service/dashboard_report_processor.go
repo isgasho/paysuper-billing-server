@@ -7,7 +7,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 type DashboardReportProcessor struct {
-	Db          *mongodb.Source
+	Db          mongodb.SourceInterface
 	Collection  string
 	Match       bson.M
 	GroupBy     string

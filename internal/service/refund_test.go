@@ -23,7 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
@@ -905,81 +905,6 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_Ok() {
 	assert.Equal(suite.T(), pkg.RefundStatusInProgress, refund.Status)
 }
 
-func (suite *RefundTestSuite) TestRefund_CreateRefund_AmountLess_Error() {
-	req := &billing.OrderCreateRequest{
-		Type:        billing.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "some_email@unit.com",
-			Ip:    "127.0.0.1",
-			Phone: "123456789",
-		},
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &grpc.PaymentCreateRequest{
-		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-	}
-
-	rsp1 := &grpc.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
-	assert.NoError(suite.T(), err)
-
-	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-
-	order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
-	err = suite.service.updateOrder(context.TODO(), order)
-
-	req2 := &grpc.CreateRefundRequest{
-		OrderId:    order.Uuid,
-		Amount:     50,
-		CreatorId:  primitive.NewObjectID().Hex(),
-		Reason:     "unit test",
-		MerchantId: suite.project.MerchantId,
-	}
-	rsp2 := &grpc.CreateRefundResponse{}
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Equal(suite.T(), pkg.RefundStatusInProgress, rsp2.Item.Status)
-
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Equal(suite.T(), pkg.RefundStatusInProgress, rsp2.Item.Status)
-
-	req2.Amount = order.TotalPaymentAmount
-	rsp3 := &grpc.CreateRefundResponse{}
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp3)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp3.Status)
-	assert.Equal(suite.T(), refundErrorPaymentAmountLess, rsp3.Message)
-	assert.Empty(suite.T(), rsp3.Item)
-}
-
 func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Error() {
 	req := &billing.OrderCreateRequest{
 		Type:        billing.OrderType_simple,
@@ -1301,7 +1226,6 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
-		Amount:     10,
 		CreatorId:  primitive.NewObjectID().Hex(),
 		Reason:     "unit test",
 		MerchantId: suite.project.MerchantId,
@@ -1315,15 +1239,8 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 
 	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-	assert.NotEmpty(suite.T(), rsp2.Item)
-
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-	assert.NotEmpty(suite.T(), rsp2.Item)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp2.Status)
+	assert.NotEmpty(suite.T(), rsp2.Message)
 
 	req3 := &grpc.ListRefundsRequest{
 		MerchantId: order.GetMerchantId(),
@@ -1334,96 +1251,8 @@ func (suite *RefundTestSuite) TestRefund_ListRefunds_Ok() {
 	rsp3 := &grpc.ListRefundsResponse{}
 	err = suite.service.ListRefunds(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), int64(3), rsp3.Count)
+	assert.EqualValues(suite.T(), int64(1), rsp3.Count)
 	assert.Len(suite.T(), rsp3.Items, int(rsp3.Count))
-	assert.Equal(suite.T(), rsp2.Item.Id, rsp3.Items[2].Id)
-}
-
-func (suite *RefundTestSuite) TestRefund_ListRefunds_Limit_Ok() {
-	req := &billing.OrderCreateRequest{
-		Type:        billing.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
-			Email: "some_email@unit.com",
-			Ip:    "127.0.0.1",
-			Phone: "123456789",
-		},
-	}
-
-	rsp0 := &grpc.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, pkg.ResponseStatusOk)
-	rsp := rsp0.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &grpc.PaymentCreateRequest{
-		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         rsp.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-	}
-
-	rsp1 := &grpc.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
-	assert.NoError(suite.T(), err)
-
-	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-
-	order.PrivateStatus = constant.OrderStatusProjectComplete
-	err = suite.service.updateOrder(context.TODO(), order)
-
-	req2 := &grpc.CreateRefundRequest{
-		OrderId:    rsp.Uuid,
-		Amount:     10,
-		CreatorId:  primitive.NewObjectID().Hex(),
-		Reason:     "unit test",
-		MerchantId: suite.project.MerchantId,
-	}
-	rsp2 := &grpc.CreateRefundResponse{}
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-	assert.NotEmpty(suite.T(), rsp2.Item)
-
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-	assert.NotEmpty(suite.T(), rsp2.Item)
-
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-	assert.NotEmpty(suite.T(), rsp2.Item)
-
-	req3 := &grpc.ListRefundsRequest{
-		MerchantId: order.GetMerchantId(),
-		OrderId:    order.Uuid,
-		Limit:      1,
-		Offset:     0,
-	}
-	rsp3 := &grpc.ListRefundsResponse{}
-	err = suite.service.ListRefunds(context.TODO(), req3, rsp3)
-	assert.NoError(suite.T(), err)
-	assert.EqualValues(suite.T(), int64(3), rsp3.Count)
-	assert.Len(suite.T(), rsp3.Items, int(req3.Limit))
 }
 
 func (suite *RefundTestSuite) TestRefund_ListRefunds_NoResults_Ok() {
@@ -1634,7 +1463,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
-		Amount:     10,
 		CreatorId:  primitive.NewObjectID().Hex(),
 		Reason:     "unit test",
 		MerchantId: suite.project.MerchantId,
@@ -1706,7 +1534,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), accountingEntries)
 
-	refundOrder, err := suite.service.orderRepository.GetByRefundReceiptNumber(context.TODO(), refund.Id)
+	refundOrder, err := suite.service.orderRepository.GetById(context.TODO(), refund.CreatedOrderId)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), refundOrder)
 	assert.Equal(suite.T(), rsp.Id, refundOrder.ParentOrder.Id)
@@ -2481,7 +2309,6 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 
 	req2 := &grpc.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
-		Amount:     10,
 		CreatorId:  primitive.NewObjectID().Hex(),
 		Reason:     "unit test",
 		MerchantId: suite.project.MerchantId,
@@ -2507,7 +2334,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 			RemainingAmount: 90,
 		},
 		RefundData: &billing.CardPayRefundCallbackRefundData{
-			Amount:   10,
+			Amount:   order.ChargeAmount,
 			Created:  time.Now().Format(cardPayDateFormat),
 			Id:       primitive.NewObjectID().Hex(),
 			Currency: rsp2.Item.Currency,
@@ -2975,7 +2802,6 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_NotHasCostsRates() {
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunded_OtherOrders_Ok() {
 	orderAmounts := []float64{100, 200, 300}
-	refundAmounts := []float64{20, 40, 60}
 	orders := make([]*billing.Order, 0)
 
 	for _, v := range orderAmounts {
@@ -2985,27 +2811,21 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 		orders = append(orders, order)
 	}
 
-	for _, v := range refundAmounts {
-		for _, v1 := range orders {
-			_ = helperMakeRefund(suite.Suite, suite.service, v1, v, false)
-		}
+	for _, v1 := range orders {
+		_ = helperMakeRefund(suite.Suite, suite.service, v1, v1.ChargeAmount, false)
 	}
 
-	for k, v := range orders {
+	for _, v := range orders {
 		order, err := suite.service.getOrderById(context.TODO(), v.Id)
 		assert.NoError(suite.T(), err)
 		assert.NotNil(suite.T(), order)
 
-		if k == 0 {
-			assert.EqualValues(suite.T(), constant.OrderStatusRefund, order.PrivateStatus)
-			assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, order.Status)
-			assert.NotNil(suite.T(), order.Refund)
-			assert.NotZero(suite.T(), order.Refund.Amount)
-			assert.NotZero(suite.T(), order.Refund.Reason)
-			assert.NotZero(suite.T(), order.Refund.ReceiptNumber)
-		} else {
-			assert.EqualValues(suite.T(), constant.OrderPublicStatusProcessed, order.Status)
-			assert.Nil(suite.T(), order.Refund)
-		}
+		assert.EqualValues(suite.T(), constant.OrderStatusRefund, order.PrivateStatus)
+		assert.Equal(suite.T(), constant.OrderPublicStatusRefunded, order.Status)
+		assert.NotNil(suite.T(), order.Refund)
+		assert.NotZero(suite.T(), order.Refund.Amount)
+		assert.NotZero(suite.T(), order.Refund.Reason)
+		assert.NotZero(suite.T(), order.Refund.ReceiptNumber)
+
 	}
 }

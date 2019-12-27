@@ -35,7 +35,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"net"
 	"sort"
 	"strconv"
@@ -2795,7 +2795,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2820,7 +2820,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactiv
 	err := processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2846,7 +2846,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactiv
 	err := processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2882,7 +2882,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2919,7 +2919,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2956,7 +2956,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 	err = processor.processCurrency(req.Type)
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -2994,7 +2994,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -3032,7 +3032,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -3070,7 +3070,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 
 	processor.processAmount()
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -3326,7 +3326,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 	err = processor.processLimitAmounts()
 	assert.Nil(suite.T(), err)
 
-	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.projectWithProducts, req.PaymentMethod, processor.checked.currency)
+	pm, err := suite.service.paymentMethod.GetByGroupAndCurrency(context.TODO(), suite.project.IsProduction(), req.PaymentMethod, processor.checked.currency)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), pm)
 
@@ -3808,7 +3808,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_DevEnviro
 		},
 	}
 
-	pms, err := processor.processRenderFormPaymentMethods(context.TODO(), suite.project)
+	pms, err := processor.processRenderFormPaymentMethods(context.TODO())
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(pms) > 0)
@@ -3847,7 +3847,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProdEnvir
 			Host:    "unit.test",
 		},
 	}
-	pms, err := processor.processRenderFormPaymentMethods(context.TODO(), suite.project)
+	pms, err := processor.processRenderFormPaymentMethods(context.TODO())
 
 	assert.Nil(suite.T(), err)
 	assert.True(suite.T(), len(pms) > 0)

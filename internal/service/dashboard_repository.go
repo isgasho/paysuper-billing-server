@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -438,7 +438,7 @@ func (m *DashboardRepository) GetBaseSourcesReport(
 func (m *DashboardRepository) NewDashboardReportProcessor(
 	merchantId, period, cacheKeyMask string,
 	status interface{},
-	db *mongodb.Source,
+	db mongodb.SourceInterface,
 	cache database.CacheInterface,
 	ctx context.Context,
 ) (*DashboardReportProcessor, error) {

@@ -3166,6 +3166,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 				"billing_country_changed_by_user":                   1,
 				"refund_allowed":                                    "$is_refund_allowed",
 				"vat_payer":                                         1,
+				"is_production":                                     1,
 				"merchant_payout_currency": bson.M{
 					"$ifNull": list{"$net_revenue.currency", "$refund_reverse_revenue.currency"},
 				},
@@ -3393,6 +3394,7 @@ func (ow *OrderView) GetRoyaltySummary(
 				"merchant_payout_currency": currency,
 				"pm_order_close_date":      bson.M{"$gte": from, "$lte": to},
 				"status":                   bson.M{"$in": statusForRoyaltySummary},
+				"is_production":            true,
 			},
 		},
 		{

@@ -520,6 +520,8 @@ message PaymentFormJsonData {
     double vat_rate = 28;
     // @inject_tag: json:"vat_payer"
     string vat_payer = 29;
+    // @inject_tag: json:"is_production"
+    bool is_production = 30;
 }
 
 message PaymentFormJsonDataResponse {
@@ -1194,6 +1196,8 @@ message ListOrdersRequest {
     string status_notification_failed_for = 16;
     // @inject_tag: query:"type" validate:"omitempty,oneof=simple product key"
     string type = 17;
+    // @inject_tag: query:"hide_test"
+    bool hide_test = 18;
 }
 
 message GetOrderRequest {

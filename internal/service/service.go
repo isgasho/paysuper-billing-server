@@ -23,7 +23,7 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"strings"
 	"sync"
 )
@@ -52,7 +52,7 @@ const (
 )
 
 type Service struct {
-	db                         *mongodb.Source
+	db                         mongodb.SourceInterface
 	mx                         sync.Mutex
 	cfg                        *config.Config
 	ctx                        context.Context
@@ -124,7 +124,7 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 }
 
 func NewBillingService(
-	db *mongodb.Source,
+	db mongodb.SourceInterface,
 	cfg *config.Config,
 	geo proto.GeoIpService,
 	rep recurringRep.RepositoryService,

@@ -7,14 +7,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 )
 
 type orderRepository repository
 
 // NewOrderRepository create and return an object for working with the order repository.
 // The returned object implements the OrderRepositoryInterface interface.
-func NewOrderRepository(db *mongodb.Source) OrderRepositoryInterface {
+func NewOrderRepository(db mongodb.SourceInterface) OrderRepositoryInterface {
 	s := &orderRepository{db: db}
 	return s
 }

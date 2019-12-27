@@ -25,7 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
@@ -823,63 +823,6 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_USD_EUR_VatPay
 	assert.NoError(suite.T(), err)
 	suite.helperCheckOrderView(order.Id, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, orderControlResults)
 
-	oid, _ := primitive.ObjectIDFromHex(refund.Id)
-	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
-	assert.NoError(suite.T(), err)
-	suite.helperCheckRefundView(refund.CreatedOrderId, orderCurrency, merchantRoyaltyCurrency, country.VatCurrency, refundControlResults)
-}
-
-func (suite *AccountingEntryTestSuite) TestAccountingEntry_PartialRefund_Ok_RUB_USD_EUR() {
-	orderAmount := float64(650)
-	orderCountry := "FI"
-	orderCurrency := "RUB"
-	refundControlResults := map[string]float64{
-		"real_refund":                          6,
-		"real_refund_tax_fee":                  1,
-		"real_refund_fee":                      0.6,
-		"real_refund_fixed_fee":                0.166154,
-		"merchant_refund":                      6.12,
-		"ps_merchant_refund_fx":                0.12,
-		"merchant_refund_fee":                  0,
-		"ps_markup_merchant_refund_fee":        -0.6,
-		"merchant_refund_fixed_fee_cost_value": 0,
-		"merchant_refund_fixed_fee":            0,
-		"ps_merchant_refund_fixed_fee_fx":      0,
-		"ps_merchant_refund_fixed_fee_profit":  -0.15,
-		"reverse_tax_fee":                      0.982218,
-		"reverse_tax_fee_delta":                0.002128,
-		"ps_reverse_tax_fee_delta":             0,
-		"merchant_reverse_tax_fee":             0.982218,
-		"merchant_reverse_revenue":             5.137782,
-		"ps_refund_profit":                     -0.712218,
-	}
-
-	order := helperCreateAndPayOrder(suite.Suite, suite.service, orderAmount, orderCurrency, orderCountry, suite.projectFixedAmount, suite.paymentMethod)
-	assert.NotNil(suite.T(), order)
-
-	suite.paymentSystem.Handler = "mock_ok"
-	err := suite.service.paymentSystem.Update(ctx, suite.paymentSystem)
-	assert.NoError(suite.T(), err)
-
-	refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
-	assert.NotNil(suite.T(), refund)
-	refundAccountingEntries := suite.helperGetAccountingEntries(refund.CreatedOrderId, repository.CollectionRefund)
-	assert.Equal(suite.T(), len(refundAccountingEntries), len(refundControlResults)-7)
-	merchantRoyaltyCurrency := order.GetMerchantRoyaltyCurrency()
-	assert.Equal(suite.T(), merchantRoyaltyCurrency, "USD")
-	for _, entry := range refundAccountingEntries {
-		if !assert.Equal(suite.T(), entry.Amount, refundControlResults[entry.Type]) {
-			fmt.Println(entry.Type, entry.Amount, refundControlResults[entry.Type])
-		}
-		assert.Equal(suite.T(), entry.Currency, merchantRoyaltyCurrency)
-	}
-
-	controlRealRefund := refundControlResults["merchant_reverse_revenue"] + refundControlResults["merchant_reverse_tax_fee"] -
-		refundControlResults["merchant_refund_fixed_fee"] - refundControlResults["merchant_refund_fee"] - refundControlResults["ps_merchant_refund_fx"]
-	assert.Equal(suite.T(), refundControlResults["real_refund"], tools.ToPrecise(controlRealRefund))
-
-	country, err := suite.service.country.GetByIsoCodeA2(ctx, orderCountry)
-	assert.NoError(suite.T(), err)
 	oid, _ := primitive.ObjectIDFromHex(refund.Id)
 	err = suite.service.db.Collection(repository.CollectionRefund).FindOne(ctx, bson.M{"_id": oid}).Decode(&refund)
 	assert.NoError(suite.T(), err)

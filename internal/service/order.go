@@ -494,7 +494,7 @@ func (s *Service) OrderCreateProcess(
 	if req.PaymentMethod != "" {
 		pm, err := s.paymentMethod.GetByGroupAndCurrency(
 			ctx,
-			processor.checked.project,
+			processor.checked.project.IsProduction(),
 			req.PaymentMethod,
 			processor.checked.currency,
 		)
@@ -804,15 +804,7 @@ func (s *Service) PaymentFormJsonDataProcess(
 		return err
 	}
 
-	project, err := s.project.GetById(ctx, order.Project.Id)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = orderErrorProjectNotFound
-		return nil
-	}
-
-	pms, err := p.processRenderFormPaymentMethods(ctx, project)
+	pms, err := p.processRenderFormPaymentMethods(ctx)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -889,6 +881,7 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	}
 	rsp.Item.Lang = order.User.Locale
 	rsp.Item.VatPayer = order.VatPayer
+	rsp.Item.IsProduction = order.IsProduction
 }
 
 func (s *Service) PaymentCreateProcess(
@@ -1012,7 +1005,7 @@ func (s *Service) PaymentCreateProcess(
 		order.MccCode,
 		order.OperatingCompanyId,
 		methodName,
-		processor.checked.project,
+		order.IsProduction,
 	)
 
 	if err != nil {
@@ -1463,7 +1456,7 @@ func (s *Service) PaymentFormPaymentAccountChanged(
 		order.MccCode,
 		order.OperatingCompanyId,
 		methodName,
-		project,
+		order.IsProduction,
 	)
 
 	if err != nil {
@@ -2160,6 +2153,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 		IsHighRisk:              v.checked.merchant.IsHighRisk(),
 		IsCurrencyPredefined:    v.checked.isCurrencyPredefined,
 		VatPayer:                v.checked.project.VatPayer,
+		IsProduction:            v.checked.project.IsProduction(),
 	}
 
 	if v.checked.virtualAmount > 0 {
@@ -2221,7 +2215,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 				v.checked.mccCode,
 				v.checked.operatingCompanyId,
 				methodName,
-				v.checked.project,
+				order.IsProduction,
 			)
 
 			if err != nil {
@@ -2452,7 +2446,7 @@ func (v *OrderCreateRequestProcessor) processPaymentMethod(pm *billing.PaymentMe
 		return orderErrorPaymentSystemInactive
 	}
 
-	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.mccCode, v.checked.operatingCompanyId, "", v.checked.project)
+	_, err := v.Service.paymentMethod.GetPaymentSettings(pm, v.checked.currency, v.checked.mccCode, v.checked.operatingCompanyId, "", v.checked.project.IsProduction())
 
 	if err != nil {
 		return err
@@ -2723,20 +2717,16 @@ func (v *OrderCreateRequestProcessor) processUserData() (err error) {
 // GetById payment methods of project for rendering in payment form
 func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 	ctx context.Context,
-	project *billing.Project,
 ) ([]*billing.PaymentFormPaymentMethod, error) {
 	var projectPms []*billing.PaymentFormPaymentMethod
 
-	paymentMethods, err := v.service.paymentMethod.ListByParams(
+	paymentMethods, err := v.service.paymentMethod.ListByOrder(
 		ctx,
-		project,
-		v.order.Currency,
-		v.order.MccCode,
-		v.order.OperatingCompanyId,
+		v.order,
 	)
 
 	if err != nil {
-		zap.S().Errorw("ListByParams failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
+		zap.S().Errorw("ListByOrder failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
 		return nil, err
 	}
 
@@ -2760,7 +2750,7 @@ func (v *PaymentFormProcessor) processRenderFormPaymentMethods(
 			(pm.MaxPaymentAmount > 0 && v.order.OrderAmount > pm.MaxPaymentAmount) {
 			continue
 		}
-		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, "", project)
+		_, err = v.service.paymentMethod.GetPaymentSettings(pm, v.order.Currency, v.order.MccCode, v.order.OperatingCompanyId, "", v.order.IsProduction)
 
 		if err != nil {
 			zap.S().Errorw("GetPaymentSettings failed", "error", err, "order_id", v.order.Id, "order_uuid", v.order.Uuid)
@@ -3169,7 +3159,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 			processor.checked.mccCode,
 			processor.checked.operatingCompanyId,
 			methodName,
-			processor.checked.project,
+			order.IsProduction,
 		)
 
 		if err != nil {
@@ -4339,6 +4329,7 @@ func (s *Service) hasPaymentCosts(ctx context.Context, order *billing.Order) boo
 	)
 
 	if err != nil {
+		zap.L().Info("debug_1", zap.String("method", "paymentChannelCostSystem"))
 		return false
 	}
 
@@ -4352,6 +4343,11 @@ func (s *Service) hasPaymentCosts(ctx context.Context, order *billing.Order) boo
 		MccCode:        order.MccCode,
 	}
 	_, err = s.getPaymentChannelCostMerchant(ctx, data)
+
+	if err != nil {
+		zap.L().Info("debug_1", zap.String("method", "PaymentChannelCostMerchantRequest"))
+	}
+
 	return err == nil
 }
 
@@ -4563,17 +4559,12 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 	}
 
 	// check that we have terminal in payment method for bin country currency
-	project, err := s.project.GetById(ctx, order.Project.Id)
-	if err != nil {
-		return nil
-	}
-
 	pm, err := s.paymentMethod.GetById(ctx, order.PaymentMethod.Id)
 	if err != nil {
 		return nil
 	}
 
-	_, err = s.paymentMethod.GetPaymentSettings(pm, binCountry.Currency, order.MccCode, order.OperatingCompanyId, binCardBrand, project)
+	_, err = s.paymentMethod.GetPaymentSettings(pm, binCountry.Currency, order.MccCode, order.OperatingCompanyId, binCardBrand, order.IsProduction)
 	if err != nil {
 		return nil
 	}

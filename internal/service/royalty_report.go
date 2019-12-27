@@ -608,6 +608,7 @@ func (s *Service) ListRoyaltyReportOrders(
 		"merchant_id":         oid,
 		"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
 		"status":              bson.M{"$in": orderStatusForRoyaltyReports},
+		"is_production":       true,
 	}
 
 	ts, err := s.orderView.GetTransactionsPublic(ctx, match, req.Limit, req.Offset)
@@ -632,6 +633,7 @@ func (s *Service) getRoyaltyReportMerchantsByPeriod(ctx context.Context, from, t
 			"$match": bson.M{
 				"pm_order_close_date": bson.M{"$gte": from, "$lte": to},
 				"status":              bson.M{"$in": orderStatusForRoyaltyReports},
+				"is_production":       true,
 			},
 		},
 		{"$project": bson.M{"project.merchant_id": true}},

@@ -651,6 +651,8 @@ message Order {
     bool is_refund_allowed = 85;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 86;
+    // @inject_tag: json:"is_production"
+    bool is_production = 87;
 }
 
 message ParentOrder {
@@ -1873,6 +1875,8 @@ message OrderViewPublic {
     bool billing_country_changed_by_user = 49;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 50;
+    // @inject_tag: json:"is_production" bson:"is_production"
+    bool is_production = 51;
 }
 
 message OrderViewPrivate {
@@ -2046,6 +2050,8 @@ message OrderViewPrivate {
     bool billing_country_changed_by_user = 84;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 85;
+    // @inject_tag: json:"is_production" bson:"is_production"
+    bool is_production = 86;
 }
 
 message RecommendedPrice {

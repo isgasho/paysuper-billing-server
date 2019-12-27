@@ -14,6 +14,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -21,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
@@ -183,6 +184,8 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	countryCode := "RU"
 
 	suite.fillAccountingEntries(suite.operatingCompany.Id, countryCode, 10)
+	err := suite.service.updateOrderView(context.TODO(), []string{})
+	assert.NoError(suite.T(), err)
 
 	country, err := suite.service.country.GetByIsoCodeA2(context.TODO(), countryCode)
 	assert.NoError(suite.T(), err)
@@ -202,6 +205,9 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	assert.True(suite.T(), ref2 > ref1)
 
 	suite.fillAccountingEntries(suite.operatingCompany.Id, "TR", 10)
+	err = suite.service.updateOrderView(context.TODO(), []string{})
+	assert.NoError(suite.T(), err)
+
 	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	ref3 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), suite.operatingCompany.Id, "", "RUB", "on-day")
@@ -214,8 +220,10 @@ func (suite *TurnoversTestSuite) TestTurnovers_calcAnnualTurnover() {
 
 	suite.fillAccountingEntries(suite.operatingCompany.Id, countryCode, 10)
 	suite.fillAccountingEntries(suite.operatingCompany.Id, "TR", 10)
+	err := suite.service.updateOrderView(context.TODO(), []string{})
+	assert.NoError(suite.T(), err)
 
-	err := suite.service.calcAnnualTurnover(context.TODO(), countryCode, suite.operatingCompany.Id)
+	err = suite.service.calcAnnualTurnover(context.TODO(), countryCode, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 
 	at, err := suite.service.turnover.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
@@ -232,8 +240,10 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 
 	suite.fillAccountingEntries(suite.operatingCompany.Id, countryCode, 10)
 	suite.fillAccountingEntries(suite.operatingCompany.Id, "TR", 10)
+	err := suite.service.updateOrderView(context.TODO(), []string{})
+	assert.NoError(suite.T(), err)
 
-	err := suite.service.CalcAnnualTurnovers(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	err = suite.service.CalcAnnualTurnovers(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	assert.NoError(suite.T(), err)
 
 	at, err := suite.service.turnover.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
@@ -287,12 +297,43 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 		createdAt, err := ptypes.TimestampProto(date)
 		assert.NoError(suite.T(), err)
 
+		order := &billing.Order{
+			Id:                 primitive.NewObjectID().Hex(),
+			Status:             constant.OrderPublicStatusProcessed,
+			PrivateStatus:      constant.OrderStatusProjectComplete,
+			CreatedAt:          createdAt,
+			TotalPaymentAmount: float64(count),
+			Currency:           currs[count%2],
+			BillingAddress: &billing.OrderBillingAddress{
+				Country: countryCode,
+			},
+			Tax: &billing.OrderTax{
+				Type:     "",
+				Rate:     0,
+				Amount:   0,
+				Currency: currs[count%2],
+			},
+			Project: &billing.ProjectOrder{
+				Id:         primitive.NewObjectID().Hex(),
+				MerchantId: primitive.NewObjectID().Hex(),
+			},
+			PaymentMethodOrderClosedAt: createdAt,
+			OrderAmount:                float64(count),
+			Type:                       pkg.OrderTypeOrder,
+			OperatingCompanyId:         operatingCompanyId,
+			ChargeCurrency:             currs[count%2],
+			ChargeAmount:               float64(count),
+			IsProduction:               true,
+		}
+
+		_, err = suite.service.db.Collection(repository.CollectionOrder).InsertOne(context.TODO(), order)
+
 		entry := &billing.AccountingEntry{
 			Id:     primitive.NewObjectID().Hex(),
 			Object: pkg.ObjectTypeBalanceTransaction,
 			Type:   types[count%2],
 			Source: &billing.AccountingEntrySource{
-				Id:   primitive.NewObjectID().Hex(),
+				Id:   order.Id,
 				Type: repository.CollectionOrder,
 			},
 			MerchantId:         primitive.NewObjectID().Hex(),
@@ -314,14 +355,25 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 
 func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, operatingCompanyId, countryCode, targetCurrency, currencyPolicy string) float64 {
 	matchQuery := bson.M{
-		"created_at":           bson.M{"$gte": from, "$lte": to},
-		"type":                 bson.M{"$in": accountingEntriesForTurnover},
+		"pm_order_close_date": bson.M{
+			"$gte": from,
+			"$lte": to,
+		},
 		"operating_company_id": operatingCompanyId,
+		"is_production":        true,
+		"type":                 pkg.OrderTypeOrder,
+		"status":               constant.OrderPublicStatusProcessed,
+		"payment_gross_revenue_origin": bson.M{
+			"$ne": nil,
+		},
+		"payment_gross_revenue_local": bson.M{
+			"$ne": nil,
+		},
 	}
 	if countryCode != "" {
-		matchQuery["country"] = countryCode
+		matchQuery["country_code"] = countryCode
 	} else {
-		matchQuery["country"] = bson.M{"$ne": ""}
+		matchQuery["country_code"] = bson.M{"$ne": ""}
 	}
 
 	query := []bson.M{
@@ -332,18 +384,34 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, operat
 
 	switch currencyPolicy {
 	case pkg.VatCurrencyRatesPolicyOnDay:
-		query = append(query, bson.M{"$group": bson.M{"_id": "$local_currency", "amount": bson.M{"$sum": "$local_amount"}}})
+		query = append(query, bson.M{
+			"$group": bson.M{
+				"_id": "$payment_gross_revenue_local.currency",
+				"amount": bson.M{
+					"$sum": "$payment_gross_revenue_local.amount",
+				},
+			},
+		})
 		break
+
 	case pkg.VatCurrencyRatesPolicyLastDay:
-		query = append(query, bson.M{"$group": bson.M{"_id": "$original_currency", "amount": bson.M{"$sum": "$original_amount"}}})
+		query = append(query, bson.M{
+			"$group": bson.M{
+				"_id": "$payment_gross_revenue_origin.currency",
+				"amount": bson.M{
+					"$sum": "$payment_gross_revenue_origin.amount",
+				},
+			},
+		})
 		break
+
 	default:
 		return -1
 	}
 
 	var res []*turnoverQueryResItem
 
-	cursor, err := suite.service.db.Collection(collectionAccountingEntry).Aggregate(context.TODO(), query)
+	cursor, err := suite.service.db.Collection(collectionOrderView).Aggregate(context.TODO(), query)
 	assert.NoError(suite.T(), err)
 
 	if err != nil {

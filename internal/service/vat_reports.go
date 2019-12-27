@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -299,6 +299,7 @@ func (s *Service) GetVatReportTransactions(
 		},
 		"country_code":         vr.Country,
 		"operating_company_id": vr.OperatingCompanyId,
+		"is_production":        true,
 	}
 
 	n, err := s.orderView.CountTransactions(ctx, match)
@@ -771,6 +772,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		"country_code":         country.IsoCodeA2,
 		"is_vat_deduction":     false,
 		"operating_company_id": operatingCompanyId,
+		"is_production":        true,
 	}
 
 	query := []bson.M{

@@ -11,7 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -265,6 +265,10 @@ func (s *Service) getOrdersList(
 			field := fmt.Sprintf(orderFailedNotificationQueryFieldMask, req.StatusNotificationFailedFor)
 			query[field] = false
 		}
+	}
+
+	if req.HideTest == true {
+		query["is_production"] = true
 	}
 
 	count, err := s.db.Collection(source).CountDocuments(ctx, query)

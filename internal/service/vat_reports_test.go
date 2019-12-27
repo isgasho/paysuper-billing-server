@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
@@ -232,6 +232,11 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	var orders []*billing.Order
 	numberOfOrders := 30
 
+	suite.projectFixedAmount.Status = pkg.ProjectStatusInProduction
+	if err := suite.service.project.Update(context.TODO(), suite.projectFixedAmount); err != nil {
+		suite.FailNow("Update project test data failed", "%v", err)
+	}
+
 	count := 0
 	for count < numberOfOrders {
 		order := helperCreateAndPayOrder(
@@ -253,8 +258,11 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	err := suite.service.paymentSystem.Update(context.TODO(), suite.paymentSystem)
 	assert.NoError(suite.T(), err)
 
-	for _, order := range orders {
-		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
+	for i, order := range orders {
+		if i%3 == 0 {
+			continue
+		}
+		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount, false)
 		assert.NotNil(suite.T(), refund)
 	}
 
@@ -276,13 +284,13 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), report.Country, "RU")
 	assert.Equal(suite.T(), report.Currency, "RUB")
-	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
-	assert.EqualValues(suite.T(), report.GrossRevenue, 900)
-	assert.EqualValues(suite.T(), report.VatAmount, 150)
+	assert.EqualValues(suite.T(), report.TransactionsCount, 25)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 600)
+	assert.EqualValues(suite.T(), report.VatAmount, 100)
 	assert.EqualValues(suite.T(), report.FeesAmount, 144.38)
 	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
-	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 1800)
-	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 13183.1)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 600)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 4393.9)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "FI"}, &repRes)
@@ -295,13 +303,13 @@ func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports() {
 	assert.NotNil(suite.T(), report)
 	assert.Equal(suite.T(), report.Country, "FI")
 	assert.Equal(suite.T(), report.Currency, "EUR")
-	assert.EqualValues(suite.T(), report.TransactionsCount, numberOfOrders)
-	assert.EqualValues(suite.T(), report.GrossRevenue, 81.31)
-	assert.EqualValues(suite.T(), report.VatAmount, 13.55)
+	assert.EqualValues(suite.T(), report.TransactionsCount, 25)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 54.2)
+	assert.EqualValues(suite.T(), report.VatAmount, 9.03)
 	assert.EqualValues(suite.T(), report.FeesAmount, 8.89)
 	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
-	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 162)
-	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 188.33)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 54)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 62.77)
 	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
 
 	assert.NoError(suite.T(), err)
@@ -366,4 +374,88 @@ func (suite *VatReportsTestSuite) TestVatReports_PaymentDateSet() {
 
 	messages := suite.zapRecorder.All()
 	assert.Regexp(suite.T(), "dashboard", messages[0].Message)
+}
+
+func (suite *VatReportsTestSuite) TestVatReports_ProcessVatReports_OnlyTestOrders() {
+	amounts := []float64{100, 10}
+	currencies := []string{"RUB", "USD"}
+	countries := []string{"RU", "FI"}
+	var orders []*billing.Order
+	numberOfOrders := 30
+
+	assert.False(suite.T(), suite.projectFixedAmount.IsProduction())
+
+	count := 0
+	for count < numberOfOrders {
+		order := helperCreateAndPayOrder(
+			suite.Suite,
+			suite.service,
+			amounts[count%2],
+			currencies[count%2],
+			countries[count%2],
+			suite.projectFixedAmount,
+			suite.paymentMethod,
+		)
+		assert.NotNil(suite.T(), order)
+		orders = append(orders, order)
+
+		count++
+	}
+
+	suite.paymentSystem.Handler = "mock_ok"
+	err := suite.service.paymentSystem.Update(context.TODO(), suite.paymentSystem)
+	assert.NoError(suite.T(), err)
+
+	for _, order := range orders {
+		refund := helperMakeRefund(suite.Suite, suite.service, order, order.ChargeAmount*0.5, false)
+		assert.NotNil(suite.T(), refund)
+	}
+
+	req := &grpc.ProcessVatReportsRequest{
+		Date: ptypes.TimestampNow(),
+	}
+	err = suite.service.ProcessVatReports(context.TODO(), req, &grpc.EmptyResponse{})
+	assert.NoError(suite.T(), err)
+
+	repRes := grpc.VatReportsResponse{}
+
+	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "RU"}, &repRes)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), repRes.Status, pkg.ResponseStatusOk)
+	assert.NotNil(suite.T(), repRes.Data)
+	assert.Equal(suite.T(), repRes.Data.Count, int32(1))
+
+	report := repRes.Data.Items[0]
+	assert.NotNil(suite.T(), report)
+	assert.Equal(suite.T(), report.Country, "RU")
+	assert.Equal(suite.T(), report.Currency, "RUB")
+	assert.EqualValues(suite.T(), report.TransactionsCount, 0)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 0)
+	assert.EqualValues(suite.T(), report.VatAmount, 0)
+	assert.EqualValues(suite.T(), report.FeesAmount, 0)
+	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 0)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 0)
+	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
+
+	err = suite.service.GetVatReportsForCountry(context.TODO(), &grpc.VatReportsRequest{Country: "FI"}, &repRes)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), repRes.Status, pkg.ResponseStatusOk)
+	assert.NotNil(suite.T(), repRes.Data)
+	assert.Equal(suite.T(), repRes.Data.Count, int32(1))
+
+	report = repRes.Data.Items[0]
+	assert.NotNil(suite.T(), report)
+	assert.Equal(suite.T(), report.Country, "FI")
+	assert.Equal(suite.T(), report.Currency, "EUR")
+	assert.EqualValues(suite.T(), report.TransactionsCount, 0)
+	assert.EqualValues(suite.T(), report.GrossRevenue, 0)
+	assert.EqualValues(suite.T(), report.VatAmount, 0)
+	assert.EqualValues(suite.T(), report.FeesAmount, 0)
+	assert.EqualValues(suite.T(), report.DeductionAmount, 0)
+	assert.EqualValues(suite.T(), report.CountryAnnualTurnover, 0)
+	assert.EqualValues(suite.T(), report.WorldAnnualTurnover, 0)
+	assert.Equal(suite.T(), report.Status, pkg.VatReportStatusThreshold)
+
+	assert.NoError(suite.T(), err)
 }
