@@ -12,14 +12,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 )
 
 type countryRepository repository
 
 // NewCountryRepository create and return an object for working with the country repository.
 // The returned object implements the CountryRepositoryInterface interface.
-func NewCountryRepository(db *mongodb.Source, cache database.CacheInterface) CountryRepositoryInterface {
+func NewCountryRepository(db mongodb.SourceInterface, cache database.CacheInterface) CountryRepositoryInterface {
 	s := &countryRepository{db: db, cache: cache}
 	return s
 }
