@@ -4328,6 +4328,7 @@ func (s *Service) hasPaymentCosts(ctx context.Context, order *billing.Order) boo
 	)
 
 	if err != nil {
+		zap.L().Info("debug_1", zap.String("method", "paymentChannelCostSystem"))
 		return false
 	}
 
@@ -4341,6 +4342,11 @@ func (s *Service) hasPaymentCosts(ctx context.Context, order *billing.Order) boo
 		MccCode:        order.MccCode,
 	}
 	_, err = s.getPaymentChannelCostMerchant(ctx, data)
+
+	if err != nil {
+		zap.L().Info("debug_1", zap.String("method", "PaymentChannelCostMerchantRequest"))
+	}
+
 	return err == nil
 }
 
