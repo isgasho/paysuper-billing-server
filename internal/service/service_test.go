@@ -15,14 +15,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
 
 type BillingServiceTestSuite struct {
 	suite.Suite
-	db      *mongodb.Source
+	db      mongodb.SourceInterface
 	log     *zap.Logger
 	cfg     *config.Config
 	exCh    chan bool
