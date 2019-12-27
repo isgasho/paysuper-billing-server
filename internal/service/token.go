@@ -784,7 +784,11 @@ func (s *Service) decryptBrowserCookie(cookie string) (*BrowserCookieCustomer, e
 	res, err := rsa.DecryptOAEP(hash, cryptoRand.Reader, s.cfg.CookiePrivateKey, bCookie, nil)
 
 	if err != nil {
-		zap.L().Error("Customer cookie decrypt failed", zap.Error(err))
+		zap.L().Error(
+			"Customer cookie decrypt failed",
+			zap.Error(err),
+			zap.String("cookie", cookie),
+		)
 		return nil, err
 	}
 
