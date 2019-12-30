@@ -9,14 +9,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 )
 
 type userRoleRepository repository
 
 // NewUserRoleRepository create and return an object for working with the user role repository.
 // The returned object implements the UserRoleRepositoryInterface interface.
-func NewUserRoleRepository(db *mongodb.Source, cache database.CacheInterface) UserRoleRepositoryInterface {
+func NewUserRoleRepository(db mongodb.SourceInterface, cache database.CacheInterface) UserRoleRepositoryInterface {
 	s := &userRoleRepository{db: db, cache: cache}
 	return s
 }
