@@ -1405,7 +1405,7 @@ func (suite *AccountingEntryTestSuite) helperCheckOrderView(orderId, orderCurren
 }
 
 func (suite *AccountingEntryTestSuite) helperCheckRefundView(orderId, orderCurrency, royaltyCurrency, vatCurrency string, refundControlResults map[string]float64) {
-	order, err := suite.service.orderView.GetOrderBy(ctx, orderId, "", "", new(billing.OrderViewPrivate))
+	order, err := suite.service.orderView.GetOrderBy(context.TODO(), orderId, "", "", new(billing.OrderViewPrivate))
 	assert.NoError(suite.T(), err)
 	orderView := order.(*billing.OrderViewPrivate)
 	assert.NotNil(suite.T(), orderView)

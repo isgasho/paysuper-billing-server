@@ -762,6 +762,9 @@ type MgoOrderViewPrivate struct {
 	RefundAllowed                              bool                           `bson:"refund_allowed"`
 	VatPayer                                   string                         `bson:"vat_payer"`
 	IsProduction                               bool                           `bson:"is_production"`
+	TaxRate                                    float64                        `bson:"tax_rate"`
+	MerchantInfo                               *OrderViewMerchantInfo         `bson:"merchant_info"`
+	OrderChargeBeforeVat                       *OrderViewMoney                `bson:"order_charge_before_vat"`
 }
 
 type MgoOrderViewPublic struct {
@@ -811,6 +814,7 @@ type MgoOrderViewPublic struct {
 	OperatingCompanyId                      string                         `bson:"operating_company_id"`
 	RefundAllowed                           bool                           `bson:"refund_allowed"`
 	OrderCharge                             *OrderViewMoney                `bson:"order_charge"`
+	OrderChargeBeforeVat                    *OrderViewMoney                `bson:"order_charge_before_vat"`
 	PaymentIpCountry                        string                         `bson:"payment_ip_country"`
 	IsIpCountryMismatchBin                  bool                           `bson:"is_ip_country_mismatch_bin"`
 	BillingCountryChangedByUser             bool                           `bson:"billing_country_changed_by_user"`
@@ -4369,6 +4373,9 @@ func (m *OrderViewPrivate) UnmarshalBSON(raw []byte) error {
 	m.RefundAllowed = decoded.RefundAllowed
 	m.VatPayer = decoded.VatPayer
 	m.IsProduction = decoded.IsProduction
+	m.TaxRate = decoded.TaxRate
+	m.MerchantInfo = decoded.MerchantInfo
+	m.OrderChargeBeforeVat = decoded.OrderChargeBeforeVat
 
 	m.CreatedAt, err = ptypes.TimestampProto(decoded.CreatedAt)
 	if err != nil {

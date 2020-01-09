@@ -404,8 +404,10 @@ func helperCreateMerchant(
 		suite.FailNow("Generate merchant date failed", "%v", err)
 	}
 
+	id := primitive.NewObjectID().Hex()
+
 	merchant := &billing.Merchant{
-		Id: primitive.NewObjectID().Hex(),
+		Id: id,
 		User: &billing.MerchantUser{
 			Id: primitive.NewObjectID().Hex(),
 		},
@@ -442,16 +444,41 @@ func helperCreateMerchant(
 			CorrespondentAccount: "correspondent_account",
 			Details:              "details",
 		},
-		IsVatEnabled:              true,
-		MinPayoutAmount:           minPayoutAmount,
-		IsCommissionToUserEnabled: true,
 		Status:                    pkg.MerchantStatusDraft,
+		CreatedAt:                 nil,
+		UpdatedAt:                 nil,
+		FirstPaymentAt:            nil,
+		IsVatEnabled:              true,
+		IsCommissionToUserEnabled: true,
+		HasMerchantSignature:      false,
+		HasPspSignature:           false,
 		LastPayout: &billing.MerchantLastPayout{
 			Date:   date,
 			Amount: 999999,
 		},
-		IsSigned:       true,
-		PaymentMethods: map[string]*billing.MerchantPaymentMethod{},
+		IsSigned:                true,
+		PaymentMethods:          map[string]*billing.MerchantPaymentMethod{},
+		AgreementType:           0,
+		AgreementSentViaMail:    false,
+		MailTrackingLink:        "",
+		S3AgreementName:         "",
+		PayoutCostAmount:        0,
+		PayoutCostCurrency:      "",
+		MinPayoutAmount:         minPayoutAmount,
+		RollingReserveThreshold: 0,
+		RollingReserveDays:      0,
+		RollingReserveChargebackTransactionsThreshold: 0,
+		ItemMinCostAmount:      0,
+		ItemMinCostCurrency:    "",
+		CentrifugoToken:        "",
+		AgreementSignatureData: nil,
+		Steps:                  nil,
+		AgreementTemplate:      "",
+		ReceivedDate:           nil,
+		StatusLastUpdatedAt:    nil,
+		HasProjects:            false,
+		AgreementNumber:        service.getMerchantAgreementNumber(id),
+		MinimalPayoutLimit:     0,
 		Tariff: &billing.MerchantTariff{
 			Payment: []*billing.MerchantTariffRatesPayment{
 				{
@@ -489,9 +516,11 @@ func helperCreateMerchant(
 			},
 			HomeRegion: "russia_and_cis",
 		},
-		MccCode:            pkg.MccCodeLowRisk,
-		OperatingCompanyId: operatingCompanyId,
-		DontChargeVat:      false,
+		ManualPayoutsEnabled:   false,
+		MccCode:                pkg.MccCodeLowRisk,
+		OperatingCompanyId:     operatingCompanyId,
+		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
+		DontChargeVat:          false,
 	}
 
 	if paymentMethod != nil {

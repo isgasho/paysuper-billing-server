@@ -371,6 +371,10 @@ func (app *Application) TaskMerchantsMigrate() error {
 	return app.svc.MerchantsMigrate(context.TODO())
 }
 
+func (app *Application) TaskFixTaxes() error {
+	return app.svc.FixTaxes(context.TODO())
+}
+
 func (app *Application) KeyDaemonStart() {
 	zap.L().Info("Key daemon started", zap.Int64("RestartInterval", app.cfg.KeyDaemonRestartInterval))
 

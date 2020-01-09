@@ -37,6 +37,9 @@ func main() {
 
 		case "merchants_migrate":
 			err = app.TaskMerchantsMigrate()
+
+		case "fix_taxes":
+			err = app.TaskFixTaxes()
 		}
 
 		if err != nil {

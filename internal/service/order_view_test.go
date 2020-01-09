@@ -287,6 +287,13 @@ func (suite *OrderViewTestSuite) Test_OrderView_GetOrderFromViewPrivate_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), orderPrivate)
 	assert.IsType(suite.T(), &billing.OrderViewPrivate{}, orderPrivate)
+	op := orderPrivate.(*billing.OrderViewPrivate)
+	assert.False(suite.T(), op.IsProduction)
+	assert.NotNil(suite.T(), op.MerchantInfo)
+	assert.NotEmpty(suite.T(), op.MerchantInfo.CompanyName)
+	assert.NotEmpty(suite.T(), op.MerchantInfo.AgreementNumber)
+	assert.NotNil(suite.T(), op.OrderChargeBeforeVat)
+	assert.NotNil(suite.T(), op.TaxRate)
 }
 
 func (suite *OrderViewTestSuite) Test_OrderView_CountTransactions_Ok() {

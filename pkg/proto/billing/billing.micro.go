@@ -110,6 +110,7 @@ It has these top-level messages:
 	VatReport
 	AnnualTurnover
 	OrderViewMoney
+	OrderViewMerchantInfo
 	OrderViewPublic
 	OrderViewPrivate
 	RecommendedPrice

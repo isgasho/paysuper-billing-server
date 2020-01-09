@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -15,6 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
+	"strconv"
 	"time"
 )
 
@@ -421,12 +424,12 @@ func (h *accountingEntry) processPaymentEvent() error {
 	// 2. realTaxFee
 	realTaxFee := h.newEntry(pkg.AccountingEntryTypeRealTaxFee)
 	orderTaxAmount := h.order.GetTaxAmountInChargeCurrency()
-	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.Tax.Currency, orderTaxAmount)
+	realTaxFee.Amount, err = h.GetExchangePsCurrentCommon(h.order.ChargeCurrency, orderTaxAmount)
 	if err != nil {
 		return err
 	}
-	realTaxFee.OriginalAmount = h.order.Tax.Amount
-	realTaxFee.OriginalCurrency = h.order.Tax.Currency
+	realTaxFee.OriginalAmount = orderTaxAmount
+	realTaxFee.OriginalCurrency = h.order.ChargeCurrency
 	if err = h.addEntry(realTaxFee); err != nil {
 		return err
 	}
@@ -1384,4 +1387,191 @@ func (a Accounting) GetRollingReservesForRoyaltyReport(
 	}
 
 	return
+}
+
+func (s *Service) FixTaxes(ctx context.Context) error {
+	TaxAccountingEntriesList := []string{
+		pkg.AccountingEntryTypeRealTaxFee,
+		pkg.AccountingEntryTypeRealRefundTaxFee,
+	}
+
+	query := bson.M{
+		"type":   bson.M{"$in": TaxAccountingEntriesList},
+		"amount": bson.M{"$gt": 0},
+	}
+
+	opts := options.Find().
+		SetSort(mongodb.ToSortOption([]string{"source.type", "source.id", "-type"}))
+
+	var aes []*billing.AccountingEntry
+	cursor, err := s.db.Collection(collectionAccountingEntry).Find(ctx, query, opts)
+
+	if err != nil {
+		zap.L().Error(
+			"get entries for fix taxes failed",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	err = cursor.All(ctx, &aes)
+	if err != nil {
+		zap.L().Error(
+			"get entries for fix taxes failed",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	count := len(aes)
+
+	if count == 0 {
+		return nil
+	}
+
+	zap.S().Info("found " + strconv.FormatInt(int64(count), 10) + " entries")
+
+	hasErrors := false
+
+	var operations []mongo.WriteModel
+
+	for _, ae := range aes {
+
+		order, err := s.getOrderById(ctx, ae.Source.Id)
+
+		if err != nil {
+			zap.L().Error(
+				"get order error",
+				zap.Error(err),
+			)
+			hasErrors = true
+			continue
+		}
+
+		orderTaxAmount := order.GetTaxAmountInChargeCurrency()
+		req := &currencies.ExchangeCurrencyByDateCommonRequest{
+			From:              order.ChargeCurrency,
+			To:                ae.Currency,
+			RateType:          curPkg.RateTypePaysuper,
+			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			Source:            "",
+			Amount:            orderTaxAmount,
+			Datetime:          order.PaymentMethodOrderClosedAt,
+		}
+
+		ae.Amount, err = s.exchangeCurrencyByDateCommon(ctx, req)
+		if err != nil {
+			zap.L().Error(
+				"exchangeCurrencyByDateCommon failed for amount",
+				zap.String("orderId", order.Id),
+				zap.Error(err),
+			)
+			hasErrors = true
+			continue
+		}
+		ae.OriginalAmount = orderTaxAmount
+		ae.OriginalCurrency = order.ChargeCurrency
+
+		country, err := s.country.GetByIsoCodeA2(ctx, ae.Country)
+		if err != nil {
+			zap.L().Error(
+				"tax fix get country failed",
+				zap.String("orderId", order.Id),
+				zap.Error(err),
+			)
+			hasErrors = true
+			continue
+		}
+
+		var rateType string
+		var rateSource string
+
+		if country.VatEnabled {
+			rateType = curPkg.RateTypeCentralbanks
+			rateSource = country.VatCurrencyRatesSource
+		} else {
+			rateType = curPkg.RateTypeOxr
+			rateSource = ""
+		}
+
+		if ae.LocalCurrency == ae.OriginalCurrency {
+			ae.LocalAmount = ae.OriginalAmount
+		} else {
+
+			req := &currencies.ExchangeCurrencyByDateCommonRequest{
+				From:              ae.OriginalCurrency,
+				To:                ae.LocalCurrency,
+				RateType:          rateType,
+				ExchangeDirection: curPkg.ExchangeDirectionBuy,
+				Source:            rateSource,
+				Amount:            ae.OriginalAmount,
+				Datetime:          order.PaymentMethodOrderClosedAt,
+			}
+
+			la, err := s.exchangeCurrencyByDateCommon(ctx, req)
+			if err != nil {
+				zap.L().Error(
+					"exchangeCurrencyByDateCommon failed for local amount",
+					zap.String("orderId", order.Id),
+					zap.Error(err),
+				)
+				hasErrors = true
+				continue
+			} else {
+				ae.LocalAmount = la
+			}
+		}
+
+		oid, _ := primitive.ObjectIDFromHex(ae.Id)
+		operation := mongo.NewUpdateOneModel().
+			SetFilter(bson.M{"_id": oid}).
+			SetUpdate(ae)
+		operations = append(operations, operation)
+
+	}
+
+	if len(operations) == 0 {
+		return nil
+	}
+
+	_, err = s.db.Collection(collectionAccountingEntry).BulkWrite(ctx, operations)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAccountingEntry),
+		)
+		return err
+	}
+
+	if hasErrors {
+		return errors.New("errors occured while processing tax fixes")
+	}
+
+	return nil
+
+}
+
+func (s *Service) exchangeCurrencyByDateCommon(ctx context.Context, req *currencies.ExchangeCurrencyByDateCommonRequest) (float64, error) {
+	if req.Amount == 0 || req.From == req.To {
+		return req.Amount, nil
+	}
+
+	rsp, err := s.curService.ExchangeCurrencyByDateCommon(ctx, req)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorGrpcServiceCallFailed,
+			zap.Error(err),
+			zap.String(errorFieldService, "CurrencyRatesService"),
+			zap.String(errorFieldMethod, "ExchangeCurrencyByDateCommon"),
+			zap.String("request date", ptypes.TimestampString(req.Datetime)),
+			zap.Any(errorFieldRequest, req),
+		)
+
+		return 0, accountingEntryErrorExchangeFailed
+	}
+
+	return rsp.ExchangedAmount, nil
 }
