@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"net/http"
 	"testing"
 	"time"
@@ -34,7 +34,7 @@ type MerchantBalanceTestSuite struct {
 	suite.Suite
 	service    *Service
 	log        *zap.Logger
-	cache      CacheInterface
+	cache      database.CacheInterface
 	httpClient *http.Client
 
 	logObserver *zap.Logger
@@ -91,7 +91,7 @@ func (suite *MerchantBalanceTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

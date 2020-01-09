@@ -109,14 +109,14 @@ func (s *Service) GetPriceGroupByCountry(
 
 	if err != nil {
 		zap.S().Errorw("Country not found", "req", req)
-		return err
+		return errorCountryNotFound
 	}
 
 	group, err := s.priceGroup.GetById(ctx, country.PriceGroupId)
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "error", err, "price_group_id", country.PriceGroupId)
-		return err
+		return priceGroupErrorNotFound
 	}
 
 	*res = *group

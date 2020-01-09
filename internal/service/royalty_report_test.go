@@ -34,7 +34,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"math"
 	"net/http"
 	"testing"
@@ -45,7 +45,7 @@ type RoyaltyReportTestSuite struct {
 	suite.Suite
 	service    *Service
 	log        *zap.Logger
-	cache      CacheInterface
+	cache      database.CacheInterface
 	httpClient *http.Client
 
 	project   *billing.Project
@@ -112,7 +112,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 
 	reporterMock := &reportingMocks.ReporterService{}
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).

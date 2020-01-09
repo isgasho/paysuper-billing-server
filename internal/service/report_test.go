@@ -22,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
@@ -30,7 +30,7 @@ import (
 type ReportTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 	log     *zap.Logger
 
 	currencyRub             string
@@ -78,7 +78,7 @@ func (suite *ReportTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -75,7 +76,7 @@ func (s *Service) SetPaymentMinLimitSystem(
 	}
 
 	if err == errorPaymentMinLimitSystemNotFound || pmls == nil {
-		if !contains(s.supportedCurrencies, req.Currency) {
+		if !helper.Contains(s.supportedCurrencies, req.Currency) {
 			res.Status = pkg.ResponseStatusBadData
 			res.Message = errorPaymentMinLimitSystemCurrencyUnknown
 			return nil

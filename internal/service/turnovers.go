@@ -43,7 +43,7 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 		return err
 	}
 
-	countries, err := s.country.GetCountriesWithVatEnabled(ctx)
+	countries, err := s.country.FindByVatEnabled(ctx)
 	if err != nil {
 		return err
 	}
@@ -127,8 +127,13 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 		if err != nil {
 			return err
 		}
+
 		count := 0
 		for from.Unix() >= year.Unix() {
+			diff := to.Sub(time.Now())
+			if diff.Seconds() > 0 {
+				to = now.EndOfDay()
+			}
 			amnt, err := s.getTurnover(ctx, from, to, countryCode, targetCurrency, currencyPolicy, ratesType, ratesSource, operatingCompanyId)
 			if err != nil {
 				return err

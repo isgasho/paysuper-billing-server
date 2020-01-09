@@ -5,6 +5,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/jinzhu/now"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -19,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -108,7 +109,7 @@ func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Time
 	if err != nil {
 		return nil, err
 	}
-	countries, err := s.country.GetCountriesWithVatEnabled(ctx)
+	countries, err := s.country.FindByVatEnabled(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -400,13 +401,13 @@ func (s *Service) UpdateVatReportStatus(
 		return nil
 	}
 
-	if !contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
+	if !helper.Contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
 
-	if !contains(VatReportStatusAllowManualChangeTo, req.Status) {
+	if !helper.Contains(VatReportStatusAllowManualChangeTo, req.Status) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
@@ -443,13 +444,13 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 		return err
 	}
 
-	if contains(VatReportOnStatusNotifyToCentrifugo, vr.Status) {
+	if helper.Contains(VatReportOnStatusNotifyToCentrifugo, vr.Status) {
 		if err = s.centrifugoDashboard.Publish(ctx, s.cfg.CentrifugoFinancierChannel, vr); err != nil {
 			return err
 		}
 	}
 
-	if contains(VatReportOnStatusNotifyToEmail, vr.Status) {
+	if helper.Contains(VatReportOnStatusNotifyToEmail, vr.Status) {
 		payload := &postmarkSdrPkg.Payload{
 			TemplateAlias: s.cfg.EmailTemplates.VatReportChanged,
 			TemplateModel: map[string]string{

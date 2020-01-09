@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/copier"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -17,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 )
 
@@ -31,7 +32,7 @@ type ProductTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	project    *billing.Project
 	pmBankCard *billing.PaymentMethod
@@ -72,7 +73,7 @@ func (suite *ProductTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Creating RabbitMQ publisher failed")
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

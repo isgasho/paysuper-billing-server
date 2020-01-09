@@ -5,6 +5,7 @@ import (
 	"fmt"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -15,14 +16,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 )
 
 type ProjectCRUDTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	merchant *billing.Merchant
 	project  *billing.Project
@@ -221,7 +222,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	_, err = db.Collection(collectionProduct).InsertMany(context.TODO(), products)
 	assert.NoError(suite.T(), err, "Insert product test data failed")
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -900,7 +901,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 type ProjectTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 	log     *zap.Logger
 	project *billing.Project
 }
@@ -942,7 +943,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 )
 
@@ -24,7 +25,7 @@ type MoneyBackCostSystemTestSuite struct {
 	suite.Suite
 	service               *Service
 	log                   *zap.Logger
-	cache                 CacheInterface
+	cache                 database.CacheInterface
 	moneyBackCostSystemId string
 	merchantId            string
 	operatingCompany      *billing.OperatingCompany
@@ -52,7 +53,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

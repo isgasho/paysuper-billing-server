@@ -9,13 +9,13 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 )
 
 type OrderTestSuite struct {
 	suite.Suite
-	db         *mongodb.Source
+	db         mongodb.SourceInterface
 	repository OrderRepositoryInterface
 	log        *zap.Logger
 }
@@ -45,6 +45,11 @@ func (suite *OrderTestSuite) TearDownTest() {
 	if err := suite.db.Close(); err != nil {
 		suite.FailNow("Database close failed", "%v", err)
 	}
+}
+
+func (suite *CountryTestSuite) TestCountry_NewOrderRepository_Ok() {
+	repository := NewOrderRepository(suite.db)
+	assert.IsType(suite.T(), &orderRepository{}, repository)
 }
 
 func (suite *OrderTestSuite) TestOrder_Insert_Ok() {

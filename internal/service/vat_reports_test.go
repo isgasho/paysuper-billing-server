@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	rabbitmq "gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 	"time"
 )
@@ -33,7 +33,7 @@ type VatReportsTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	projectFixedAmount *billing.Project
 	paymentMethod      *billing.PaymentMethod
@@ -92,7 +92,7 @@ func (suite *VatReportsTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -155,9 +155,10 @@ func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
 	toRef := now.EndOfMonth()
 
 	if fromRef.Month()%2 == 0 {
-		fromRef = fromRef.AddDate(0, -1, 0)
+		fromRef = now.BeginningOfMonth().AddDate(0, 0, -1)
+		fromRef = now.New(fromRef).BeginningOfMonth()
 	} else {
-		toRef = toRef.AddDate(0, 1, 0)
+		toRef = now.EndOfMonth().AddDate(0, 0, 1)
 		toRef = now.New(toRef).EndOfMonth()
 	}
 

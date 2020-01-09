@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/jinzhu/now"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -437,8 +438,8 @@ func (m *DashboardRepository) GetBaseSourcesReport(
 func (m *DashboardRepository) NewDashboardReportProcessor(
 	merchantId, period, cacheKeyMask string,
 	status interface{},
-	db *mongodb.Source,
-	cache CacheInterface,
+	db mongodb.SourceInterface,
+	cache database.CacheInterface,
 	ctx context.Context,
 ) (*DashboardReportProcessor, error) {
 	current := time.Now()

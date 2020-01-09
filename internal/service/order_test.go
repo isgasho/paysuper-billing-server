@@ -35,7 +35,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"net"
 	"sort"
 	"strconv"
@@ -47,7 +47,7 @@ import (
 type OrderTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 	log     *zap.Logger
 
 	project                                *billing.Project
@@ -1372,7 +1372,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

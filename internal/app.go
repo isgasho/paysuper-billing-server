@@ -41,7 +41,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"log"
 	"net/http"
 	"os"
@@ -52,7 +52,7 @@ import (
 
 type Application struct {
 	cfg        *config.Config
-	database   *mongodb.Source
+	database   mongodb.SourceInterface
 	redis      *redis.Client
 	service    micro.Service
 	httpServer *http.Server
@@ -198,7 +198,7 @@ func (app *Application) Init() {
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-	cache, err := service.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
+	cache, err := database.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
 
 	if err != nil {
 		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))

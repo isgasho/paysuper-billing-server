@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/centrifugal/gocent"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	"github.com/micro/go-micro/client"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -26,7 +26,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"strconv"
 	"testing"
 	"time"
@@ -36,7 +36,7 @@ type OnboardingTestSuite struct {
 	suite.Suite
 	service *Service
 	log     *zap.Logger
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	operatingCompany *billing.OperatingCompany
 
@@ -332,7 +332,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	casbin.On("AddRoleForUser", mock2.Anything, mock2.Anything).Return(nil, nil)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -2699,7 +2699,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
 	}
 
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, req.Company.Country), mock2.Anything).Return(nil)
+	cache.On("Get", mock2.Anything, mock2.Anything).Return(nil)
 	cache.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).
 		Return(errors.New(mocks.SomeError))
 	suite.service.cacher = cache

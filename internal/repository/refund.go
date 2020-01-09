@@ -8,14 +8,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 )
 
 type refundRepository repository
 
 // NewRefundRepository create and return an object for working with the refund repository.
 // The returned object implements the RefundRepositoryInterface interface.
-func NewRefundRepository(db *mongodb.Source) RefundRepositoryInterface {
+func NewRefundRepository(db mongodb.SourceInterface) RefundRepositoryInterface {
 	s := &refundRepository{db: db}
 	return s
 }

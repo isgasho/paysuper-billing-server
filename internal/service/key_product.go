@@ -368,7 +368,7 @@ func (s *Service) GetKeyProducts(
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		res.Status = http.StatusInternalServerError
@@ -382,7 +382,7 @@ func (s *Service) GetKeyProducts(
 		zap.L().Error(
 			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		res.Status = http.StatusInternalServerError
@@ -623,7 +623,7 @@ func (s *Service) DeleteKeyProduct(
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
 			zap.Any(pkg.ErrorDatabaseFieldSet, product),
 		)
@@ -675,7 +675,7 @@ func (s *Service) PublishKeyProduct(
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
 			zap.Any(pkg.ErrorDatabaseFieldSet, product),
 		)
@@ -726,7 +726,7 @@ func (s *Service) GetKeyProductsForOrder(
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
@@ -742,7 +742,7 @@ func (s *Service) GetKeyProductsForOrder(
 		zap.L().Error(
 			pkg.ErrorQueryCursorExecutionFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 		res.Status = http.StatusInternalServerError
@@ -893,7 +893,7 @@ func (s *Service) UnPublishKeyProduct(
 		zap.L().Error(
 			pkg.ErrorDatabaseQueryFailed,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionCountry),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionKeyProduct),
 			zap.Any(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, filter),
 			zap.Any(pkg.ErrorDatabaseFieldSet, product),

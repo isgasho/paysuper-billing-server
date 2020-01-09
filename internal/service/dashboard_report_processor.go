@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"time"
 )
 
@@ -15,12 +16,12 @@ const (
 )
 
 type DashboardReportProcessor struct {
-	Db          *mongodb.Source
+	Db          mongodb.SourceInterface
 	Collection  string
 	Match       bson.M
 	GroupBy     string
 	DbQueryFn   func(ctx context.Context, receiver interface{}) (interface{}, error)
-	Cache       CacheInterface
+	Cache       database.CacheInterface
 	CacheKey    string
 	CacheExpire time.Duration
 	Errors      map[string]*grpc.ResponseErrorMessage

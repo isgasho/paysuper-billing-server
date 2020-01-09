@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"net"
 	"testing"
 )
@@ -24,7 +24,7 @@ import (
 type TokenTestSuite struct {
 	suite.Suite
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	project                            *billing.Project
 	projectWithProducts                *billing.Project
@@ -359,7 +359,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	)
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

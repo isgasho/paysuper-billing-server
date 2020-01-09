@@ -1,9 +1,11 @@
 package repository
 
 import (
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 )
 
 type repository struct {
-	db *mongodb.Source
+	db    mongodb.SourceInterface
+	cache database.CacheInterface
 }

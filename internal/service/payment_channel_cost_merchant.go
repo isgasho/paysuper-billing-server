@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -14,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"sort"
 )
 
@@ -110,7 +111,7 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		}
 		req.Region = country.PayerTariffRegion
 	} else {
-		exists := s.country.IsTariffRegionExists(req.Region)
+		exists := s.country.IsTariffRegionSupported(req.Region)
 		if !exists {
 			res.Status = pkg.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
@@ -124,22 +125,22 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		res.Message = errorPaymentChannelMerchantCurrency
 		return nil
 	}
-	if !contains(sCurr.Currencies, req.PayoutCurrency) {
+	if !helper.Contains(sCurr.Currencies, req.PayoutCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelMerchantCurrency
 		return nil
 	}
-	if !contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
+	if !helper.Contains(sCurr.Currencies, req.PsFixedFeeCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelMerchantCurrency
 		return nil
 	}
-	if !contains(sCurr.Currencies, req.MethodFixAmountCurrency) {
+	if !helper.Contains(sCurr.Currencies, req.MethodFixAmountCurrency) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelMerchantCurrency
 		return nil
 	}
-	if !contains(pkg.SupportedMccCodes, req.MccCode) {
+	if !helper.Contains(pkg.SupportedMccCodes, req.MccCode) {
 		res.Status = pkg.ResponseStatusBadData
 		res.Message = errorPaymentChannelMccCode
 		return nil

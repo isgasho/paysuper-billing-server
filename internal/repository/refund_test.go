@@ -10,13 +10,13 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
-	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v1"
+	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
 )
 
 type RefundTestSuite struct {
 	suite.Suite
-	db         *mongodb.Source
+	db         mongodb.SourceInterface
 	repository RefundRepositoryInterface
 	log        *zap.Logger
 }
@@ -46,6 +46,11 @@ func (suite *RefundTestSuite) TearDownTest() {
 	if err := suite.db.Close(); err != nil {
 		suite.FailNow("Database close failed", "%v", err)
 	}
+}
+
+func (suite *CountryTestSuite) TestCountry_NewRefundRepository_Ok() {
+	repository := NewRefundRepository(suite.db)
+	assert.IsType(suite.T(), &refundRepository{}, repository)
 }
 
 func (suite *RefundTestSuite) TestRefund_Insert_Ok() {
