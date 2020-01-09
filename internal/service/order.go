@@ -15,6 +15,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/google/uuid"
 	"github.com/jinzhu/copier"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -2283,7 +2284,7 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 
 func (v *OrderCreateRequestProcessor) processCurrency(orderType string) error {
 	if v.request.Currency != "" {
-		if !contains(v.supportedCurrencies, v.request.Currency) {
+		if !helper.Contains(v.supportedCurrencies, v.request.Currency) {
 			return orderErrorCurrencyNotFound
 		}
 
@@ -2469,7 +2470,7 @@ func (v *OrderCreateRequestProcessor) processLimitAmounts() (err error) {
 	}
 
 	if v.checked.project.LimitsCurrency != "" && v.checked.project.LimitsCurrency != v.checked.currency {
-		if !contains(v.supportedCurrencies, v.checked.project.LimitsCurrency) {
+		if !helper.Contains(v.supportedCurrencies, v.checked.project.LimitsCurrency) {
 			return orderErrorCurrencyNotFound
 		}
 		req := &currencies.ExchangeCurrencyCurrentForMerchantRequest{
@@ -4553,7 +4554,7 @@ func (s *Service) setOrderChargeAmountAndCurrency(ctx context.Context, order *bi
 		)
 		return err
 	}
-	if !contains(sCurr.Currencies, binCountry.Currency) {
+	if !helper.Contains(sCurr.Currencies, binCountry.Currency) {
 		return nil
 	}
 

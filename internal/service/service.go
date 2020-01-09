@@ -8,6 +8,7 @@ import (
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -28,8 +29,7 @@ import (
 )
 
 const (
-	errorNotFound      = "%s not found"
-	errorInterfaceCast = "unable to cast interface to object %s"
+	errorNotFound = "%s not found"
 
 	errorBbNotFoundMessage = "not found"
 
@@ -61,12 +61,11 @@ type Service struct {
 	tax                        tax_service.TaxService
 	broker                     rabbitmq.BrokerInterface
 	redis                      redis.Cmdable
-	cacher                     CacheInterface
+	cacher                     database.CacheInterface
 	curService                 currencies.CurrencyratesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
 	currenciesPrecision        map[string]int32
-	country                    CountryServiceInterface
 	project                    *Project
 	merchant                   MerchantRepositoryInterface
 	payoutDocument             PayoutDocumentServiceInterface
@@ -90,8 +89,6 @@ type Service struct {
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
-	orderRepository            repository.OrderRepositoryInterface
-	userRoleRepository         UserRoleServiceInterface
 	userProfileRepository      UserProfileRepositoryInterface
 	keyProductRepository       KeyProductRepositoryInterface
 	centrifugoPaymentForm      CentrifugoInterface
@@ -102,8 +99,11 @@ type Service struct {
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
-	refundRepository           repository.RefundRepositoryInterface
 	casbinService              casbinProto.CasbinService
+	country                    repository.CountryRepositoryInterface
+	refundRepository           repository.RefundRepositoryInterface
+	orderRepository            repository.OrderRepositoryInterface
+	userRoleRepository         repository.UserRoleRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -131,7 +131,7 @@ func NewBillingService(
 	tax tax_service.TaxService,
 	broker rabbitmq.BrokerInterface,
 	redis redis.Cmdable,
-	cache CacheInterface,
+	cache database.CacheInterface,
 	curService currencies.CurrencyratesService,
 	documentSigner documentSignerProto.DocumentSignerService,
 	reporterService reporterProto.ReporterService,
@@ -165,7 +165,6 @@ func (s *Service) Init() (err error) {
 	s.royaltyReport = newRoyaltyReport(s)
 	s.orderView = newOrderView(s)
 	s.accounting = newAccounting(s)
-	s.country = newCountryService(s)
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)
 	s.paymentSystem = newPaymentSystemService(s)
@@ -181,7 +180,6 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
-	s.userRoleRepository = newUserRoleRepository(s)
 	s.userProfileRepository = newUserProfileRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
 	s.centrifugoPaymentForm = newCentrifugo(s.cfg.CentrifugoPaymentForm, tools.NewLoggedHttpClient(zap.S()))
@@ -192,6 +190,8 @@ func (s *Service) Init() (err error) {
 
 	s.refundRepository = repository.NewRefundRepository(s.db)
 	s.orderRepository = repository.NewOrderRepository(s.db)
+	s.country = repository.NewCountryRepository(s.db, s.cacher)
+	s.userRoleRepository = repository.NewUserRoleRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {

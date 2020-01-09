@@ -4,6 +4,7 @@ import (
 	"errors"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
@@ -20,7 +21,7 @@ type MerchantTestSuite struct {
 	suite.Suite
 	service    *Service
 	log        *zap.Logger
-	cache      CacheInterface
+	cache      database.CacheInterface
 	merchant   *billing.Merchant
 	pmBankCard *billing.PaymentMethod
 }
@@ -47,7 +48,7 @@ func (suite *MerchantTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

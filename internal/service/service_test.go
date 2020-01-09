@@ -5,6 +5,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
@@ -27,7 +28,7 @@ type BillingServiceTestSuite struct {
 	cfg     *config.Config
 	exCh    chan bool
 	service *Service
-	cache   CacheInterface
+	cache   database.CacheInterface
 
 	project *billing.Project
 }
@@ -62,7 +63,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	cache, err := NewCacheRedis(redisdb, "cache")
+	cache, err := database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,
@@ -302,7 +303,7 @@ func (suite *BillingServiceTestSuite) TearDownTest() {
 
 func (suite *BillingServiceTestSuite) TestNewBillingService() {
 	redisdb := mocks.NewTestRedis()
-	suite.cache, _ = NewCacheRedis(redisdb, "cache")
+	suite.cache, _ = database.NewCacheRedis(redisdb, "cache")
 	service := NewBillingService(
 		suite.db,
 		suite.cfg,
@@ -329,7 +330,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 	assert.NoError(suite.T(), err)
 
-	suite.cache, err = NewCacheRedis(mocks.NewTestRedis(), "cache")
+	suite.cache, err = database.NewCacheRedis(mocks.NewTestRedis(), "cache")
 	service := NewBillingService(
 		suite.db,
 		cfg,
@@ -353,7 +354,7 @@ func (suite *BillingServiceTestSuite) TestBillingService_AccountingCurrencyInitE
 
 func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment() {
 	redisdb := mocks.NewTestRedis()
-	suite.cache, _ = NewCacheRedis(redisdb, "cache")
+	suite.cache, _ = database.NewCacheRedis(redisdb, "cache")
 	service := NewBillingService(
 		suite.db,
 		suite.cfg,

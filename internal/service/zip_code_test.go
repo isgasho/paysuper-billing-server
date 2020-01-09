@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
+	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -56,7 +57,7 @@ func (suite *ZipCodeTestSuite) SetupTest() {
 	}
 
 	redisdb := mocks.NewTestRedis()
-	cache, err := NewCacheRedis(redisdb, "cache")
+	cache, err := database.NewCacheRedis(redisdb, "cache")
 	suite.service = NewBillingService(
 		db,
 		cfg,

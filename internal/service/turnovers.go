@@ -43,7 +43,7 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 		return err
 	}
 
-	countries, err := s.country.GetCountriesWithVatEnabled(ctx)
+	countries, err := s.country.FindByVatEnabled(ctx)
 	if err != nil {
 		return err
 	}

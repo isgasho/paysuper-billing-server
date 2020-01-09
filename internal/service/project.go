@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
@@ -75,7 +76,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.CallbackCurrency != "" {
-		if !contains(s.supportedCurrencies, req.CallbackCurrency) {
+		if !helper.Contains(s.supportedCurrencies, req.CallbackCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
@@ -84,7 +85,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.LimitsCurrency != "" {
-		if !contains(s.supportedCurrencies, req.LimitsCurrency) {
+		if !helper.Contains(s.supportedCurrencies, req.LimitsCurrency) {
 			rsp.Status = pkg.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 
@@ -94,7 +95,7 @@ func (s *Service) ChangeProject(
 
 	if len(req.Currencies) > 0 {
 		for _, v := range req.Currencies {
-			if !contains(s.supportedCurrencies, v.Currency) {
+			if !helper.Contains(s.supportedCurrencies, v.Currency) {
 				rsp.Status = pkg.ResponseStatusBadData
 				rsp.Message = projectErrorCurrencyIsNotSupport
 				rsp.Message.Details = v.Currency
@@ -493,7 +494,7 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 		currencies := make([]string, len(virtualCurrency.Prices))
 
 		for _, v := range virtualCurrency.Prices {
-			if !contains(s.supportedCurrencies, v.Currency) {
+			if !helper.Contains(s.supportedCurrencies, v.Currency) {
 				err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
 				err.Details = v.Currency
 
@@ -502,7 +503,7 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 			currencies = append(currencies, v.Currency)
 		}
 
-		if !contains(currencies, payoutCurrency) {
+		if !helper.Contains(currencies, payoutCurrency) {
 			err := projectErrorVirtualCurrencyPriceCurrencyIsNotSupport
 			err.Details = payoutCurrency
 

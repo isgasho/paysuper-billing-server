@@ -45,7 +45,7 @@ type RoyaltyReportTestSuite struct {
 	suite.Suite
 	service    *Service
 	log        *zap.Logger
-	cache      CacheInterface
+	cache      database.CacheInterface
 	httpClient *http.Client
 
 	project   *billing.Project
@@ -112,7 +112,7 @@ func (suite *RoyaltyReportTestSuite) SetupTest() {
 
 	redisdb := mocks.NewTestRedis()
 	suite.httpClient = mocks.NewClientStatusOk()
-	suite.cache, err = NewCacheRedis(redisdb, "cache")
+	suite.cache, err = database.NewCacheRedis(redisdb, "cache")
 
 	reporterMock := &reportingMocks.ReporterService{}
 	reporterMock.On("CreateFile", mock2.Anything, mock2.Anything, mock2.Anything).

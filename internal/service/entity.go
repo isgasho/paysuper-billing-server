@@ -65,15 +65,6 @@ type balanceQueryResItem struct {
 	Amount float64 `bson:"amount"`
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func timeTrack(start time.Time, name string) {
 	elapsed := time.Since(start)
 	zap.L().Info(
