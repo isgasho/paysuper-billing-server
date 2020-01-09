@@ -13,83 +13,103 @@ message Name {
 }
 
 message OrderCreateRequest {
-    // @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project" validate:"omitempty,hexadecimal"
+    // @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project"  validate:"omitempty,hexadecimal" required:"true"
+    //
+    // The ID of the Project found in your merchant account in the PaySuper Dashboard.
     string project_id = 1;
-    // @inject_tag: query:"PO_SIGNATURE" form:"PO_SIGNATURE" validate:"omitempty,alphanum"
+    // @inject_tag: query:"PO_SIGNATURE" form:"PO_SIGNATURE" json:"-" validate:"omitempty,alphanum"
     string signature = 2;
     // @inject_tag: query:"PO_AMOUNT" form:"PO_AMOUNT" json:"amount" validate:"omitempty,numeric,gte=0"
+    //
+    // The order amount as a positive number. It is required for a simple checkout payment.
     double amount = 3;
     // @inject_tag: query:"PO_CURRENCY" form:"PO_CURRENCY" json:"currency" validate:"omitempty,alpha,len=3"
+    //
+    // The currency of the order. Three-letter Currency Code ISO 4217, in uppercase. If provided, the amount will be processed in this currency. It is required for a payment when the type equals to simple.
     string currency = 4;
     // @inject_tag: "PO_ACCOUNT" form:"PO_ACCOUNT" json:"account"`
+    //
+    // The user's unique account in the merchant project.
     string account = 5;
     // @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
+    //
+    // The unique order identifier in the merchant project. This field is not required, but we recommend always sending this field.
     string order_id = 6;
     // @inject_tag: query:"PO_DESCRIPTION" form:"PO_DESCRIPTION" json:"description" validate:"omitempty,max=255"
+    //
+    // The arbitrary order description.
     string description = 7;
-    // @inject_tag: query:"PO_PAYMENT_METHOD" form:"PO_PAYMENT_METHOD" json:"payment_method" validate:"omitempty,max=255"
+    // @inject_tag: query:"PO_PAYMENT_METHOD" form:"PO_PAYMENT_METHOD" json:"-" validate:"omitempty,max=255"
     string payment_method = 8;
-    // @inject_tag: query:"PO_URL_VERIFY" form:"PO_URL_VERIFY" json:"url_verify" validate:"omitempty,url"
+    // @inject_tag: query:"PO_URL_VERIFY" form:"PO_URL_VERIFY" json:"-" validate:"omitempty,url"
     string url_verify = 9;
-    // @inject_tag: query:"PO_URL_NOTIFY" form:"PO_URL_NOTIFY" json:"url_notify" validate:"omitempty,url"
+    // @inject_tag: query:"PO_URL_NOTIFY" form:"PO_URL_NOTIFY" json:"-" validate:"omitempty,url"
     string url_notify = 10;
     // @inject_tag: query:"PO_URL_SUCCESS" form:"PO_URL_SUCCESS" json:"url_success" validate:"omitempty,url"
+    //
+    // The redirect URL for the successful payment. You need to enable the dynamic notify URLs option in the Project Settings to use this field.
     string url_success = 11;
     // @inject_tag: query:"PO_URL_FAIL" form:"PO_URL_FAIL" json:"url_fail" validate:"omitempty,url"
+    //
+    // The redirect URL for the failed payment. You need to enable the dynamic notify URLs option in the Project Settings to use this field.
     string url_fail = 12;
-    // @inject_tag: query:"PO_PAYER_EMAIL" form:"PO_PAYER_EMAIL" json:"payer_email" validate:"omitempty,email"
+    // @inject_tag: query:"PO_PAYER_EMAIL" form:"PO_PAYER_EMAIL" json:"-" validate:"omitempty,email"
     string payer_email = 13;
-    // @inject_tag: query:"PO_PAYER_PHONE" form:"PO_PAYER_PHONE" json:"payer_phone" validate:"omitempty,max=255"
+    // @inject_tag: query:"PO_PAYER_PHONE" form:"PO_PAYER_PHONE" json:"-" validate:"omitempty,max=255"
     string payer_phone = 14;
-    // @inject_tag: query:"PO_REGION" form:"PO_REGION" json:"region" validate:"omitempty,alpha,len=2"
+    // @inject_tag: query:"PO_REGION" form:"PO_REGION" json:"-" validate:"omitempty,alpha,len=2"
     string region = 15;
+    // @inject_tag: json:"-"
     map<string, string> other = 17;
     // @inject_tag: json:"-"
     map<string, string> raw_params = 18;
     // @inject_tag: json:"-"
-    string raw_body = 19; //`json:"-"`
+    string raw_body = 19;
     // @inject_tag: json:"-"
     bool is_json = 20;
     // @inject_tag: json:"-"
     string language = 21;
     // @inject_tag: json:"products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
+    //
+    // The list of unique identifiers of Products being in the Project. It is required if a payment type is equal to product or key.
     repeated string products = 22;
     // @inject_tag: json:"-"
     map<string, string> metadata = 23;
     // @inject_tag: json:"-"
     map<string, string> private_metadata = 24;
-    // @inject_tag: json:"receipt_number"
+    // @inject_tag: json:"-"
     string receipt_number = 25; // payer receipt number from create order request
-    // @inject_tag: json:"receipt_url"
+    // @inject_tag: json:"-"
     string receipt_url = 26; // payer receipt url from create order request
     // @inject_tag: json:"issuer_url"
     string issuer_url = 27;
     // @inject_tag: json:"is_embedded"
     bool is_embedded = 28;
-
+    // An encrypted string that represents certain details of your customer (such as the user ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
     string token = 29;
+    // The user data.
     OrderUser user = 30;
-
-    // @inject_tag: json:"order" validate:"omitempty,uuid"
+    // @inject_tag: json:"-" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
-
-    // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type"
+    // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
+    //
+    // The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, for a simple checkout - the simple type. Enum values: key, product, simple.
     string type = 32;
-
+    // The default platform identifier for which customer buys the in-game key. This field is used only for the key type.
     string platform_id = 33;
-
-    //@inject_tag: bson:"issuer_reference" json:"issuer_reference"
+    //@inject_tag: bson:"issuer_reference" json:"-"
     string issuer_reference = 34;
-    //@inject_tag: bson:"issuer_reference_type" json:"issuer_reference_type"
+    //@inject_tag: bson:"issuer_reference_type" json:"-"
     string issuer_reference_type = 35;
-    //@inject_tag: bson:"utm_source" json:"utm_source"
+    //@inject_tag: bson:"utm_source" json:"-"
     string utm_source = 36;
-    //@inject_tag: bson:"utm_medium" json:"utm_medium"
+    //@inject_tag: bson:"utm_medium" json:"-"
     string utm_medium = 37;
-    //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
+    //@inject_tag: bson:"utm_campaign" json:"-"
     string utm_campaign = 38;
     //@inject_tag: bson:"-" json:"-"
     bool is_buy_for_virtual_currency = 39;
+    // @inject_tag: json:"-"
     string cookie = 40;
 }
 
@@ -459,43 +479,69 @@ message OrderTax {
 
 message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
+    //
+    // The user's country. Two-letter language code by ISO 3166-1, in lowercase (for instance "US")
     string country = 1;
+    // The user’s city.
     string city = 2;
     // @inject_tag: bson:"postal_code"
+    //
+    // The user's postal code.
     string postal_code = 3;
+    // The user's state code by ISO 3166-2.
     string state = 4;
 }
 
 message OrderUser {
-    // @inject_tag: json:"id"
+    // @inject_tag: json:"-"
     string id = 1;
-    // @inject_tag: json:"object"
+    // @inject_tag: json:"-"
     string object = 2;
     // @inject_tag: json:"external_id" bson:"external_id"
+    //
+    // The user unique identifier in the merchant project.
     string external_id = 3;
     // @inject_tag: json:"name"
+    //
+    // The user's name.
     string name = 4;
     // @inject_tag: json:"email" validate:"omitempty,email"
+    //
+    // The user's email address.
     string email = 5;
     // @inject_tag: json:"email_verified" bson:"email_verified"
+    //
+    // Whether the user's email address has been verified on the merchant side.
     bool email_verified = 6;
     // @inject_tag: json:"phone" validate:"omitempty,phone"
+    //
+    // The user's phone number.
     string phone = 7;
     // @inject_tag: json:"phone_verified" bson:"phone_verified"
+    //
+    // Whether the user's phone number has been verified on the merchant side.
     bool phone_verified = 8;
     // @inject_tag: json:"ip" validate:"omitempty,ip"
+    //
+    // The user's IP address.
     string ip = 9;
     // @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
+    //
+    // The user's locale name. Two-letter language code by ISO 639-1, in lowercase (for instance "en-US").
     string locale = 10;
     // @inject_tag: json:"address"
+    //
+    // The user's address details.
     OrderBillingAddress address = 11;
     // @inject_tag: json:"metadata"
+    //
+    // A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer's payment.
     map<string, string> metadata = 12;
     // @inject_tag: json:"-"
     string tech_email = 13;
-    //@inject_tag: json:"notify_new_region" bson:"notify_new_region"
+    //@inject_tag: json:"-" bson:"notify_new_region"
     bool notify_new_region = 14;
-    //@inject_tag: json:"notify_new_region_email" bson:"notify_new_region_email"
+    //@inject_tag: json:"-" bson:"notify_new_region_email"
     string notify_new_region_email = 15;
 }
 
