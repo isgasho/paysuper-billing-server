@@ -1318,10 +1318,16 @@ message ResponseError {
 
 message ResponseErrorMessage {
     //@inject_tag: json:"code"
+    //
+    // The error code.
     string code = 1;
     //@inject_tag: json:"message"
+    //
+    // The error short description.
     string message = 2;
     //@inject_tag: json:"details,omitempty"
+    //
+    // The error details.
     string details = 3;
 }
 
