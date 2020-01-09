@@ -15,6 +15,7 @@ import (
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-recurring-repository/tools"
 	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -198,9 +199,9 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	ref1 := suite.getTurnoverReference(from, to, suite.operatingCompany.Id, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy)
 	assert.Equal(suite.T(), amount, ref1)
 
-	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
+	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), now.EndOfYear(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
-	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), suite.operatingCompany.Id, "", "RUB", "on-day")
+	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), now.EndOfYear(), suite.operatingCompany.Id, "", "RUB", "on-day")
 	assert.Equal(suite.T(), worldAmount, ref2)
 	assert.True(suite.T(), ref2 > ref1)
 
@@ -208,9 +209,9 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	err = suite.service.updateOrderView(context.TODO(), []string{})
 	assert.NoError(suite.T(), err)
 
-	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
+	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), now.EndOfYear(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
-	ref3 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), suite.operatingCompany.Id, "", "RUB", "on-day")
+	ref3 := suite.getTurnoverReference(now.BeginningOfYear(), now.EndOfYear(), suite.operatingCompany.Id, "", "RUB", "on-day")
 	assert.Equal(suite.T(), worldAmount, ref3)
 	assert.True(suite.T(), ref3 > ref2)
 }
@@ -231,7 +232,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_calcAnnualTurnover() {
 	assert.Equal(suite.T(), at.Year, int32(time.Now().Year()))
 	assert.Equal(suite.T(), at.Country, countryCode)
 	assert.Equal(suite.T(), at.Currency, "RUB")
-	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), suite.operatingCompany.Id, "RU", "RUB", "on-day")
+	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), now.EndOfDay(), suite.operatingCompany.Id, "RU", "RUB", "on-day")
 	assert.Equal(suite.T(), at.Amount, ref2)
 }
 
@@ -261,7 +262,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	assert.Equal(suite.T(), at.Currency, "EUR")
 
 	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "EUR", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
-	assert.Equal(suite.T(), at.Amount, worldAmount)
+	assert.Equal(suite.T(), tools.FormatAmount(at.Amount), tools.FormatAmount(worldAmount))
 
 	countries, err := suite.service.country.FindByVatEnabled(context.TODO())
 	assert.NoError(suite.T(), err)
@@ -272,6 +273,9 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 }
 
 func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, countryCode string, daysMultiplier int) {
+	maxEntries := 14
+	maxDays := maxEntries * daysMultiplier
+
 	country, err := suite.service.country.GetByIsoCodeA2(context.TODO(), countryCode)
 	assert.NoError(suite.T(), err)
 
@@ -288,12 +292,18 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 	currs := []string{"RUB", "USD"}
 	types := []string{pkg.AccountingEntryTypeRealGrossRevenue, pkg.AccountingEntryTypeRealTaxFee}
 
-	timeNow := time.Now()
+	multiplier := 1
+	startTime := time.Now()
+	diff := now.New(startTime).EndOfYear().Sub(startTime)
+
+	if int(diff.Hours()/24) < maxDays {
+		multiplier = -1
+	}
 
 	count := 0
-	for count <= 14 {
+	for count <= maxEntries {
 
-		date := timeNow.AddDate(0, 0, -1*count*daysMultiplier)
+		date := startTime.AddDate(0, 0, multiplier*count*daysMultiplier)
 		createdAt, err := ptypes.TimestampProto(date)
 		assert.NoError(suite.T(), err)
 
@@ -302,7 +312,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 			Status:             constant.OrderPublicStatusProcessed,
 			PrivateStatus:      constant.OrderStatusProjectComplete,
 			CreatedAt:          createdAt,
-			TotalPaymentAmount: float64(count),
+			TotalPaymentAmount: float64(count + 1),
 			Currency:           currs[count%2],
 			BillingAddress: &billing.OrderBillingAddress{
 				Country: countryCode,
@@ -322,7 +332,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 			Type:                       pkg.OrderTypeOrder,
 			OperatingCompanyId:         operatingCompanyId,
 			ChargeCurrency:             currs[count%2],
-			ChargeAmount:               float64(count),
+			ChargeAmount:               float64(count + 1),
 			IsProduction:               true,
 		}
 
@@ -340,7 +350,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 			Status:             pkg.BalanceTransactionStatusAvailable,
 			CreatedAt:          createdAt,
 			Country:            countryCode,
-			Amount:             float64(count),
+			Amount:             float64(count + 1),
 			Currency:           currs[count%2],
 			OperatingCompanyId: operatingCompanyId,
 		}

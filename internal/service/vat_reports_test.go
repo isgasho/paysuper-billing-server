@@ -155,9 +155,10 @@ func (suite *VatReportsTestSuite) TestVatReports_getLastVatReportTime() {
 	toRef := now.EndOfMonth()
 
 	if fromRef.Month()%2 == 0 {
-		fromRef = fromRef.AddDate(0, -1, 0)
+		fromRef = now.BeginningOfMonth().AddDate(0, 0, -1)
+		fromRef = now.New(fromRef).BeginningOfMonth()
 	} else {
-		toRef = toRef.AddDate(0, 1, 0)
+		toRef = now.EndOfMonth().AddDate(0, 0, 1)
 		toRef = now.New(toRef).EndOfMonth()
 	}
 
