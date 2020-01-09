@@ -81,9 +81,9 @@ message OrderCreateRequest {
     string receipt_number = 25; // payer receipt number from create order request
     // @inject_tag: json:"-"
     string receipt_url = 26; // payer receipt url from create order request
-    // @inject_tag: json:"issuer_url"
+    // @inject_tag: json:"-"
     string issuer_url = 27;
-    // @inject_tag: json:"is_embedded"
+    // @inject_tag: json:"-"
     bool is_embedded = 28;
     // An encrypted string that represents certain details of your customer (such as the user ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
     string token = 29;
@@ -95,7 +95,7 @@ message OrderCreateRequest {
     //
     // The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, for a simple checkout - the simple type. Enum values: key, product, simple.
     string type = 32;
-    // The default platform identifier for which customer buys the in-game key. This field is used only for the key type.
+    // The default platform identifier for which customer buys the in-game key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform_id = 33;
     //@inject_tag: bson:"issuer_reference" json:"-"
     string issuer_reference = 34;
@@ -480,7 +480,7 @@ message OrderTax {
 message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
     //
-    // The user's country. Two-letter language code by ISO 3166-1, in lowercase (for instance "US")
+    // The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US")
     string country = 1;
     // The user’s city.
     string city = 2;
@@ -527,7 +527,7 @@ message OrderUser {
     string ip = 9;
     // @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
     //
-    // The user's locale name. Two-letter language code by ISO 639-1, in lowercase (for instance "en-US").
+    // The user's locale name. The language code by ISO 639-1 (for instance "en-US").
     string locale = 10;
     // @inject_tag: json:"address"
     //
