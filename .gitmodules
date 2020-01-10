@@ -1,0 +1,3 @@
+[submodule "third_party/paysuper-proto"]
+	path = third_party/paysuper-proto
+	url = https://github.com/paysuper/paysuper-proto.git
