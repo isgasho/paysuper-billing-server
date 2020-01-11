@@ -1769,10 +1769,17 @@ message AnnualTurnover {
 }
 
 message OrderViewMoney {
-    //@inject_tag: json:"amount"
+    //@inject_tag: json:"amount" bson:"amount"
     double amount = 1;
-    //@inject_tag: json:"currency"
+    //@inject_tag: json:"currency" bson:"currency"
     string currency = 2;
+}
+
+message OrderViewMerchantInfo {
+    //@inject_tag: json:"company_name" bson:"company_name"
+    string company_name = 1;
+    //@inject_tag: json:"agreement_number" bson:"agreement_number"
+    string agreement_number = 2;
 }
 
 message OrderViewPublic {
@@ -2052,6 +2059,12 @@ message OrderViewPrivate {
     string vat_payer = 85;
     // @inject_tag: json:"is_production" bson:"is_production"
     bool is_production = 86;
+    // @inject_tag: json:"merchant_info" bson:"merchant_info"
+    OrderViewMerchantInfo merchant_info = 87;
+    // @inject_tag: json:"order_charge_before_vat" bson:"order_charge_before_vat"
+    OrderViewMoney order_charge_before_vat = 88;
+    // @inject_tag: json:"tax_rate" bson:"tax_rate"
+    double tax_rate = 89;
 }
 
 message RecommendedPrice {
