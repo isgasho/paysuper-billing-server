@@ -27,7 +27,6 @@ type MerchantBalance Entity
 type RoyaltyReport Entity
 type PriceGroup Entity
 type PaymentSystemService Entity
-type ZipCode Entity
 type PaymentChannelCostSystem Entity
 type PaymentChannelCostMerchant Entity
 type MoneyBackCostSystem Entity
@@ -47,7 +46,6 @@ type Repository struct {
 
 type MerchantsTariffRatesRepository Repository
 type DashboardRepository Repository
-type UserRoleRepository Repository
 type UserProfileRepository Repository
 type KeyProductRepository Repository
 

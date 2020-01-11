@@ -1345,8 +1345,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		},
 		CreatedAt: ptypes.TimestampNow(),
 	}
-
-	_, err = db.Collection(collectionZipCode).InsertOne(context.TODO(), zipCode)
+	err = suite.service.zipCodeRepository.Insert(context.TODO(), zipCode)
 
 	if err != nil {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)

@@ -1520,7 +1520,7 @@ func (s *Service) ProcessBillingAddress(
 	if req.Country == CountryCodeUSA && req.Zip != "" {
 		billingAddress.PostalCode = req.Zip
 
-		zip, err = s.zipCode.getByZipAndCountry(ctx, req.Zip, req.Country)
+		zip, err = s.zipCodeRepository.GetByZipAndCountry(ctx, req.Zip, req.Country)
 
 		if err == nil && zip != nil {
 			billingAddress.Country = zip.Country
@@ -2924,7 +2924,7 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 				return orderErrorCreatePaymentRequiredFieldUserZipNotFound
 			}
 
-			zipData, err := v.service.zipCode.getByZipAndCountry(ctx, zip, country)
+			zipData, err := v.service.zipCodeRepository.GetByZipAndCountry(ctx, zip, country)
 
 			if err == nil && zipData != nil {
 				v.data[pkg.PaymentCreateFieldUserCity] = zipData.City

@@ -76,7 +76,6 @@ type Service struct {
 	paymentMethod              PaymentMethodInterface
 	priceGroup                 PriceGroupServiceInterface
 	paymentSystem              PaymentSystemServiceInterface
-	zipCode                    *ZipCode
 	paymentChannelCostSystem   *PaymentChannelCostSystem
 	paymentChannelCostMerchant *PaymentChannelCostMerchant
 	moneyBackCostSystem        *MoneyBackCostSystem
@@ -104,6 +103,7 @@ type Service struct {
 	refundRepository           repository.RefundRepositoryInterface
 	orderRepository            repository.OrderRepositoryInterface
 	userRoleRepository         repository.UserRoleRepositoryInterface
+	zipCodeRepository          repository.ZipCodeRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -168,7 +168,6 @@ func (s *Service) Init() (err error) {
 	s.project = newProjectService(s)
 	s.priceGroup = newPriceGroupService(s)
 	s.paymentSystem = newPaymentSystemService(s)
-	s.zipCode = newZipCodeService(s)
 	s.paymentChannelCostSystem = newPaymentChannelCostSystemService(s)
 	s.paymentChannelCostMerchant = newPaymentChannelCostMerchantService(s)
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
@@ -192,6 +191,7 @@ func (s *Service) Init() (err error) {
 	s.orderRepository = repository.NewOrderRepository(s.db)
 	s.country = repository.NewCountryRepository(s.db, s.cacher)
 	s.userRoleRepository = repository.NewUserRoleRepository(s.db, s.cacher)
+	s.zipCodeRepository = repository.NewZipCodeRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
