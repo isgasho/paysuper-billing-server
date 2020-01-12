@@ -16,7 +16,6 @@ type Entity struct {
 
 type Currency Entity
 type Commission Entity
-type Country Entity
 type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
@@ -46,7 +45,6 @@ type Repository struct {
 
 type MerchantsTariffRatesRepository Repository
 type DashboardRepository Repository
-type UserProfileRepository Repository
 type KeyProductRepository Repository
 
 type kvIntFloat struct {
