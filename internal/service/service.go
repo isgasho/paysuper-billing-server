@@ -88,7 +88,6 @@ type Service struct {
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
-	userProfileRepository      UserProfileRepositoryInterface
 	keyProductRepository       KeyProductRepositoryInterface
 	centrifugoPaymentForm      CentrifugoInterface
 	centrifugoDashboard        CentrifugoInterface
@@ -104,6 +103,7 @@ type Service struct {
 	orderRepository            repository.OrderRepositoryInterface
 	userRoleRepository         repository.UserRoleRepositoryInterface
 	zipCodeRepository          repository.ZipCodeRepositoryInterface
+	userProfileRepository      repository.UserProfileRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -179,7 +179,6 @@ func (s *Service) Init() (err error) {
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
-	s.userProfileRepository = newUserProfileRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
 	s.centrifugoPaymentForm = newCentrifugo(s.cfg.CentrifugoPaymentForm, tools.NewLoggedHttpClient(zap.S()))
 	s.centrifugoDashboard = newCentrifugo(s.cfg.CentrifugoDashboard, tools.NewLoggedHttpClient(zap.S()))
@@ -192,6 +191,7 @@ func (s *Service) Init() (err error) {
 	s.country = repository.NewCountryRepository(s.db, s.cacher)
 	s.userRoleRepository = repository.NewUserRoleRepository(s.db, s.cacher)
 	s.zipCodeRepository = repository.NewZipCodeRepository(s.db, s.cacher)
+	s.userProfileRepository = repository.NewUserProfileRepository(s.db)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {
