@@ -70,8 +70,6 @@ func (suite *ZipCodeTestSuite) TestZipCode_Insert_Ok() {
 	assert.NoError(suite.T(), err)
 
 	zipCode2, err := suite.repository.GetByZipAndCountry(context.TODO(), zipCode.Zip, zipCode.Country)
-	fmt.Println(zipCode2)
-	fmt.Println(err)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), zipCode.Zip, zipCode2.Zip)
 	assert.Equal(suite.T(), zipCode.Country, zipCode2.Country)
@@ -143,7 +141,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_GetByZipAndCountry_ReturnByCache() {
 	assert.IsType(suite.T(), &billing.ZipCode{}, zipCode2)
 }
 
-func (suite *ZipCodeTestSuite) TestZipCode_GetByIsoCodeA2_SkipSetToCacheError() {
+func (suite *ZipCodeTestSuite) TestZipCode_GetByZipAndCountry_SkipSetToCacheError() {
 	zipCode := suite.getZipCodeTemplate()
 	key := fmt.Sprintf(cacheZipCodeByZipAndCountry, zipCode.Zip, zipCode.Country)
 
