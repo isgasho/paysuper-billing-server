@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -14,15 +13,11 @@ import (
 	"github.com/paysuper/paysuper-recurring-repository/tools"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"time"
 )
 
 const (
-	collectionAnnualTurnovers = "annual_turnovers"
-	cacheTurnoverKey          = "turnover:company:%s:country:%s:year:%d"
-
 	errorCannotCalculateTurnoverCountry = "can not calculate turnover for country"
 	errorCannotCalculateTurnoverWorld   = "can not calculate turnover for world"
 )
@@ -159,15 +154,9 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 		OperatingCompanyId: operatingCompanyId,
 	}
 
-	err = s.turnover.Insert(ctx, at)
+	err = s.turnoverRepository.Upsert(ctx, at)
 
 	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionAnnualTurnovers),
-			zap.Any("value", at),
-		)
 		return err
 	}
 	return nil
@@ -302,71 +291,4 @@ func (s *Service) getTurnover(
 	}
 
 	return
-}
-
-func newTurnoverService(svc *Service) *Turnover {
-	s := &Turnover{svc: svc}
-	return s
-}
-
-func (h *Turnover) Insert(ctx context.Context, turnover *billing.AnnualTurnover) error {
-	filter := bson.M{
-		"year":                 turnover.Year,
-		"country":              turnover.Country,
-		"operating_company_id": turnover.OperatingCompanyId,
-	}
-
-	_, err := h.svc.db.Collection(collectionAnnualTurnovers).ReplaceOne(ctx, filter, turnover, options.Replace().SetUpsert(true))
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAnnualTurnovers),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpsert),
-			zap.Any(pkg.ErrorDatabaseFieldDocument, turnover),
-		)
-		return err
-	}
-
-	key := fmt.Sprintf(cacheTurnoverKey, turnover.OperatingCompanyId, turnover.Country, turnover.Year)
-	err = h.svc.cacher.Set(key, turnover, 0)
-	if err != nil {
-		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", turnover)
-		return err
-	}
-	return nil
-}
-
-func (h *Turnover) Update(ctx context.Context, turnover *billing.AnnualTurnover) error {
-	return h.Insert(ctx, turnover)
-}
-
-func (h *Turnover) Get(ctx context.Context, operatingCompanyId, country string, year int) (*billing.AnnualTurnover, error) {
-	var c billing.AnnualTurnover
-	key := fmt.Sprintf(cacheTurnoverKey, operatingCompanyId, country, year)
-
-	if err := h.svc.cacher.Get(key, c); err == nil {
-		return &c, nil
-	}
-
-	query := bson.M{"operating_company_id": operatingCompanyId, "country": country, "year": year}
-	err := h.svc.db.Collection(collectionAnnualTurnovers).FindOne(ctx, query).Decode(&c)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionAnnualTurnovers),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, err
-	}
-
-	err = h.svc.cacher.Set(key, c, 0)
-	if err != nil {
-		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
-	}
-
-	return &c, nil
 }

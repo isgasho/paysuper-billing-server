@@ -83,7 +83,6 @@ type Service struct {
 	payoutCostSystem           *PayoutCostSystem
 	priceTable                 PriceTableServiceInterface
 	productService             ProductServiceInterface
-	turnover                   *Turnover
 	documentSigner             documentSignerProto.DocumentSignerService
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
@@ -102,8 +101,9 @@ type Service struct {
 	refundRepository           repository.RefundRepositoryInterface
 	orderRepository            repository.OrderRepositoryInterface
 	userRoleRepository         repository.UserRoleRepositoryInterface
-	zipCodeRepository          repository.ZipCodeRepositoryInterface
+	zipCodeRepository		   repository.ZipCodeRepositoryInterface
 	userProfileRepository      repository.UserProfileRepositoryInterface
+	turnoverRepository         repository.TurnoverRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
@@ -175,7 +175,6 @@ func (s *Service) Init() (err error) {
 	s.payoutCostSystem = newPayoutCostSystemService(s)
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
-	s.turnover = newTurnoverService(s)
 	s.merchantTariffRates = newMerchantsTariffRatesRepository(s)
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
@@ -192,6 +191,7 @@ func (s *Service) Init() (err error) {
 	s.userRoleRepository = repository.NewUserRoleRepository(s.db, s.cacher)
 	s.zipCodeRepository = repository.NewZipCodeRepository(s.db, s.cacher)
 	s.userProfileRepository = repository.NewUserProfileRepository(s.db)
+	s.turnoverRepository = repository.NewTurnoverRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
 	if err != nil {

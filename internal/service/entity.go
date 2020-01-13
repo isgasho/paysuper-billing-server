@@ -36,7 +36,6 @@ type PaymentMinLimitSystem Entity
 type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
-type Turnover Entity
 type Key Entity
 
 type Repository struct {
