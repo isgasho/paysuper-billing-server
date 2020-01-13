@@ -2561,7 +2561,7 @@ func (m *OrderTax) GetCurrency() string {
 type OrderBillingAddress struct {
 	// @inject_tag: validate:"omitempty,alpha,len=2"
 	//
-	// The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US")
+	// The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US").
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country,omitempty" validate:"omitempty,alpha,len=2"`
 	// The user’s city.
 	City string `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
@@ -3661,32 +3661,60 @@ func (m *CountryRestriction) GetChangeAllowed() bool {
 
 type OrderItem struct {
 	//@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id"
+	//
+	// The unique identifier for the item.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24" bson:"_id"`
 	//@inject_tag: validate:"required" json:"object" bson:"object"
+	//
+	// The type of the item.
 	Object string `protobuf:"bytes,2,opt,name=object,proto3" json:"object" validate:"required" bson:"object"`
 	//@inject_tag: validate:"required" json:"sku" bson:"sku"
+	//
+	// SKU of the item.
 	Sku string `protobuf:"bytes,3,opt,name=sku,proto3" json:"sku" validate:"required" bson:"sku"`
 	//@inject_tag: validate:"required" json:"name" bson:"name"
+	//
+	// The item's name.
 	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name" validate:"required" bson:"name"`
 	//@inject_tag: validate:"required" json:"description" bson:"description"
+	//
+	// The item's description.
 	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description" validate:"required" bson:"description"`
 	// @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount"
+	//
+	// The item's price.
 	Amount float64 `protobuf:"fixed64,6,opt,name=amount,proto3" json:"amount" validate:"required,numeric,gt=0" bson:"amount"`
 	//@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
+	//
+	// The item's price currency. Three-letter Currency Code ISO 4217, in uppercase.
 	Currency string `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3" bson:"currency"`
 	//@inject_tag: validate:"dive,omitempty,uri" json:"images" bson:"images"
+	//
+	// A list of the item's images URLs.
 	Images []string `protobuf:"bytes,8,rep,name=images,proto3" json:"images" validate:"dive,omitempty,uri" bson:"images"`
 	//@inject_tag: validate:"omitempty,url" json:"url" bson:"url"
+	//
+	// The item's URL in a merchant project.
 	Url string `protobuf:"bytes,9,opt,name=url,proto3" json:"url" validate:"omitempty,url" bson:"url"`
 	//@inject_tag: json:"metadata" bson:"metadata"
+	//
+	// A string-value description for the item.
 	Metadata map[string]string `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3" bson:"metadata"`
 	//@inject_tag: json:"created_at" bson:"created_at"
+	//
+	// Date of the object creation.
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at" bson:"created_at"`
 	//@inject_tag: json:"updated_at" bson:"updated_at"
+	//
+	// Date of the object update.
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at" bson:"updated_at"`
 	//@inject_tag: validate:"omitempty,min=3" json:"platform_id" bson:"platform_id"
+	//
+	// The unique identifier for the platform.
 	PlatformId string `protobuf:"bytes,13,opt,name=platform_id,json=platformId,proto3" json:"platform_id" validate:"omitempty,min=3" bson:"platform_id"`
 	//@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
+	//
+	// The game code.
 	Code                 string   `protobuf:"bytes,14,opt,name=code,proto3" json:"code" validate:"omitempty,min=5" bson:"code"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -4775,8 +4803,12 @@ func (m *Commission) GetUpdatedAt() *timestamp.Timestamp {
 
 type CardExpire struct {
 	// @inject_tag: bson:"month"
+	//
+	// The card expiration month.
 	Month string `protobuf:"bytes,1,opt,name=month,proto3" json:"month,omitempty" bson:"month"`
 	// @inject_tag: bson:"year"
+	//
+	// The card expiration year.
 	Year                 string   `protobuf:"bytes,2,opt,name=year,proto3" json:"year,omitempty" bson:"year"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -4823,9 +4855,13 @@ func (m *CardExpire) GetYear() string {
 }
 
 type SavedCard struct {
-	Id                   string      `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Pan                  string      `protobuf:"bytes,2,opt,name=pan,proto3" json:"pan,omitempty"`
-	CardHolder           string      `protobuf:"bytes,3,opt,name=card_holder,json=cardHolder,proto3" json:"card_holder,omitempty"`
+	// The unique identifier of the saved card.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// The card number.
+	Pan string `protobuf:"bytes,2,opt,name=pan,proto3" json:"pan,omitempty"`
+	// The cardholder’s name.
+	CardHolder string `protobuf:"bytes,3,opt,name=card_holder,json=cardHolder,proto3" json:"card_holder,omitempty"`
+	// The card expiration.
 	Expire               *CardExpire `protobuf:"bytes,4,opt,name=expire,proto3" json:"expire,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte      `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -4886,15 +4922,25 @@ func (m *SavedCard) GetExpire() *CardExpire {
 }
 
 type PaymentFormPaymentMethod struct {
-	Id   string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// The unique identifier for a payment method.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// The payment method's name.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// The payment method's type. Available values: bank_card, ewallet, crypto.
 	Type string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	// @inject_tag: json:"group_alias"
-	Group         string `protobuf:"bytes,4,opt,name=group,proto3" json:"group_alias"`
+	//
+	// The payment method's group alias.
+	Group string `protobuf:"bytes,4,opt,name=group,proto3" json:"group_alias"`
+	// The regexp mask for checking the main requisite of a payment method.
 	AccountRegexp string `protobuf:"bytes,5,opt,name=account_regexp,json=accountRegexp,proto3" json:"account_regexp,omitempty"`
 	// @inject_tag: json:"has_saved_cards"
+	//
+	// Has a true value if contains a saved card as a payment method.
 	HasSavedCards bool `protobuf:"varint,6,opt,name=has_saved_cards,json=hasSavedCards,proto3" json:"has_saved_cards"`
 	// @inject_tag: json:"saved_cards,omitempty"
+	//
+	// The saved cards' data.
 	SavedCards           []*SavedCard `protobuf:"bytes,7,rep,name=saved_cards,json=savedCards,proto3" json:"saved_cards,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}     `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte       `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -12676,38 +12722,72 @@ func (m *MerchantBalance) GetCreatedAt() *timestamp.Timestamp {
 
 type OrderReceipt struct {
 	//@inject_tag: json:"total_price"
+	//
+	// The total order price not including VAT formatted with an order currency sign.
 	TotalPrice string `protobuf:"bytes,1,opt,name=total_price,json=totalPrice,proto3" json:"total_price"`
 	//@inject_tag: json:"transaction_id"
+	//
+	// The unique identifier for the transaction.
 	TransactionId string `protobuf:"bytes,2,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id"`
 	//@inject_tag: json:"transaction_date"
+	//
+	// A transaction date.
 	TransactionDate string `protobuf:"bytes,3,opt,name=transaction_date,json=transactionDate,proto3" json:"transaction_date"`
 	//@inject_tag: json:"project_name"
+	//
+	// The project's name.
 	ProjectName string `protobuf:"bytes,4,opt,name=project_name,json=projectName,proto3" json:"project_name"`
 	//@inject_tag: json:"merchant_name"
+	//
+	// The merchant's name.
 	MerchantName string `protobuf:"bytes,5,opt,name=merchant_name,json=merchantName,proto3" json:"merchant_name"`
 	//@inject_tag: json:"items"
+	//
+	// The receipt's items data.
 	Items []*OrderReceiptItem `protobuf:"bytes,6,rep,name=items,proto3" json:"items"`
 	//@inject_tag: json:"order_type"
+	//
+	// The type of the order.
 	OrderType string `protobuf:"bytes,7,opt,name=order_type,json=orderType,proto3" json:"order_type"`
 	//@inject_tag: json:"platform_name"
+	//
+	// The platform's name (if any).
 	PlatformName string `protobuf:"bytes,8,opt,name=platform_name,json=platformName,proto3" json:"platform_name"`
 	//@inject_tag: json:"payment_partner"
+	//
+	// The payment partner's name.
 	PaymentPartner string `protobuf:"bytes,9,opt,name=payment_partner,json=paymentPartner,proto3" json:"payment_partner"`
 	// @inject_tag: json:"vat_payer"
+	//
+	// Responsible for VAT. Available values: buyer (VAT is added to the amount of charge), seller (VAT is included to the amount of charge), nobody (VAT exempt).
 	VatPayer string `protobuf:"bytes,10,opt,name=vat_payer,json=vatPayer,proto3" json:"vat_payer"`
 	//@inject_tag: json:"vat_in_order_currency"
+	//
+	// VAT amount formatted with an order currency sign.
 	VatInOrderCurrency string `protobuf:"bytes,11,opt,name=vat_in_order_currency,json=vatInOrderCurrency,proto3" json:"vat_in_order_currency"`
 	//@inject_tag: json:"vat_in_charge_currency"
+	//
+	// VAT amount formatted with an order's charge currency sign.
 	VatInChargeCurrency string `protobuf:"bytes,12,opt,name=vat_in_charge_currency,json=vatInChargeCurrency,proto3" json:"vat_in_charge_currency"`
 	//@inject_tag: json:"total_amount"
+	//
+	// The order total amount including VAT formatted with an order currency sign.
 	TotalAmount string `protobuf:"bytes,13,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount"`
 	//@inject_tag: json:"total_charge"
+	//
+	// The order total amount including VAT formatted with an order's charge currency sign.
 	TotalCharge string `protobuf:"bytes,14,opt,name=total_charge,json=totalCharge,proto3" json:"total_charge"`
 	//@inject_tag: json:"receipt_id"
+	//
+	// The unique identifier for the order receipt.
 	ReceiptId string `protobuf:"bytes,15,opt,name=receipt_id,json=receiptId,proto3" json:"receipt_id"`
 	//@inject_tag: json:"url"
+	//
+	// The order receipt URL.
 	Url string `protobuf:"bytes,16,opt,name=url,proto3" json:"url"`
 	//@inject_tag: json:"vat_rate"
+	//
+	// The order VAT rate formatted with a percent sign.
 	VatRate              string   `protobuf:"bytes,17,opt,name=vat_rate,json=vatRate,proto3" json:"vat_rate"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -12860,8 +12940,12 @@ func (m *OrderReceipt) GetVatRate() string {
 
 type OrderReceiptItem struct {
 	//@inject_tag: json:"name"
+	//
+	// The receipt's item name.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name"`
 	//@inject_tag: json:"price"
+	//
+	// The receipt's item price.
 	Price                string   `protobuf:"bytes,2,opt,name=price,proto3" json:"price"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -13497,10 +13581,16 @@ func (m *OrderCreateByPaylink) GetCookie() string {
 
 type UserIpData struct {
 	// @inject_tag: json:"country"
+	//
+	// The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US").
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country"`
 	// @inject_tag: json:"city"
+	//
+	// The user's city.
 	City string `protobuf:"bytes,2,opt,name=city,proto3" json:"city"`
 	// @inject_tag: json:"zip"
+	//
+	// The user's postal code.
 	Zip                  string   `protobuf:"bytes,3,opt,name=zip,proto3" json:"zip"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`

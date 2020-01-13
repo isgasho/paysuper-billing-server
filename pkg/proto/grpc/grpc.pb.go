@@ -1707,12 +1707,20 @@ func (m *PaymentFormJsonDataRequest) GetUtmCampaign() string {
 
 type PaymentFormJsonDataProject struct {
 	// @inject_tag: json:"name"
+	//
+	// The project's name.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name"`
 	// @inject_tag: json:"url_success"
+	//
+	// The redirect URL for a successful payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
 	UrlSuccess string `protobuf:"bytes,2,opt,name=url_success,json=urlSuccess,proto3" json:"url_success"`
 	// @inject_tag: json:"url_fail"
+	//
+	// The redirect URL for a failed payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
 	UrlFail string `protobuf:"bytes,3,opt,name=url_fail,json=urlFail,proto3" json:"url_fail"`
 	// @inject_tag: json:"id"
+	//
+	// The unique identifier for the project.
 	Id                   string   `protobuf:"bytes,4,opt,name=id,proto3" json:"id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1773,54 +1781,103 @@ func (m *PaymentFormJsonDataProject) GetId() string {
 }
 
 type PaymentFormJsonData struct {
+	// The unique identifier for an order.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// @inject_tag: json:"account,omitempty"
+	//
+	// The user's unique account in the merchant project. The value can be null.
 	Account string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
 	// @inject_tag: json:"has_vat"
+	//
+	// Has a true value in case of displaying VAT commission in a payment form.
 	HasVat bool `protobuf:"varint,3,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
-	Vat            float64                             `protobuf:"fixed64,4,opt,name=vat,proto3" json:"vat"`
-	Amount         float64                             `protobuf:"fixed64,5,opt,name=amount,proto3" json:"amount,omitempty"`
-	TotalAmount    float64                             `protobuf:"fixed64,6,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
-	Currency       string                              `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency,omitempty"`
-	Project        *PaymentFormJsonDataProject         `protobuf:"bytes,8,opt,name=project,proto3" json:"project,omitempty"`
+	//
+	// The amount of VAT.
+	Vat float64 `protobuf:"fixed64,4,opt,name=vat,proto3" json:"vat"`
+	// The payment amount without VAT.
+	Amount float64 `protobuf:"fixed64,5,opt,name=amount,proto3" json:"amount,omitempty"`
+	// The payment amount including VAT.
+	TotalAmount float64 `protobuf:"fixed64,6,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
+	// The currency of the order.
+	Currency string `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency,omitempty"`
+	// The PaySuper Project data.
+	Project *PaymentFormJsonDataProject `protobuf:"bytes,8,opt,name=project,proto3" json:"project,omitempty"`
+	// Payment methods data.
 	PaymentMethods []*billing.PaymentFormPaymentMethod `protobuf:"bytes,9,rep,name=payment_methods,json=paymentMethods,proto3" json:"payment_methods,omitempty"`
-	Token          string                              `protobuf:"bytes,11,opt,name=token,proto3" json:"token,omitempty"`
+	// An access token to subscribe a WebSocket private channel.
+	Token string `protobuf:"bytes,11,opt,name=token,proto3" json:"token,omitempty"`
 	// @inject_tag: json:"user_address_data_required"
+	//
+	// Has a true value if it's required to get a real user's geo-position information.
 	UserAddressDataRequired bool `protobuf:"varint,12,opt,name=user_address_data_required,json=userAddressDataRequired,proto3" json:"user_address_data_required"`
 	// @inject_tag: json:"user_ip_data"
+	//
+	// A user's IP address data.
 	UserIpData *billing.UserIpData `protobuf:"bytes,13,opt,name=user_ip_data,json=userIpData,proto3" json:"user_ip_data"`
 	// @inject_tag: json:"items" validate="omitempty,gte=1,dive"
+	//
+	// A list of bought items in this order.
 	Items []*billing.OrderItem `protobuf:"bytes,14,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"email"
+	//
+	// A user's email.
 	Email string `protobuf:"bytes,16,opt,name=email,proto3" json:"email"`
 	// @inject_tag: json:"description"
+	//
+	// An order description.
 	Description string `protobuf:"bytes,17,opt,name=description,proto3" json:"description"`
 	//@inject_tag: json:"country_payments_allowed"
+	//
+	// Has a true value if the payments are allowed from this user's country.
 	CountryPaymentsAllowed bool `protobuf:"varint,18,opt,name=country_payments_allowed,json=countryPaymentsAllowed,proto3" json:"country_payments_allowed"`
 	//@inject_tag: json:"country_change_allowed"
+	//
+	// Has a true value if a user can select another country in case of the payments are disallowed for his country.
 	CountryChangeAllowed bool `protobuf:"varint,19,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	//@inject_tag: json:"platforms"
+	//
+	// A list of supported platforms if this payment is for a key type. For another type, this field can be empty.
 	Platforms []*Platform `protobuf:"bytes,20,rep,name=platforms,proto3" json:"platforms"`
 	//@inject_tag: json:"lang"
+	//
+	// A language predefined by a merchant project for a payment form.
 	Lang string `protobuf:"bytes,21,opt,name=lang,proto3" json:"lang"`
 	//@inject_tag: json:"is_already_processed"
+	//
+	// Has a true value if the order has already been processed.
 	IsAlreadyProcessed bool `protobuf:"varint,22,opt,name=is_already_processed,json=isAlreadyProcessed,proto3" json:"is_already_processed"`
 	//@inject_tag: json:"receipt_url"
+	//
+	// A receipt link for a completed payment.
 	ReceiptUrl string `protobuf:"bytes,23,opt,name=receipt_url,json=receiptUrl,proto3" json:"receipt_url"`
 	//@inject_tag: json:"type"
+	//
+	// The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). Available values: key, product, simple.
 	Type string `protobuf:"bytes,24,opt,name=type,proto3" json:"type"`
 	// @inject_tag: json:"charge_currency"
+	//
+	// A currency of charge. It can differ from the order currency because it also depends on a user's card currency.
 	ChargeCurrency string `protobuf:"bytes,25,opt,name=charge_currency,json=chargeCurrency,proto3" json:"charge_currency"`
 	// @inject_tag: json:"charge_amount"
+	//
+	// A total amount of charge.
 	ChargeAmount float64 `protobuf:"fixed64,26,opt,name=charge_amount,json=chargeAmount,proto3" json:"charge_amount"`
 	// @inject_tag: json:"vat_in_charge_currency"
+	//
+	// VAT currency of charge. It can differ from the order currency because it also depends on a user's card currency.
 	VatInChargeCurrency float64 `protobuf:"fixed64,27,opt,name=vat_in_charge_currency,json=vatInChargeCurrency,proto3" json:"vat_in_charge_currency"`
 	// @inject_tag: json:"vat_rate"
+	//
+	// VAT rate.
 	VatRate float64 `protobuf:"fixed64,28,opt,name=vat_rate,json=vatRate,proto3" json:"vat_rate"`
 	// @inject_tag: json:"vat_payer"
+	//
+	// Responsible for VAT. Available values: buyer (VAT is added to the amount of charge), seller (VAT is included to the amount of charge), nobody (VAT exempt).
 	VatPayer string `protobuf:"bytes,29,opt,name=vat_payer,json=vatPayer,proto3" json:"vat_payer"`
 	// @inject_tag: json:"is_production"
+	//
+	// Has a true value for a production payment and false for a test payment that goes through a test sandbox.
 	IsProduction         bool     `protobuf:"varint,30,opt,name=is_production,json=isProduction,proto3" json:"is_production"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -5118,8 +5175,12 @@ func (m *PlatformPrice) GetCount() int32 {
 
 type Platform struct {
 	//@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
+	//
+	// The unique identifier for the platform.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: json:"name"
+	//
+	// The platform's name. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name"`
 	//@inject_tag: json:"-"
 	Icon string `protobuf:"bytes,3,opt,name=icon,proto3" json:"-"`
