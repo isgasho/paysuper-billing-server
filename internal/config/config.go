@@ -14,8 +14,8 @@ import (
 type PaymentSystemConfig struct {
 	CardPayApiUrl        string `envconfig:"CARD_PAY_API_URL" required:"true"`
 	CardPayApiSandboxUrl string `envconfig:"CARD_PAY_API_SANDBOX_URL" required:"true"`
-	RedirectUrlSuccess   string `envconfig:"REDIRECT_URL_SUCCESS" default:"https://order.pay.super.com/?result=success"`
-	RedirectUrlFail      string `envconfig:"REDIRECT_URL_FAIL" default:"https://order.pay.super.com/?result=fail"`
+	RedirectUrlSuccess   string `envconfig:"REDIRECT_URL_SUCCESS" default:"https://checkout.pay.super.com/pay/order/?result=success"`
+	RedirectUrlFail      string `envconfig:"REDIRECT_URL_FAIL" default:"https://checkout.pay.super.com/pay/order/?result=fail"`
 }
 
 type CustomerTokenConfig struct {
