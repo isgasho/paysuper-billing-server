@@ -101,7 +101,7 @@ type Service struct {
 	refundRepository           repository.RefundRepositoryInterface
 	orderRepository            repository.OrderRepositoryInterface
 	userRoleRepository         repository.UserRoleRepositoryInterface
-	zipCodeRepository          repository.ZipCodeRepositoryInterface
+	zipCodeRepository		   repository.ZipCodeRepositoryInterface
 	userProfileRepository      repository.UserProfileRepositoryInterface
 	turnoverRepository         repository.TurnoverRepositoryInterface
 }
