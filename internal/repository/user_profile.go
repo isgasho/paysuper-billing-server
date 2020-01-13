@@ -13,7 +13,7 @@ import (
 
 type userProfileRepository repository
 
-// NewZipCodeRepository create and return an object for working with the user profile repository.
+// NewUserProfileRepository create and return an object for working with the user profile repository.
 // The returned object implements the UserProfileRepositoryInterface interface.
 func NewUserProfileRepository(db mongodb.SourceInterface) UserProfileRepositoryInterface {
 	s := &userProfileRepository{db: db}
