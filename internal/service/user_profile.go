@@ -12,16 +12,13 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
 	"github.com/streadway/amqp"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 	"strings"
 	"time"
 )
 
 const (
-	collectionUserProfile        = "user_profile"
 	collectionOPageReview        = "feedback"
 	userEmailConfirmTokenStorage = "email_confirm:token:%s"
 )
@@ -59,19 +56,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	filter := bson.M{"_id": oid}
-	opts := options.Replace().SetUpsert(true)
-	_, err = s.db.Collection(collectionUserProfile).ReplaceOne(ctx, filter, profile, opts)
-
-	if err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, profile),
-		)
-
+	if err = s.userProfileRepository.Upsert(ctx, profile); err != nil {
 		rsp.Status = pkg.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
@@ -398,20 +383,9 @@ func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *g
 		return err
 	}
 
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	query := bson.M{"_id": oid}
-	set := bson.M{"$set": bson.M{"email.is_confirmation_email_sent": true}}
-	_, err = s.db.Collection(collectionUserProfile).UpdateOne(ctx, query, set)
+	profile.Email.IsConfirmationEmailSent = true
 
-	if err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-			zap.Any(pkg.ErrorDatabaseFieldSet, set),
-		)
-
+	if err = s.userProfileRepository.Update(ctx, profile); err != nil {
 		return err
 	}
 
@@ -427,13 +401,6 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
 	if err := s.userProfileRepository.Update(ctx, profile); err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
-			zap.Any("query", profile),
-		)
-
 		return err
 	}
 
@@ -448,13 +415,6 @@ func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.User
 	profile.Email.ConfirmedAt = nil
 
 	if err := s.userProfileRepository.Update(ctx, profile); err != nil {
-		zap.S().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionUserProfile),
-			zap.Any("query", profile),
-		)
-
 		return err
 	}
 
@@ -572,76 +532,6 @@ func (s *Service) findRoleForUser(ctx context.Context, merchantId string, userId
 	roles, _ := s.userRoleRepository.GetMerchantsForUser(ctx, userId)
 	if len(roles) > 0 {
 		return roles[0]
-	}
-
-	return nil
-}
-
-type UserProfileRepositoryInterface interface {
-	GetById(context.Context, string) (*grpc.UserProfile, error)
-	GetByUserId(context.Context, string) (*grpc.UserProfile, error)
-	Add(context.Context, *grpc.UserProfile) error
-	Update(context.Context, *grpc.UserProfile) error
-}
-
-func newUserProfileRepository(svc *Service) UserProfileRepositoryInterface {
-	s := &UserProfileRepository{svc: svc}
-	return s
-}
-
-func (r *UserProfileRepository) GetById(ctx context.Context, id string) (*grpc.UserProfile, error) {
-	var c *grpc.UserProfile
-
-	oid, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": oid}
-	err := r.svc.db.Collection(collectionUserProfile).FindOne(ctx, filter).Decode(&c)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
-		)
-		return nil, fmt.Errorf(errorNotFound, collectionUserProfile)
-	}
-
-	return c, nil
-}
-
-func (r *UserProfileRepository) GetByUserId(ctx context.Context, userId string) (*grpc.UserProfile, error) {
-	var c *grpc.UserProfile
-
-	err := r.svc.db.Collection(collectionUserProfile).FindOne(ctx, bson.M{"user_id": userId}).Decode(&c)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionUserProfile),
-		)
-		return nil, fmt.Errorf(errorNotFound, collectionUserProfile)
-	}
-
-	return c, nil
-}
-
-func (r *UserProfileRepository) Add(ctx context.Context, profile *grpc.UserProfile) error {
-	_, err := r.svc.db.Collection(collectionUserProfile).InsertOne(ctx, profile)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *UserProfileRepository) Update(ctx context.Context, profile *grpc.UserProfile) error {
-	oid, _ := primitive.ObjectIDFromHex(profile.Id)
-	filter := bson.M{"_id": oid}
-	err := r.svc.db.Collection(collectionUserProfile).FindOneAndReplace(ctx, filter, profile).Err()
-
-	if err != nil {
-		return err
 	}
 
 	return nil

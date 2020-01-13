@@ -49,6 +49,7 @@ require (
 	github.com/stoewer/go-strcase v1.0.2
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
+	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.0.1
 	github.com/yuin/gopher-lua v0.0.0-20191128022950-c6266f4fe8d7 // indirect
 	go.mongodb.org/mongo-driver v1.1.3

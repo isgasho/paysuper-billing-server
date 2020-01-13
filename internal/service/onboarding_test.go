@@ -3177,10 +3177,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_With
 	rsp.Item.Email.Confirmed = true
 	rsp.Item.Email.ConfirmedAt = ptypes.TimestampNow()
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-	_, err = suite.service.db.Collection(collectionUserProfile).ReplaceOne(context.TODO(), filter, rsp.Item)
+	err = suite.service.userProfileRepository.Update(context.TODO(), rsp.Item)
 	assert.NoError(suite.T(), err)
 
 	req1 := &grpc.OnboardingRequest{

@@ -84,3 +84,17 @@ func (_m *UserProfileRepositoryInterface) Update(_a0 context.Context, _a1 *grpc.
 
 	return r0
 }
+
+// Upsert provides a mock function with given fields: ctx, profile
+func (_m *UserProfileRepositoryInterface) Upsert(ctx context.Context, profile *grpc.UserProfile) error {
+	ret := _m.Called(ctx, profile)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *grpc.UserProfile) error); ok {
+		r0 = rf(ctx, profile)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
