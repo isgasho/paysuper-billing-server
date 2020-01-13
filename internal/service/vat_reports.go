@@ -717,7 +717,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		return err
 	}
 
-	countryTurnover, err := h.Service.turnover.Get(ctx, operatingCompanyId, country.IsoCodeA2, from.Year())
+	countryTurnover, err := h.Service.turnoverRepository.Get(ctx, operatingCompanyId, country.IsoCodeA2, from.Year())
 
 	if err != nil {
 		zap.S().Warn(
@@ -730,7 +730,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 	}
 	report.CountryAnnualTurnover = tools.FormatAmount(countryTurnover.Amount)
 
-	worldTurnover, err := h.Service.turnover.Get(ctx, operatingCompanyId, "", from.Year())
+	worldTurnover, err := h.Service.turnoverRepository.Get(ctx, operatingCompanyId, "", from.Year())
 
 	if err != nil {
 		return err

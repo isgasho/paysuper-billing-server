@@ -1335,19 +1335,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
 
-	zipCode := &billing.ZipCode{
-		Zip:     "98001",
-		Country: "US",
-		City:    "Washington",
-		State: &billing.ZipCodeState{
-			Code: "NJ",
-			Name: "New Jersey",
-		},
-		CreatedAt: ptypes.TimestampNow(),
-	}
-
-	_, err = db.Collection(collectionZipCode).InsertOne(context.TODO(), zipCode)
-
 	if err != nil {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
@@ -2134,6 +2121,18 @@ func (suite *OrderTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
 	}
+
+	zipCode := &billing.ZipCode{
+		Zip:     "98001",
+		Country: "US",
+		City:    "Washington",
+		State: &billing.ZipCodeState{
+			Code: "NJ",
+			Name: "New Jersey",
+		},
+		CreatedAt: ptypes.TimestampNow(),
+	}
+	err = suite.service.zipCodeRepository.Insert(context.TODO(), zipCode)
 }
 
 func (suite *OrderTestSuite) TearDownTest() {
