@@ -463,64 +463,121 @@ message PaymentFormJsonDataRequest {
 
 message PaymentFormJsonDataProject {
     // @inject_tag: json:"name"
-    string name = 1; // project name
+    //
+    // The project's name.
+    string name = 1;
     // @inject_tag: json:"url_success"
-    string url_success = 2; // url to redirect user after successfully completed payment. may be NULL if not set in project settings
+    //
+    // The redirect URL for a successful payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
+    string url_success = 2;
     // @inject_tag: json:"url_fail"
-    string url_fail = 3; // url to redirect user after failed payment. may be NULL if not set in project settings
+    //
+    // The redirect URL for a failed payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
+    string url_fail = 3;
     // @inject_tag: json:"id"
+    //
+    // The unique identifier for the project.
     string id = 4;
 }
 
 message PaymentFormJsonData {
-    string id = 1; // order unique identifier
+    // The unique identifier for an order.
+    string id = 1;
     // @inject_tag: json:"account,omitempty"
-    string account = 2; // user account, may be null
+    //
+    // The user's unique account in the merchant project. The value can be null.
+    string account = 2;
     // @inject_tag: json:"has_vat"
-    bool has_vat = 3; // flag to show VAT commission amount in payment form
+    //
+    // Has a true value in case of displaying VAT commission in a payment form.
+    bool has_vat = 3;
     // @inject_tag: json:"vat"
-    double vat = 4; // amount of vat for payment
-    double amount = 5; // payment amount without VAT commission
-    double total_amount = 6; // total payment amount with VAT commission
-    string currency = 7; // order currency
-    PaymentFormJsonDataProject project = 8; // contain data about project
-    repeated billing.PaymentFormPaymentMethod payment_methods = 9; // contain data about payment methods
-    string token = 11; // access token to websocket private chanel
+    //
+    // The amount of VAT.
+    double vat = 4;
+    // The payment amount without VAT.
+    double amount = 5;
+    // The payment amount including VAT.
+    double total_amount = 6;
+    // The currency of the order.
+    string currency = 7;
+    // The PaySuper Project data.
+    PaymentFormJsonDataProject project = 8;
+    // Payment methods data.
+    repeated billing.PaymentFormPaymentMethod payment_methods = 9;
+    // An access token to subscribe a WebSocket private channel.
+    string token = 11;
     // @inject_tag: json:"user_address_data_required"
+    //
+    // Has a true value if it's required to get a real user's geo-position information.
     bool user_address_data_required = 12;
     // @inject_tag: json:"user_ip_data"
+    //
+    // A user's IP address data.
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
+    //
+    // A list of bought items in this order.
     repeated billing.OrderItem items = 14;
     // @inject_tag: json:"email"
+    //
+    // A user's email.
     string email = 16;
     // @inject_tag: json:"description"
+    //
+    // An order description.
     string description = 17;
     //@inject_tag: json:"country_payments_allowed"
+    //
+    // Has a true value if the payments are allowed from this user's country.
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
+    //
+    // Has a true value if a user can select another country in case of the payments are disallowed for his country.
     bool country_change_allowed = 19;
     //@inject_tag: json:"platforms"
+    //
+    // A list of supported platforms if this payment is for a key type. For another type, this field can be empty.
     repeated Platform platforms = 20;
     //@inject_tag: json:"lang"
+    //
+    // A language predefined by a merchant project for a payment form.
     string lang = 21;
     //@inject_tag: json:"is_already_processed"
+    //
+    // Has a true value if the order has already been processed.
     bool is_already_processed = 22;
     //@inject_tag: json:"receipt_url"
+    //
+    // A receipt link for a completed payment.
     string receipt_url = 23;
     //@inject_tag: json:"type"
+    //
+    // The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). Available values: key, product, simple.
     string type = 24;
     // @inject_tag: json:"charge_currency"
+    //
+    // A currency of charge. It can differ from the order currency because it also depends on a user's card currency.
     string charge_currency = 25;
     // @inject_tag: json:"charge_amount"
+    //
+    // A total amount of charge.
     double charge_amount = 26;
     // @inject_tag: json:"vat_in_charge_currency"
+    //
+    // VAT currency of charge. It can differ from the order currency because it also depends on a user's card currency.
     double vat_in_charge_currency = 27;
     // @inject_tag: json:"vat_rate"
+    //
+    // VAT rate.
     double vat_rate = 28;
     // @inject_tag: json:"vat_payer"
+    //
+    // Responsible for VAT. Available values: buyer (VAT is added to the amount of charge), seller (VAT is included to the amount of charge), nobody (VAT exempt).
     string vat_payer = 29;
     // @inject_tag: json:"is_production"
+    //
+    // Has a true value for a production payment and false for a test payment that goes through a test sandbox.
     bool is_production = 30;
 }
 
@@ -965,8 +1022,12 @@ message PlatformPrice {
 
 message Platform {
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
+    //
+    // The unique identifier for the platform.
     string id = 1;
     //@inject_tag: json:"name"
+    //
+    // The platform's name. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string name = 2;
     //@inject_tag: json:"-"
     string icon = 3;
