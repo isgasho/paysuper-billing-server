@@ -480,7 +480,7 @@ message OrderTax {
 message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
     //
-    // The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US")
+    // The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US").
     string country = 1;
     // The user’s city.
     string city = 2;
@@ -719,32 +719,60 @@ message CountryRestriction {
 
 message OrderItem {
     //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id"
+    //
+    // The unique identifier for the item.
     string id = 1;
     //@inject_tag: validate:"required" json:"object" bson:"object"
+    //
+    // The type of the item.
     string object = 2;
     //@inject_tag: validate:"required" json:"sku" bson:"sku"
+    //
+    // SKU of the item.
     string sku = 3;
     //@inject_tag: validate:"required" json:"name" bson:"name"
+    //
+    // The item's name.
     string name = 4;
     //@inject_tag: validate:"required" json:"description" bson:"description"
+    //
+    // The item's description.
     string description = 5;
     // @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount"
+    //
+    // The item's price.
     double amount = 6;
     //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
+    //
+    // The item's price currency. Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 7;
     //@inject_tag: validate:"dive,omitempty,uri" json:"images" bson:"images"
+    //
+    // A list of the item's images URLs.
     repeated string images = 8;
     //@inject_tag: validate:"omitempty,url" json:"url" bson:"url"
+    //
+    // The item's URL in a merchant project.
     string url = 9;
     //@inject_tag: json:"metadata" bson:"metadata"
+    //
+    // A string-value description for the item.
     map<string, string> metadata = 10;
     //@inject_tag: json:"created_at" bson:"created_at"
+    //
+    // Date of the object creation.
     google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"updated_at" bson:"updated_at"
+    //
+    // Date of the object update.
     google.protobuf.Timestamp updated_at = 12;
     //@inject_tag: validate:"omitempty,min=3" json:"platform_id" bson:"platform_id"
+    //
+    // The unique identifier for the platform.
     string platform_id = 13;
     //@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
+    //
+    // The game code.
     string code = 14;
 }
 
@@ -923,28 +951,46 @@ message Commission {
 
 message CardExpire {
     // @inject_tag: bson:"month"
+    //
+    // The card expiration month.
     string month = 1;
     // @inject_tag: bson:"year"
+    //
+    // The card expiration year.
     string year = 2;
 }
 
 message SavedCard {
+    // The unique identifier of the saved card.
     string id = 1;
+    // The card number.
     string pan = 2;
+    // The cardholder’s name.
     string card_holder = 3;
+    // The card expiration.
     CardExpire expire = 4;
 }
 
 message PaymentFormPaymentMethod {
+    // The unique identifier for a payment method.
     string id = 1;
+    // The payment method's name.
     string name = 2;
+    // The payment method's type. Available values: bank_card, ewallet, crypto.
     string type = 3;
     // @inject_tag: json:"group_alias"
+    //
+    // The payment method's group alias.
     string group = 4;
+    // The regexp mask for checking the main requisite of a payment method.
     string account_regexp = 5;
     // @inject_tag: json:"has_saved_cards"
+    //
+    // Has a true value if contains a saved card as a payment method.
     bool has_saved_cards = 6;
     // @inject_tag: json:"saved_cards,omitempty"
+    //
+    // The saved cards' data.
     repeated SavedCard saved_cards = 7;
 }
 
@@ -2303,38 +2349,72 @@ message MerchantBalance {
 
 message OrderReceipt {
     //@inject_tag: json:"total_price"
+    //
+    // The total order price not including VAT formatted with an order currency sign.
     string total_price = 1;
     //@inject_tag: json:"transaction_id"
+    //
+    // The unique identifier for the transaction.
     string transaction_id = 2;
     //@inject_tag: json:"transaction_date"
+    //
+    // A transaction date.
     string transaction_date = 3;
     //@inject_tag: json:"project_name"
+    //
+    // The project's name.
     string project_name = 4;
     //@inject_tag: json:"merchant_name"
+    //
+    // The merchant's name.
     string merchant_name = 5;
     //@inject_tag: json:"items"
+    //
+    // The receipt's items data.
     repeated OrderReceiptItem items = 6;
     //@inject_tag: json:"order_type"
+    //
+    // The type of the order.
     string order_type = 7;
     //@inject_tag: json:"platform_name"
+    //
+    // The platform's name (if any).
     string platform_name = 8;
     //@inject_tag: json:"payment_partner"
+    //
+    // The payment partner's name.
     string payment_partner = 9;
     // @inject_tag: json:"vat_payer"
+    //
+    // Responsible for VAT. Available values: buyer (VAT is added to the amount of charge), seller (VAT is included to the amount of charge), nobody (VAT exempt).
     string vat_payer = 10;
     //@inject_tag: json:"vat_in_order_currency"
+    //
+    // VAT amount formatted with an order currency sign.
     string vat_in_order_currency = 11;
     //@inject_tag: json:"vat_in_charge_currency"
+    //
+    // VAT amount formatted with an order's charge currency sign.
     string vat_in_charge_currency = 12;
     //@inject_tag: json:"total_amount"
+    //
+    // The order total amount including VAT formatted with an order currency sign.
     string total_amount = 13;
     //@inject_tag: json:"total_charge"
+    //
+    // The order total amount including VAT formatted with an order's charge currency sign.
     string total_charge = 14;
     //@inject_tag: json:"receipt_id"
+    //
+    // The unique identifier for the order receipt.
     string receipt_id = 15;
     //@inject_tag: json:"url"
+    //
+    // The order receipt URL.
     string url = 16;
     //@inject_tag: json:"vat_rate"
+    //
+    // The order VAT rate formatted with a percent sign.
     string vat_rate = 17;
     //@inject_tag: json:"customer_email"
     //
@@ -2344,8 +2424,12 @@ message OrderReceipt {
 
 message OrderReceiptItem {
     //@inject_tag: json:"name"
+    //
+    // The receipt's item name.
     string name = 1;
     //@inject_tag: json:"price"
+    //
+    // The receipt's item price.
     string price = 2;
 }
 
@@ -2455,10 +2539,16 @@ message OrderCreateByPaylink {
 
 message UserIpData {
     // @inject_tag: json:"country"
+    //
+    // The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US").
     string country = 1;
     // @inject_tag: json:"city"
+    //
+    // The user's city.
     string city = 2;
     // @inject_tag: json:"zip"
+    //
+    // The user's postal code.
     string zip = 3;
 }
 
