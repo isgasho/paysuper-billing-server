@@ -24,7 +24,6 @@ type OrderView Entity
 type Accounting Entity
 type MerchantBalance Entity
 type RoyaltyReport Entity
-type PriceGroup Entity
 type PaymentSystemService Entity
 type PaymentChannelCostSystem Entity
 type PaymentChannelCostMerchant Entity

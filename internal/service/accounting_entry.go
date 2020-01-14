@@ -1013,7 +1013,7 @@ func (h *accountingEntry) addEntry(entry *billing.AccountingEntry) error {
 			rateType = curPkg.RateTypeCentralbanks
 			rateSource = h.country.VatCurrencyRatesSource
 		} else {
-			priceGroup, err := h.Service.priceGroup.GetById(h.ctx, h.country.PriceGroupId)
+			priceGroup, err := h.Service.priceGroupRepository.GetById(h.ctx, h.country.PriceGroupId)
 			if err != nil {
 				return err
 			}

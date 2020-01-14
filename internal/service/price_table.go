@@ -8,6 +8,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	collectionPriceTable = "price_table"
+)
+
 type PriceTableServiceInterface interface {
 	Insert(context.Context, *billing.PriceTable) error
 	GetByRegion(context.Context, string) (*billing.PriceTable, error)

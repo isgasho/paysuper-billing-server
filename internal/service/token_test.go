@@ -406,7 +406,7 @@ func (suite *TokenTestSuite) SetupTest() {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
 
-	err = suite.service.priceGroup.MultipleInsert(context.TODO(), []*billing.PriceGroup{pgRub, pgUsd})
+	err = suite.service.priceGroupRepository.MultipleInsert(context.TODO(), []*billing.PriceGroup{pgRub, pgUsd})
 
 	if err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)

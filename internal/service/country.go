@@ -107,7 +107,7 @@ func (s *Service) UpdateCountry(
 		return err
 	}
 
-	pg, err := s.priceGroup.GetById(ctx, req.PriceGroupId)
+	pg, err := s.priceGroupRepository.GetById(ctx, req.PriceGroupId)
 	if err != nil {
 		return err
 	}
