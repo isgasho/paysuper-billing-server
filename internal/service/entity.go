@@ -19,6 +19,8 @@ type Commission Entity
 type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
+
+
 type PayoutDocument Entity
 type OrderView Entity
 type Accounting Entity

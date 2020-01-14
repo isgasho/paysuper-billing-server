@@ -303,7 +303,7 @@ message MerchantAgreementSignatureData {
 }
 
 message MerchantTariff {
-    // @inject_tag: json:"-"
+    // @inject_tag: json:"payments"
     repeated billing.MerchantTariffRatesPayment payment = 1;
     // @inject_tag: json:"-"
     MerchantTariffRatesSettingsItem payout = 2;

@@ -1700,8 +1700,8 @@ func (m *MerchantAgreementSignatureData) GetPsSignUrl() *MerchantAgreementSignat
 }
 
 type MerchantTariff struct {
-	// @inject_tag: json:"-"
-	Payment []*MerchantTariffRatesPayment `protobuf:"bytes,1,rep,name=payment,proto3" json:"-"`
+	// @inject_tag: json:"payments"
+	Payment []*MerchantTariffRatesPayment `protobuf:"bytes,1,rep,name=payment,proto3" json:"payments"`
 	// @inject_tag: json:"-"
 	Payout *MerchantTariffRatesSettingsItem `protobuf:"bytes,2,opt,name=payout,proto3" json:"-"`
 	// @inject_tag: json:"home_region"
