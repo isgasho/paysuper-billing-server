@@ -112,7 +112,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 	suite.NoError(suite.service.merchant.Insert(ctx, &billing.Merchant{Id: merchantId, Banking: &billing.MerchantBanking{Currency: "USD"}}))
 
 	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgEur}
-	if err := suite.service.priceGroup.MultipleInsert(ctx, pgs); err != nil {
+	if err := suite.service.priceGroupRepository.MultipleInsert(ctx, pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 

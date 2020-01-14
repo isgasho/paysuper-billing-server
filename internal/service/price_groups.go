@@ -9,22 +9,10 @@ import (
 	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
 	curPkg "github.com/paysuper/paysuper-currencies/pkg"
 	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"math"
 	"strconv"
-)
-
-const (
-	cachePriceGroupId     = "price_group:id:%s"
-	cachePriceGroupAll    = "price_group:all"
-	cachePriceGroupRegion = "price_group:region:%s"
-
-	collectionPriceGroup = "price_group"
-	collectionPriceTable = "price_table"
-
-	defaultRecommendedCurrency = "USD"
 )
 
 var (
@@ -36,7 +24,7 @@ func (s *Service) GetPriceGroup(
 	req *billing.GetPriceGroupRequest,
 	res *billing.PriceGroup,
 ) error {
-	pg, err := s.priceGroup.GetById(ctx, req.Id)
+	pg, err := s.priceGroupRepository.GetById(ctx, req.Id)
 	if err != nil {
 		return err
 	}
@@ -70,18 +58,18 @@ func (s *Service) UpdatePriceGroup(
 	var err error
 
 	if req.Id != "" {
-		data, err := s.priceGroup.GetById(ctx, req.Id)
+		data, err := s.priceGroupRepository.GetById(ctx, req.Id)
 		if err != nil {
 			return err
 		}
 		pg.Id = data.Id
 		pg.CreatedAt = data.CreatedAt
 		pg.UpdatedAt = ptypes.TimestampNow()
-		err = s.priceGroup.Update(ctx, pg)
+		err = s.priceGroupRepository.Update(ctx, pg)
 	} else {
 		pg.Id = primitive.NewObjectID().Hex()
 		pg.CreatedAt = ptypes.TimestampNow()
-		err = s.priceGroup.Insert(ctx, pg)
+		err = s.priceGroupRepository.Insert(ctx, pg)
 	}
 
 	if err != nil {
@@ -112,7 +100,7 @@ func (s *Service) GetPriceGroupByCountry(
 		return errorCountryNotFound
 	}
 
-	group, err := s.priceGroup.GetById(ctx, country.PriceGroupId)
+	group, err := s.priceGroupRepository.GetById(ctx, country.PriceGroupId)
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "error", err, "price_group_id", country.PriceGroupId)
@@ -129,7 +117,7 @@ func (s *Service) GetPriceGroupCurrencies(
 	req *grpc.EmptyRequest,
 	res *grpc.PriceGroupCurrenciesResponse,
 ) error {
-	regions, err := s.priceGroup.GetAll(ctx)
+	regions, err := s.priceGroupRepository.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to load price groups", "error", err)
@@ -143,7 +131,7 @@ func (s *Service) GetPriceGroupCurrencies(
 		return err
 	}
 
-	res.Region = s.priceGroup.MakeCurrencyList(regions, countries)
+	res.Region = s.makePriceGroupCurrencyList(regions, countries)
 
 	return nil
 }
@@ -153,7 +141,7 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 	req *grpc.PriceGroupByRegionRequest,
 	res *grpc.PriceGroupCurrenciesResponse,
 ) error {
-	region, err := s.priceGroup.GetByRegion(ctx, req.Region)
+	region, err := s.priceGroupRepository.GetByRegion(ctx, req.Region)
 
 	if err != nil {
 		zap.S().Errorw("Price group not found", "req", req)
@@ -168,7 +156,7 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 	}
 
 	regions := []*billing.PriceGroup{region}
-	list := s.priceGroup.MakeCurrencyList(regions, countries)
+	list := s.makePriceGroupCurrencyList(regions, countries)
 	res.Region = list
 
 	return nil
@@ -179,7 +167,7 @@ func (s *Service) GetRecommendedPriceByPriceGroup(
 	req *grpc.RecommendedPriceRequest,
 	res *grpc.RecommendedPriceResponse,
 ) error {
-	regions, err := s.priceGroup.GetAll(ctx)
+	regions, err := s.priceGroupRepository.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get price regions", "err", err, "req", req)
@@ -274,7 +262,7 @@ func (s *Service) getRecommendedPriceForRegion(
 	}
 
 	price := regionRange.From + (regionRange.To-regionRange.From)*ratio
-	priceFrac := s.priceGroup.CalculatePriceWithFraction(region.Fraction, price)
+	priceFrac := s.calculatePriceWithFraction(region.Fraction, price)
 
 	return priceFrac, nil
 }
@@ -284,7 +272,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 	req *grpc.RecommendedPriceRequest,
 	res *grpc.RecommendedPriceResponse,
 ) error {
-	regions, err := s.priceGroup.GetAll(ctx)
+	regions, err := s.priceGroupRepository.GetAll(ctx)
 
 	if err != nil {
 		zap.S().Errorw("Unable to get price regions", "err", err, "req", req)
@@ -300,7 +288,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 		}
 
 		res.RecommendedPrice = append(res.RecommendedPrice, &billing.RecommendedPrice{
-			Amount:   s.priceGroup.CalculatePriceWithFraction(region.Fraction, amount),
+			Amount:   s.calculatePriceWithFraction(region.Fraction, amount),
 			Region:   region.Region,
 			Currency: region.Currency,
 		})
@@ -310,7 +298,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 }
 
 func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceGroupByRegionRequest, rsp *grpc.GetPriceGroupByRegionResponse) error {
-	group, err := s.priceGroup.GetByRegion(ctx, req.Region)
+	group, err := s.priceGroupRepository.GetByRegion(ctx, req.Region)
 	rsp.Status = our.ResponseStatusOk
 
 	if err != nil {
@@ -346,177 +334,10 @@ func (s *Service) getPriceInCurrencyByAmount(ctx context.Context, targetCurrency
 	return res.ExchangedAmount, nil
 }
 
-type PriceGroupServiceInterface interface {
-	Insert(context.Context, *billing.PriceGroup) error
-	MultipleInsert(context.Context, []*billing.PriceGroup) error
-	Update(context.Context, *billing.PriceGroup) error
-	GetById(context.Context, string) (*billing.PriceGroup, error)
-	GetByRegion(context.Context, string) (*billing.PriceGroup, error)
-	GetAll(context.Context) ([]*billing.PriceGroup, error)
-	MakeCurrencyList([]*billing.PriceGroup, *billing.CountriesList) []*grpc.PriceGroupRegions
-	CalculatePriceWithFraction(float64, float64) float64
-}
-
-func newPriceGroupService(svc *Service) *PriceGroup {
-	s := &PriceGroup{svc: svc}
-	return s
-}
-
-func (h *PriceGroup) Insert(ctx context.Context, pg *billing.PriceGroup) error {
-	_, err := h.svc.db.Collection(collectionPriceGroup).InsertOne(ctx, pg)
-
-	if err != nil {
-		return err
-	}
-
-	if err := h.updateCache(pg); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h PriceGroup) MultipleInsert(ctx context.Context, pg []*billing.PriceGroup) error {
-	c := make([]interface{}, len(pg))
-	for i, v := range pg {
-		c[i] = v
-	}
-
-	_, err := h.svc.db.Collection(collectionPriceGroup).InsertMany(ctx, c)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h PriceGroup) Update(ctx context.Context, pg *billing.PriceGroup) error {
-	oid, _ := primitive.ObjectIDFromHex(pg.Id)
-	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionPriceGroup).ReplaceOne(ctx, filter, pg)
-
-	if err != nil {
-		return err
-	}
-
-	if err := h.updateCache(pg); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h PriceGroup) GetById(ctx context.Context, id string) (*billing.PriceGroup, error) {
-	var c billing.PriceGroup
-	key := fmt.Sprintf(cachePriceGroupId, id)
-	err := h.svc.cacher.Get(key, c)
-
-	if err == nil {
-		return &c, nil
-	}
-
-	oid, _ := primitive.ObjectIDFromHex(id)
-	query := bson.M{"_id": oid, "is_active": true}
-	err = h.svc.db.Collection(collectionPriceGroup).FindOne(ctx, query).Decode(&c)
-
-	if err != nil {
-		zap.L().Error(
-			our.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(our.ErrorDatabaseFieldCollection, collectionPriceGroup),
-			zap.Any(our.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, fmt.Errorf(errorNotFound, collectionPriceGroup)
-	}
-
-	err = h.svc.cacher.Set(key, c, 0)
-
-	if err != nil {
-		zap.L().Error(
-			our.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(our.ErrorCacheFieldCmd, "SET"),
-			zap.String(our.ErrorCacheFieldKey, key),
-			zap.Any(our.ErrorDatabaseFieldQuery, c),
-		)
-	}
-
-	return &c, nil
-}
-
-func (h PriceGroup) GetByRegion(ctx context.Context, region string) (*billing.PriceGroup, error) {
-	var c billing.PriceGroup
-	key := fmt.Sprintf(cachePriceGroupRegion, region)
-
-	if err := h.svc.cacher.Get(key, c); err == nil {
-		return &c, nil
-	}
-
-	err := h.svc.db.Collection(collectionPriceGroup).FindOne(ctx, bson.M{"region": region, "is_active": true}).Decode(&c)
-
-	if err != nil {
-		return nil, fmt.Errorf(errorNotFound, collectionPriceGroup)
-	}
-
-	if err := h.svc.cacher.Set(key, c, 0); err != nil {
-		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", key, "data", c)
-	}
-
-	return &c, nil
-}
-
-func (h PriceGroup) GetAll(ctx context.Context) ([]*billing.PriceGroup, error) {
-	var c []*billing.PriceGroup
-
-	if err := h.svc.cacher.Get(cachePriceGroupAll, c); err == nil {
-		return c, nil
-	}
-
-	cursor, err := h.svc.db.Collection(collectionPriceGroup).Find(ctx, bson.M{"is_active": true})
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = cursor.All(ctx, &c)
-
-	if err != nil {
-		return nil, err
-	}
-
-	err = h.svc.cacher.Set(cachePriceGroupAll, c, 0)
-	if err != nil {
-		zap.S().Errorf("Unable to set cache", "err", err.Error(), "key", cachePriceGroupAll, "data", c)
-	}
-
-	return c, nil
-}
-
-func (h *PriceGroup) updateCache(pg *billing.PriceGroup) error {
-	if err := h.svc.cacher.Set(fmt.Sprintf(cachePriceGroupId, pg.Id), pg, 0); err != nil {
-		return err
-	}
-
-	if err := h.svc.cacher.Set(fmt.Sprintf(cachePriceGroupRegion, pg.Region), pg, 0); err != nil {
-		return err
-	}
-
-	if err := h.svc.cacher.Delete(cachePriceGroupAll); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *PriceGroup) MakeCurrencyList(regions []*billing.PriceGroup, countries *billing.CountriesList) []*grpc.PriceGroupRegions {
+func (s *Service) makePriceGroupCurrencyList(regions []*billing.PriceGroup, countries *billing.CountriesList) []*grpc.PriceGroupRegions {
 	curr := map[string]*grpc.PriceGroupRegions{}
 
 	for _, region := range regions {
-		if region.Region == defaultRecommendedCurrency {
-			continue
-		}
-
 		if curr[region.Currency] == nil {
 			curr[region.Currency] = &grpc.PriceGroupRegions{
 				Currency: region.Currency,
@@ -548,7 +369,7 @@ func (h *PriceGroup) MakeCurrencyList(regions []*billing.PriceGroup, countries *
 	return list
 }
 
-func (h *PriceGroup) CalculatePriceWithFraction(fraction float64, price float64) float64 {
+func (s *Service) calculatePriceWithFraction(fraction float64, price float64) float64 {
 	i, frac := math.Modf(price)
 	frac, _ = strconv.ParseFloat(fmt.Sprintf("%.2f", frac), 64)
 

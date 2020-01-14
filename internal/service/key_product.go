@@ -238,7 +238,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 				isHaveDefaultPrice = true
 			}
 
-			pr, err := s.priceGroup.GetByRegion(ctx, price.Region)
+			pr, err := s.priceGroupRepository.GetByRegion(ctx, price.Region)
 			if err != nil {
 				zap.S().Errorw("Failed to get price group for region", "price", price)
 				res.Status = pkg.ResponseStatusBadData
@@ -462,7 +462,7 @@ func (s *Service) GetKeyProductInfo(
 		res.KeyProduct.LongDescription, _ = product.GetLocalizedLongDescription(DefaultLanguage)
 	}
 
-	defaultPriceGroup, err := s.priceGroup.GetByRegion(ctx, product.DefaultCurrency)
+	defaultPriceGroup, err := s.priceGroupRepository.GetByRegion(ctx, product.DefaultCurrency)
 	if err != nil {
 		zap.S().Errorw("Failed to get price group for default currency", "currency", product.DefaultCurrency)
 		return keyProductInternalError
@@ -471,7 +471,7 @@ func (s *Service) GetKeyProductInfo(
 	priceGroup := &billing.PriceGroup{}
 	globalIsFallback := false
 	if req.Currency != "" {
-		priceGroup, err = s.priceGroup.GetByRegion(ctx, req.Currency)
+		priceGroup, err = s.priceGroupRepository.GetByRegion(ctx, req.Currency)
 		if err != nil {
 			zap.S().Errorw("Failed to get price group for specified currency", "currency", req.Currency)
 			priceGroup = defaultPriceGroup
