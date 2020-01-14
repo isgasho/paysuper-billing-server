@@ -8766,3 +8766,19 @@ func (suite *OrderTestSuite) TestOrder_BankCardAccountRegexp() {
 		}
 	}
 }
+
+func (suite *OrderTestSuite) TestOrder_OrderReceipt_Ok() {
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.paymentMethod)
+
+	req := &grpc.OrderReceiptRequest{
+		OrderId:   order.Uuid,
+		ReceiptId: order.ReceiptId,
+	}
+	rsp := &grpc.OrderReceiptResponse{}
+	err := suite.service.OrderReceipt(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Receipt)
+	assert.Equal(suite.T(), rsp.Receipt.CustomerEmail, "test@unit.unit")
+}
