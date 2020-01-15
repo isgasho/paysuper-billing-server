@@ -1439,12 +1439,12 @@ type PaymentCreateRequest struct {
 	// required:"true"
 	// The payment data.
 	Data map[string]string `protobuf:"bytes,1,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// json:"-"
-	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
-	// json:"-"
-	AcceptLanguage string `protobuf:"bytes,4,opt,name=accept_language,json=acceptLanguage,proto3" json:"accept_language,omitempty"`
-	// json:"-"
-	UserAgent            string   `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	// @inject_tag: json:"-"
+	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	AcceptLanguage string `protobuf:"bytes,4,opt,name=accept_language,json=acceptLanguage,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	UserAgent            string   `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"-"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -3789,12 +3789,12 @@ type PaymentFormUserChangeLangRequest struct {
 	//
 	// The language code.
 	Lang string `protobuf:"bytes,2,opt,name=lang,proto3" json:"lang,omitempty" validate:"required,len=2" required:"true"`
-	// json:"-"
-	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
-	// json:"-"
-	AcceptLanguage string `protobuf:"bytes,4,opt,name=accept_language,json=acceptLanguage,proto3" json:"accept_language,omitempty"`
-	// json:"-"
-	UserAgent            string   `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	// @inject_tag: json:"-"
+	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	AcceptLanguage string `protobuf:"bytes,4,opt,name=accept_language,json=acceptLanguage,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	UserAgent            string   `protobuf:"bytes,5,opt,name=user_agent,json=userAgent,proto3" json:"-"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -3873,12 +3873,12 @@ type PaymentFormUserChangePaymentAccountRequest struct {
 	//
 	// The user's unique account in the merchant project.
 	Account string `protobuf:"bytes,3,opt,name=account,proto3" json:"account,omitempty" validate:"required" required:"true"`
-	// json:"-"
-	Ip string `protobuf:"bytes,4,opt,name=ip,proto3" json:"ip,omitempty"`
-	// json:"-"
-	AcceptLanguage string `protobuf:"bytes,5,opt,name=accept_language,json=acceptLanguage,proto3" json:"accept_language,omitempty"`
-	// json:"-"
-	UserAgent            string   `protobuf:"bytes,6,opt,name=user_agent,json=userAgent,proto3" json:"user_agent,omitempty"`
+	// @inject_tag: json:"-"
+	Ip string `protobuf:"bytes,4,opt,name=ip,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	AcceptLanguage string `protobuf:"bytes,5,opt,name=accept_language,json=acceptLanguage,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	UserAgent            string   `protobuf:"bytes,6,opt,name=user_agent,json=userAgent,proto3" json:"-"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -4023,10 +4023,10 @@ type ProcessBillingAddressRequest struct {
 	//
 	// The user's ZIP code.
 	Zip string `protobuf:"bytes,4,opt,name=zip,proto3" json:"zip,omitempty" validate:"omitempty,zip_usa"`
-	// json:"-"
-	Ip string `protobuf:"bytes,5,opt,name=ip,proto3" json:"ip,omitempty"`
-	// json:"-"
-	Cookie               string   `protobuf:"bytes,6,opt,name=cookie,proto3" json:"cookie,omitempty"`
+	// @inject_tag: json:"-"
+	Ip string `protobuf:"bytes,5,opt,name=ip,proto3" json:"-"`
+	// @inject_tag: json:"-"
+	Cookie               string   `protobuf:"bytes,6,opt,name=cookie,proto3" json:"-"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`

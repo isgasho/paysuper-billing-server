@@ -433,11 +433,11 @@ message PaymentCreateRequest {
     // required:"true"
     // The payment data.
     map<string, string> data = 1;
-    // json:"-"
+    // @inject_tag: json:"-"
     string ip = 3;
-    // json:"-"
+    // @inject_tag: json:"-"
     string accept_language = 4;
-    // json:"-"
+    // @inject_tag: json:"-"
     string user_agent = 5;
 }
 
@@ -837,11 +837,11 @@ message PaymentFormUserChangeLangRequest {
     //
     // The language code.
     string lang = 2;
-    // json:"-"
+    // @inject_tag: json:"-"
     string ip = 3;
-    // json:"-"
+    // @inject_tag: json:"-"
     string accept_language = 4;
-    // json:"-"
+    // @inject_tag: json:"-"
     string user_agent = 5;
 }
 
@@ -858,11 +858,11 @@ message PaymentFormUserChangePaymentAccountRequest {
     //
     // The user's unique account in the merchant project.
     string account = 3;
-    // json:"-"
+    // @inject_tag: json:"-"
     string ip = 4;
-    // json:"-"
+    // @inject_tag: json:"-"
     string accept_language = 5;
-    // json:"-"
+    // @inject_tag: json:"-"
     string user_agent = 6;
 }
 
@@ -885,9 +885,9 @@ message ProcessBillingAddressRequest {
     //
     // The user's ZIP code.
     string zip = 4;
-    // json:"-"
+    // @inject_tag: json:"-"
     string ip = 5;
-    // json:"-"
+    // @inject_tag: json:"-"
     string cookie = 6;
 }
 
