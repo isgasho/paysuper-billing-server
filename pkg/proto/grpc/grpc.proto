@@ -1254,9 +1254,13 @@ message ListProjectsResponse {
 }
 
 message TokenRequest {
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required" required:"true"
+    //
+    // The user data.
     billing.TokenUser user = 1;
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required" required:"true"
+    //
+    // The payment order data.
     billing.TokenSettings settings = 2;
 }
 

@@ -1143,23 +1143,33 @@ message Customer {
 
 message TokenUserEmailValue {
     //@inject_tag: validate:"omitempty,email"
+    //
+    // The user’s email address.
     string value = 1;
+    // Whether the email has been verified on the merchant side.
     bool verified = 2;
 }
 
 message TokenUserPhoneValue {
     //@inject_tag: validate:"omitempty,phone"
+    //
+    // The user’s phone.
     string value = 1;
+    // Whether the phone has been verified on the merchant side.
     bool verified = 2;
 }
 
 message TokenUserIpValue {
     //@inject_tag: validate:"omitempty,ip"
+    //
+    // The user’s IP address.
     string value = 1;
 }
 
 message TokenUserLocaleValue {
     //@inject_tag: validate:"omitempty,locale,min=5"
+    //
+    // The user’s locale name. The Accept-Language format by RFC 7231.
     string value = 1;
 }
 
@@ -1168,14 +1178,23 @@ message TokenUserValue {
 }
 
 message TokenUser {
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required" required:"true"
+    //
+    // The unique identifier for a user in the merchant project.
     string id = 1;
+    // The user’s email data.
     TokenUserEmailValue email = 2;
+    // The user’s phone data.
     TokenUserPhoneValue phone = 4;
+    // The user’s name data.
     TokenUserValue name = 6;
+    // The user’s IP address data.
     TokenUserIpValue ip = 7;
+    // The user’s locale data.
     TokenUserLocaleValue locale = 8;
+    // The user’s address data.
     OrderBillingAddress address = 9;
+    // A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
     map<string, string> metadata = 10;
     //@inject_tag: json:"-"
     string user_agent = 11;
@@ -1266,11 +1285,11 @@ message GetCountryRequest {
 message CountryVatThreshold {
     // @inject_tag: json:"year" bson:"year" validate:"numeric,gte=0"
     //
-    //
+    // The maximum value of the PaySuper's revenue (since the beginning of the year) from this country which subjects to VAT.
     double year = 1;
     // @inject_tag: json:"world" bson:"world" validate:"numeric,gte=0"
     //
-    //
+    // The maximum value of the PaySuper's worldwide revenue (since the beginning of the year) which subjects to VAT.
     double world = 2;
 }
 
@@ -1279,15 +1298,15 @@ message Country {
     string id = 1;
     //@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
     //
-    // Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+    // Two-letter country code by ISO 3166, in uppercase (for instance "US").
     string iso_code_a2 = 2;
     //@inject_tag: json:"region" bson:"region" validate:"required"
     //
-    //
+    // A PaySuper system's relative geographical area for this country.
     string region = 3;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
     //
-    // The currency of the country.
+    // The currency of the country. Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 4;
     //@inject_tag: json:"payments_allowed" bson:"payments_allowed"
     //
@@ -1295,43 +1314,43 @@ message Country {
     bool payments_allowed = 5;
     //@inject_tag: json:"change_allowed" bson:"change_allowed"
     //
-    // Allowed to change country.
+    // Has a true value if a user can select another country in case of the payments are disallowed for this country.
     bool change_allowed = 6;
     //@inject_tag: json:"vat_enabled" bson:"vat_enabled"
     //
-    // Has a true value if the country has VAT.
+    // Has a true value if VAT is calculated and paid for this country.
     bool vat_enabled = 7;
     //@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
     //
-    // VAT currency.
+    // VAT currency. It can differ from the country currency. Three-letter Currency Code ISO 4217, in uppercase.
     string vat_currency = 8;
     //@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
     //
-    //
+    // The unique identifier for a price group this country belongs to.
     string price_group_id = 9;
     // @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
     //
-    //
+    // VAT threshold for this country.
     CountryVatThreshold vat_threshold = 10;
     // @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
     //
-    //
+    // The length of a tax period in months.
     int32 vat_period_month = 11;
     // @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
     //
-    //
+    // The number of days after a tax period end to pay VAT.
     int32 vat_deadline_days = 12;
     // @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
     //
-    //
+    // The number of years to store the VAT payment history for this country.
     int32 vat_store_years = 13;
     // @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
     //
-    //
+    // A calculation policy of VAT with a currency that differs from this country VAT currency. Available values: on-day (a conversion rate on the day of payment), last-day (a conversion rate on the last day of a tax period), mid-month (the system reserved option of a conversion rate calculation. This option is disabled.).
     string vat_currency_rates_policy = 14;
     // @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
     //
-    //
+    // The source of currency rates to calculate a tax amount.
     string vat_currency_rates_source = 15;
     //@inject_tag: json:"-" bson:"created_at"
     google.protobuf.Timestamp created_at = 16;
@@ -1339,15 +1358,15 @@ message Country {
     google.protobuf.Timestamp updated_at = 17;
     //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
     //
-    //
+    // A PaySuper system's relative geographical area for this country. Available values: asia, europe, latin_america, russia_and_cis, worldwide.
     string payer_tariff_region = 18;
     //@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
     //
-    //
+    // Has a true value if payments from this country is allowed. Has a false value for a high-risk merchant.
     bool high_risk_payments_allowed = 19;
     //@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
     //
-    //
+    // Has a true value if a user can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
     bool high_risk_change_allowed = 20;
 }
 
