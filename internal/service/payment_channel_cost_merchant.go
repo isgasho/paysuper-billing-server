@@ -37,6 +37,7 @@ var (
 	errorCostMatchedToAmountNotFound            = newBillingServerErrorMsg("pcm000007", "cost matched to amount not found")
 	errorPaymentChannelMccCode                  = newBillingServerErrorMsg("pcm000008", "mcc code not supported")
 	errorCostMatchedNotFound                    = newBillingServerErrorMsg("pcm000009", "cost matched not found")
+	errorMerchantTariffUpdate                   = newBillingServerErrorMsg("pcm000010", "can't update merchant tariffs")
 )
 
 type PaymentChannelCostMerchantInterface interface {
@@ -96,7 +97,8 @@ func (s *Service) SetPaymentChannelCostMerchant(
 ) error {
 	var err error
 
-	if _, err := s.merchant.GetById(ctx, req.MerchantId); err != nil {
+	merchant := &billing.Merchant{}
+	if merchant, err = s.merchant.GetById(ctx, req.MerchantId); err != nil {
 		res.Status = pkg.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 		return nil
@@ -172,6 +174,13 @@ func (s *Service) SetPaymentChannelCostMerchant(
 			res.Message = errorPaymentChannelMerchantCostAlreadyExist
 		}
 
+		return nil
+	}
+
+	if err := s.merchant.UpdateTariffs(ctx, merchant.Id, req); err != nil {
+		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorMerchantTariffUpdate
 		return nil
 	}
 

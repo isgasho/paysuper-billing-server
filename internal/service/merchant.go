@@ -81,6 +81,8 @@ func (s *Service) MerchantsMigrate(ctx context.Context) error {
 }
 
 type MerchantRepositoryInterface interface {
+	UpdatePartial(ctx context.Context, query interface{}, update bson.M) error
+	UpdateTariffs(ctx context.Context, id string, req *billing.PaymentChannelCostMerchant) error
 	Update(ctx context.Context, merchant *billing.Merchant) error
 	Insert(ctx context.Context, merchant *billing.Merchant) error
 	Upsert(ctx context.Context, merchant *billing.Merchant) error
@@ -94,6 +96,40 @@ type MerchantRepositoryInterface interface {
 
 func newMerchantService(svc *Service) MerchantRepositoryInterface {
 	return &Merchant{svc: svc}
+}
+
+
+func (h *Merchant) UpdateTariffs(ctx context.Context, id string, req *billing.PaymentChannelCostMerchant) error {
+	set := bson.M{}
+	oid, _ := primitive.ObjectIDFromHex(id)
+	query := bson.M{"_id" : oid,
+		"tariff.payment.method_name": req.Name,
+		"tariff.payment.payer_region": req.Region,
+		"tariff.payment.mcc_code": req.MccCode,
+		"tariff.payment.method_fixed_fee_currency": req.MethodFixAmountCurrency,
+		"tariff.payment.ps_fixed_fee_currency": req.PsFixedFeeCurrency,
+	}
+
+	set["$set"] = bson.M{
+		"tariff.payment.$.min_amount": req.MinAmount,
+		"tariff.payment.$.method_percent_fee": req.MethodPercent,
+		"tariff.payment.$.method_fixed_fee": req.MethodFixAmount,
+		"tariff.payment.$.ps_fixed_fee": req.PsFixedFee,
+		"tariff.payment.$.ps_percent_fee": req.PsPercent,
+		"tariff.payment.$.is_active": req.IsActive,
+	}
+
+	if err := h.UpdatePartial(ctx, query, set); err != nil {
+		return err
+	}
+
+	// We need to remove from cache partially updated entity because of multiple parallel update queries
+	key := fmt.Sprintf(cacheMerchantCommonId, id)
+	if err := h.svc.cacher.Delete(key); err != nil {
+		zap.L().Error(pkg.ErrorCacheQueryFailed, zap.Error(err), zap.String(pkg.ErrorCacheFieldCmd, "DELETE"), zap.String(pkg.ErrorCacheFieldKey, key))
+	}
+
+	return nil
 }
 
 func (h *Merchant) GetMerchantsWithAutoPayouts(ctx context.Context) (merchants []*billing.Merchant, err error) {
@@ -377,4 +413,19 @@ func (h *Merchant) GetAll(ctx context.Context) ([]*billing.Merchant, error) {
 	}
 
 	return c, nil
+}
+
+func (h *Merchant) UpdatePartial(ctx context.Context, query interface{}, update bson.M) error {
+	if _, err := h.svc.db.Collection(collectionMerchant).UpdateOne(ctx, query, update); err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMerchant),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, update),
+		)
+
+		return err
+	}
+
+	return nil
 }

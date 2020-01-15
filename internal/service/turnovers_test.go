@@ -89,7 +89,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		Region:   "",
 		IsActive: true,
 	}
-	if err := suite.service.priceGroup.Insert(context.TODO(), pg); err != nil {
+	if err := suite.service.priceGroupRepository.Insert(context.TODO(), pg); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
