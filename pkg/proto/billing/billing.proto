@@ -2292,7 +2292,7 @@ message OrderReceipt {
     string vat_rate = 17;
     //@inject_tag: json:"customer_email"
     //
-    //The customer's email
+    //The customer's email.
     string customer_email = 18;
 }
 

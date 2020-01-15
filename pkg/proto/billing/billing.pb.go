@@ -12736,7 +12736,7 @@ type OrderReceipt struct {
 	VatRate string `protobuf:"bytes,17,opt,name=vat_rate,json=vatRate,proto3" json:"vat_rate"`
 	//@inject_tag: json:"customer_email"
 	//
-	//The customer's email
+	//The customer's email.
 	CustomerEmail        string   `protobuf:"bytes,18,opt,name=customer_email,json=customerEmail,proto3" json:"customer_email"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
