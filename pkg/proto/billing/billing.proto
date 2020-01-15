@@ -1884,6 +1884,14 @@ message OrderViewPublic {
     string vat_payer = 50;
     // @inject_tag: json:"is_production" bson:"is_production"
     bool is_production = 51;
+    // @inject_tag: json:"payment_tax_fee_local" bson:"payment_tax_fee_local"
+    OrderViewMoney payment_tax_fee_local = 52;
+    // @inject_tag: json:"payment_refund_tax_fee_local" bson:"payment_refund_tax_fee_local"
+    OrderViewMoney payment_refund_tax_fee_local = 53;
+    // @inject_tag: json:"payment_gross_revenue_origin" bson:"payment_gross_revenue_origin"
+    OrderViewMoney payment_gross_revenue_origin = 54;
+    // @inject_tag: json:"payment_refund_gross_revenue_origin" bson:"payment_refund_gross_revenue_origin"
+    OrderViewMoney payment_refund_gross_revenue_origin = 55;
 }
 
 message OrderViewPrivate {

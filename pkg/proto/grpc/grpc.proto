@@ -140,6 +140,7 @@ service BillingService {
     rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {}
     rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
+    rpc GetVatReport (VatReportRequest) returns (VatReportResponse) {}
 
     rpc CalcAnnualTurnovers (EmptyRequest) returns (EmptyResponse) {}
     rpc GetMerchantOnboardingCompleteData (SetMerchantS3AgreementRequest) returns (GetMerchantOnboardingCompleteDataResponse) {}
@@ -1807,6 +1808,20 @@ message UpdateVatReportStatusRequest {
     string id = 1;
     //@inject_tag: json:"status" bson:"status" validate:"required,alpha,oneof=paid canceled"
     string status = 2;
+}
+
+message VatReportRequest {
+    //@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
+    string id = 1;
+}
+
+message VatReportResponse {
+    //@inject_tag: json:"status"
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"vat"
+    billing.VatReport vat = 3;
 }
 
 message GetMerchantOnboardingCompleteDataResponseItem {

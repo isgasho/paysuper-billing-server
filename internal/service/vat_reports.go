@@ -247,18 +247,14 @@ func (s *Service) GetVatReportsForCountry(
 	return nil
 }
 
-func (s *Service) GetVatReportTransactions(
+func (s *Service) GetVatReport(
 	ctx context.Context,
-	req *grpc.VatTransactionsRequest,
-	res *grpc.TransactionsResponse,
+	req *grpc.VatReportRequest,
+	res *grpc.VatReportResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	oid, _ := primitive.ObjectIDFromHex(req.VatReportId)
-	query := bson.M{"_id": oid}
-
-	var vr *billing.VatReport
-	err := s.db.Collection(collectionVatReports).FindOne(ctx, query).Decode(&vr)
+	vr, err := s.getVatReportById(ctx, req.Id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -267,12 +263,31 @@ func (s *Service) GetVatReportTransactions(
 			return nil
 		}
 
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionVatReports),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
+		res.Status = pkg.ResponseStatusSystemError
+		res.Message = errorVatReportQueryError
+		return nil
+	}
+
+	res.Vat = vr
+
+	return nil
+}
+
+func (s *Service) GetVatReportTransactions(
+	ctx context.Context,
+	req *grpc.VatTransactionsRequest,
+	res *grpc.TransactionsResponse,
+) error {
+	res.Status = pkg.ResponseStatusOk
+
+	vr, err := s.getVatReportById(ctx, req.VatReportId)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			res.Status = pkg.ResponseStatusNotFound
+			res.Message = errorVatReportNotFound
+			return nil
+		}
 
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
@@ -370,11 +385,7 @@ func (s *Service) UpdateVatReportStatus(
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
-	oid, _ := primitive.ObjectIDFromHex(req.Id)
-	query := bson.M{"_id": oid}
-
-	var vr *billing.VatReport
-	err := s.db.Collection(collectionVatReports).FindOne(ctx, query).Decode(&vr)
+	vr, err := s.getVatReportById(ctx, req.Id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -382,13 +393,6 @@ func (s *Service) UpdateVatReportStatus(
 			res.Message = errorVatReportNotFound
 			return nil
 		}
-
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String("collection", collectionVatReports),
-			zap.Any("query", query),
-		)
 
 		res.Status = pkg.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
@@ -471,6 +475,32 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 		}
 	}
 	return nil
+}
+
+func (s *Service) getVatReportById(ctx context.Context, id string) (*billing.VatReport, error) {
+	var vr *billing.VatReport
+
+	oid, err := primitive.ObjectIDFromHex(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	query := bson.M{"_id": oid}
+	err = s.db.Collection(collectionVatReports).FindOne(ctx, query).Decode(&vr)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionVatReports),
+			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
+		)
+
+		return nil, err
+	}
+
+	return vr, nil
 }
 
 func (s *Service) getVatReportTime(VatPeriodMonth int32, date time.Time) (from, to time.Time, err error) {

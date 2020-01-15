@@ -146,6 +146,7 @@ type BillingService interface {
 	GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, opts ...client.CallOption) (*TransactionsResponse, error)
 	ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, opts ...client.CallOption) (*ResponseError, error)
+	GetVatReport(ctx context.Context, in *VatReportRequest, opts ...client.CallOption) (*VatReportResponse, error)
 	CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error)
 	GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, opts ...client.CallOption) (*GetMerchantOnboardingCompleteDataResponse, error)
 	CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, opts ...client.CallOption) (*KeyProductResponse, error)
@@ -1322,6 +1323,16 @@ func (c *billingService) UpdateVatReportStatus(ctx context.Context, in *UpdateVa
 	return out, nil
 }
 
+func (c *billingService) GetVatReport(ctx context.Context, in *VatReportRequest, opts ...client.CallOption) (*VatReportResponse, error) {
+	req := c.c.NewRequest(c.name, "BillingService.GetVatReport", in)
+	out := new(VatReportResponse)
+	err := c.c.Call(ctx, req, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingService) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, opts ...client.CallOption) (*EmptyResponse, error) {
 	req := c.c.NewRequest(c.name, "BillingService.CalcAnnualTurnovers", in)
 	out := new(EmptyResponse)
@@ -2094,6 +2105,7 @@ type BillingServiceHandler interface {
 	GetVatReportTransactions(context.Context, *VatTransactionsRequest, *TransactionsResponse) error
 	ProcessVatReports(context.Context, *ProcessVatReportsRequest, *EmptyResponse) error
 	UpdateVatReportStatus(context.Context, *UpdateVatReportStatusRequest, *ResponseError) error
+	GetVatReport(context.Context, *VatReportRequest, *VatReportResponse) error
 	CalcAnnualTurnovers(context.Context, *EmptyRequest, *EmptyResponse) error
 	GetMerchantOnboardingCompleteData(context.Context, *SetMerchantS3AgreementRequest, *GetMerchantOnboardingCompleteDataResponse) error
 	CreateOrUpdateKeyProduct(context.Context, *CreateOrUpdateKeyProductRequest, *KeyProductResponse) error
@@ -2273,6 +2285,7 @@ func RegisterBillingServiceHandler(s server.Server, hdlr BillingServiceHandler, 
 		GetVatReportTransactions(ctx context.Context, in *VatTransactionsRequest, out *TransactionsResponse) error
 		ProcessVatReports(ctx context.Context, in *ProcessVatReportsRequest, out *EmptyResponse) error
 		UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error
+		GetVatReport(ctx context.Context, in *VatReportRequest, out *VatReportResponse) error
 		CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error
 		GetMerchantOnboardingCompleteData(ctx context.Context, in *SetMerchantS3AgreementRequest, out *GetMerchantOnboardingCompleteDataResponse) error
 		CreateOrUpdateKeyProduct(ctx context.Context, in *CreateOrUpdateKeyProductRequest, out *KeyProductResponse) error
@@ -2785,6 +2798,10 @@ func (h *billingServiceHandler) ProcessVatReports(ctx context.Context, in *Proce
 
 func (h *billingServiceHandler) UpdateVatReportStatus(ctx context.Context, in *UpdateVatReportStatusRequest, out *ResponseError) error {
 	return h.BillingServiceHandler.UpdateVatReportStatus(ctx, in, out)
+}
+
+func (h *billingServiceHandler) GetVatReport(ctx context.Context, in *VatReportRequest, out *VatReportResponse) error {
+	return h.BillingServiceHandler.GetVatReport(ctx, in, out)
 }
 
 func (h *billingServiceHandler) CalcAnnualTurnovers(ctx context.Context, in *EmptyRequest, out *EmptyResponse) error {
