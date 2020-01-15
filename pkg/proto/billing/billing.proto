@@ -95,7 +95,7 @@ message OrderCreateRequest {
     //
     // The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, for a simple checkout - the simple type. Enum values: key, product, simple.
     string type = 32;
-    // The default platform identifier for which customer buys the in-game key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
+    // The default platform's name for which a customer buys a key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform_id = 33;
     //@inject_tag: bson:"issuer_reference" json:"-"
     string issuer_reference = 34;
@@ -480,7 +480,7 @@ message OrderTax {
 message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
     //
-    // The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US").
+    // The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string country = 1;
     // The user’s city.
     string city = 2;
@@ -718,31 +718,31 @@ message CountryRestriction {
 }
 
 message OrderItem {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id" required:"true"
     //
     // The unique identifier for the item.
     string id = 1;
-    //@inject_tag: validate:"required" json:"object" bson:"object"
+    //@inject_tag: validate:"required" json:"object" bson:"object" required:"true"
     //
-    // The type of the item.
+    // String representing the item’s type.
     string object = 2;
-    //@inject_tag: validate:"required" json:"sku" bson:"sku"
+    //@inject_tag: validate:"required" json:"sku" bson:"sku" required:"true"
     //
     // SKU of the item.
     string sku = 3;
-    //@inject_tag: validate:"required" json:"name" bson:"name"
+    //@inject_tag: validate:"required" json:"name" bson:"name" required:"true"
     //
     // The item's name.
     string name = 4;
-    //@inject_tag: validate:"required" json:"description" bson:"description"
+    //@inject_tag: validate:"required" json:"description" bson:"description" required:"true"
     //
     // The item's description.
     string description = 5;
-    // @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount"
+    // @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount" required:"true"
     //
     // The item's price.
     double amount = 6;
-    //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
+    //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency" required:"true"
     //
     // The item's price currency. Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 7;
@@ -1265,8 +1265,12 @@ message GetCountryRequest {
 
 message CountryVatThreshold {
     // @inject_tag: json:"year" bson:"year" validate:"numeric,gte=0"
+    //
+    //
     double year = 1;
     // @inject_tag: json:"world" bson:"world" validate:"numeric,gte=0"
+    //
+    //
     double world = 2;
 }
 
@@ -1274,46 +1278,81 @@ message Country {
     //@inject_tag: json:"-" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
     //@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
+    //
+    // Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string iso_code_a2 = 2;
     //@inject_tag: json:"region" bson:"region" validate:"required"
+    //
+    //
     string region = 3;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    //
+    // The currency of the country.
     string currency = 4;
     //@inject_tag: json:"payments_allowed" bson:"payments_allowed"
+    //
+    // Has a true value if a payment is allowed from this country.
     bool payments_allowed = 5;
     //@inject_tag: json:"change_allowed" bson:"change_allowed"
+    //
+    // Allowed to change country.
     bool change_allowed = 6;
     //@inject_tag: json:"vat_enabled" bson:"vat_enabled"
+    //
+    // Has a true value if the country has VAT.
     bool vat_enabled = 7;
     //@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
+    //
+    // VAT currency.
     string vat_currency = 8;
     //@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
+    //
+    //
     string price_group_id = 9;
     // @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
+    //
+    //
     CountryVatThreshold vat_threshold = 10;
     // @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
+    //
+    //
     int32 vat_period_month = 11;
     // @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
+    //
+    //
     int32 vat_deadline_days = 12;
     // @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
+    //
+    //
     int32 vat_store_years = 13;
     // @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
+    //
+    //
     string vat_currency_rates_policy = 14;
     // @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
+    //
+    //
     string vat_currency_rates_source = 15;
     //@inject_tag: json:"-" bson:"created_at"
     google.protobuf.Timestamp created_at = 16;
     //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 17;
     //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
+    //
+    //
     string payer_tariff_region = 18;
     //@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
+    //
+    //
     bool high_risk_payments_allowed = 19;
     //@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
+    //
+    //
     bool high_risk_change_allowed = 20;
 }
 
 message CountriesList {
+    // A list of countries.
     repeated Country countries = 1;
 }
 
@@ -2337,7 +2376,7 @@ message MerchantBalance {
 message OrderReceipt {
     //@inject_tag: json:"total_price"
     //
-    // The total order price not including VAT formatted with an order currency sign.
+    // The total order price not including VAT formatted with a sign of the order currency.
     string total_price = 1;
     //@inject_tag: json:"transaction_id"
     //
@@ -2373,23 +2412,23 @@ message OrderReceipt {
     string payment_partner = 9;
     // @inject_tag: json:"vat_payer"
     //
-    // Responsible for VAT. Available values: buyer (VAT is added to the amount of charge), seller (VAT is included to the amount of charge), nobody (VAT exempt).
+    // Responsible for VAT. Available values: buyer (VAT is added to the order charge), seller (VAT is included in the order charge), nobody (VAT exempt).
     string vat_payer = 10;
     //@inject_tag: json:"vat_in_order_currency"
     //
-    // VAT amount formatted with an order currency sign.
+    // VAT amount formatted with a sign of the order currency.
     string vat_in_order_currency = 11;
     //@inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT amount formatted with an order's charge currency sign.
+    // VAT amount formatted with an order charge currency sign.
     string vat_in_charge_currency = 12;
     //@inject_tag: json:"total_amount"
     //
-    // The order total amount including VAT formatted with an order currency sign.
+    // The order total amount including VAT formatted with a sign of the order currency.
     string total_amount = 13;
     //@inject_tag: json:"total_charge"
     //
-    // The order total amount including VAT formatted with an order's charge currency sign.
+    // The order total amount including VAT formatted with a sign of the order charge currency.
     string total_charge = 14;
     //@inject_tag: json:"receipt_id"
     //
@@ -2523,7 +2562,7 @@ message OrderCreateByPaylink {
 message UserIpData {
     // @inject_tag: json:"country"
     //
-    // The user's country. Two-letter language code by ISO 3166-1, in uppercase (for instance "US").
+    // The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string country = 1;
     // @inject_tag: json:"city"
     //
@@ -2537,33 +2576,62 @@ message UserIpData {
 
 message PaymentFormDataChangeResponseItem {
     // @inject_tag: json:"user_address_data_required"
+    //
+    // Has a true value if it's required to get a real user's geo-position information.
     bool user_address_data_required = 1;
     // @inject_tag: json:"user_ip_data"
+    //
+    // The user's IP address.
     UserIpData user_ip_data = 2;
+    //
     string brand = 3;
     //@inject_tag: json:"country_payments_allowed"
+    //
+    // Has a true value if the payments are allowed from this user's country.
     bool country_payments_allowed = 4;
     //@inject_tag: json:"country_change_allowed"
+    //
+    // Has a true value if a user can select another country in case of the payments are disallowed for his country.
     bool country_change_allowed = 5;
     // @inject_tag: json:"has_vat"
+    //
+    // Has a true value in case of displaying VAT commission in a payment form.
     bool has_vat = 6;
     // @inject_tag: json:"vat"
+    //
+    // The amount of VAT.
     double vat = 7;
     // @inject_tag: json:"amount"
+    //
+    // The payment amount without VAT.
     double amount = 8;
     // @inject_tag: json:"total_amount"
+    //
+    // The payment amount including VAT.
     double total_amount = 9;
     //@inject_tag: json:"currency"
+    //
+    // The currency of the order.
     string currency = 10;
     // @inject_tag: json:"items"
+    //
+    // A list of purchased items in this order.
     repeated billing.OrderItem items = 11;
     // @inject_tag: json:"charge_currency"
+    //
+    // A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
     string charge_currency = 12;
     // @inject_tag: json:"charge_amount"
+    //
+    // A total amount of the order charge.
     double charge_amount = 13;
     // @inject_tag: json:"vat_in_charge_currency"
+    //
+    // VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
     double vat_in_charge_currency = 14;
     // @inject_tag: json:"vat_rate"
+    //
+    // VAT rate.
     double vat_rate = 15;
 }
 

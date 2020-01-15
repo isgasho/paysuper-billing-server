@@ -430,9 +430,14 @@ message ListKeyProductsRequest {
 }
 
 message PaymentCreateRequest {
+    // required:"true"
+    // The payment data.
     map<string, string> data = 1;
+    // json:"-"
     string ip = 3;
+    // json:"-"
     string accept_language = 4;
+    // json:"-"
     string user_agent = 5;
 }
 
@@ -517,7 +522,7 @@ message PaymentFormJsonData {
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     //
-    // A list of bought items in this order.
+    // A list of purchased items in this order.
     repeated billing.OrderItem items = 14;
     // @inject_tag: json:"email"
     //
@@ -557,15 +562,15 @@ message PaymentFormJsonData {
     string type = 24;
     // @inject_tag: json:"charge_currency"
     //
-    // A currency of charge. It can differ from the order currency because it also depends on a user's card currency.
+    // A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
     string charge_currency = 25;
     // @inject_tag: json:"charge_amount"
     //
-    // A total amount of charge.
+    // A total amount of the order charge.
     double charge_amount = 26;
     // @inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT currency of charge. It can differ from the order currency because it also depends on a user's card currency.
+    // VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
     double vat_in_charge_currency = 27;
     // @inject_tag: json:"vat_rate"
     //
@@ -573,7 +578,7 @@ message PaymentFormJsonData {
     double vat_rate = 28;
     // @inject_tag: json:"vat_payer"
     //
-    // Responsible for VAT. Available values: buyer (VAT is added to the amount of charge), seller (VAT is included to the amount of charge), nobody (VAT exempt).
+    // Responsible for VAT. Available values: buyer (VAT is added to the order charge), seller (VAT is included in the order charge), nobody (VAT exempt).
     string vat_payer = 29;
     // @inject_tag: json:"is_production"
     //
@@ -813,31 +818,51 @@ message PaymentFormDataChangedRequest {
 }
 
 message PaymentFormUserChangePlatformRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
+    //
+    // The unique identifier for the order.
     string order_id = 1;
-    // @inject_tag: validate:"required,min=2,max=255"
+    // @inject_tag: validate:"required,min=2,max=255" required:"true"
+    //
+    // The platform's name. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform = 2;
 }
 
 message PaymentFormUserChangeLangRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
+    //
+    // The unique identifier for the order.
     string order_id = 1;
-    // @inject_tag: validate:"required,len=2"
+    // @inject_tag: validate:"required,len=2" required:"true"
+    //
+    // The language code.
     string lang = 2;
+    // json:"-"
     string ip = 3;
+    // json:"-"
     string accept_language = 4;
+    // json:"-"
     string user_agent = 5;
 }
 
 message PaymentFormUserChangePaymentAccountRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
+    //
+    // The unique identifier for the order.
     string order_id = 1;
-    // @inject_tag: validate:"required,hexadecimal,len=24"
+    // @inject_tag: validate:"required,hexadecimal,len=24" required:"true"
+    //
+    // The unique identifier for a payment method.
     string method_id = 2;
-    // @inject_tag: validate:"required"
+    // @inject_tag: validate:"required" required:"true"
+    //
+    // The user's unique account in the merchant project.
     string account = 3;
+    // json:"-"
     string ip = 4;
+    // json:"-"
     string accept_language = 5;
+    // json:"-"
     string user_agent = 6;
 }
 
@@ -848,38 +873,68 @@ message PaymentFormDataChangeResponse {
 }
 
 message ProcessBillingAddressRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
+    //
+    // The unique identifier for the order.
     string order_id = 1;
-    // @inject_tag: validate:"required,len=2"
+    // @inject_tag: validate:"required,len=2" required:"true"
+    //
+    // The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string country = 2;
     // @inject_tag: validate:"omitempty,zip_usa"
+    //
+    // The user's ZIP code.
     string zip = 4;
+    // json:"-"
     string ip = 5;
+    // json:"-"
     string cookie = 6;
 }
 
 message ProcessBillingAddressResponseItem {
     // @inject_tag: json:"has_vat"
+    //
+    // Has a true value in case of displaying VAT commission in a payment form.
     bool has_vat = 2;
     // @inject_tag: json:"vat"
+    //
+    // The amount of VAT.
     double vat = 3;
     // @inject_tag: json:"amount"
+    //
+    // The payment amount without VAT.
     double amount = 4;
     // @inject_tag: json:"total_amount"
+    //
+    // The payment amount including VAT.
     double total_amount = 5;
     //@inject_tag: json:"currency"
+    //
+    // The currency of the order.
     string currency = 6;
     // @inject_tag: json:"items"
+    //
+    // The list of purchased items in this order.
     repeated billing.OrderItem items = 7;
     // @inject_tag: json:"charge_currency"
+    //
+    // A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
     string charge_currency = 8;
     // @inject_tag: json:"charge_amount"
+    //
+    // A total amount of the order charge.
     double charge_amount = 9;
     // @inject_tag: json:"vat_in_charge_currency"
+    //
+    // VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
     double vat_in_charge_currency = 10;
     // @inject_tag: json:"country_change_allowed"
+    //
+    // Has a true value if a user can select another country in case of the payments are disallowed for his country.
     bool country_change_allowed = 11;
     // @inject_tag: json:"vat_rate"
+    //
+    // VAT rate.
     double vat_rate = 12;
 }
 
@@ -1021,7 +1076,7 @@ message PlatformPrice {
 }
 
 message Platform {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" required:"true"
     //
     // The unique identifier for the platform.
     string id = 1;
@@ -1280,11 +1335,17 @@ message IsOrderCanBePayingResponse {
 }
 
 message SetUserNotifyRequest {
-    // @inject_tag: validate:"required,uuid" param:"order_id"
+    // @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
+    //
+    // The order UUID.
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
+    //
+    // Has a true value if a user confirmed to receive notifications.
     bool enable_notification = 2;
     // @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
+    //
+    // The customer's email for notifications.
     string email = 3;
 }
 
@@ -2436,9 +2497,11 @@ message RoyaltyReportPdfUploadedResponse {
 }
 
 message DeleteSavedCardRequest {
-    //@inject_tag: validate:"required,hexadecimal,len=24"
+    //@inject_tag: validate:"required,hexadecimal,len=24" required:"true"
+    //
+    // The unique identifier for the saved card.
     string id = 1;
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required" json:"-"
     string cookie = 2;
 }
 
