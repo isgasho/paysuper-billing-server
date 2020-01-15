@@ -93,6 +93,36 @@ message OrderCreateRequest {
     string cookie = 40;
 }
 
+message ProjectRedirectSettingsButtonCaption {
+    //@inject_tag: json:"success" bson:"success"
+    //
+    //Text for redirect button after successfully completed payment
+    string success = 1;
+    //@inject_tag: json:"fail" bson:"fail"
+    //
+    ////Text for redirect button after failed payment
+    string fail = 2;
+}
+
+message ProjectRedirectSettings {
+    //@inject_tag: json:"mode" bson:"mode" validate:"omitempty,oneof=disable successful fail any"
+    //
+    //Mode of redirection from payment from after the user complete the payment. Default value is "any". Available values: disable, successful, fail, any.
+    string mode = 1;
+    //@inject_tag: json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"
+    //
+    //Delay after which the user will be redirected to the return URL. Default values is 0.
+    int32 delay = 2;
+    //@inject_tag: json:"mode" bson:"usage" validate:"omitempty,oneof=standalone iframe embed any"
+    //
+    //Redirect feature could be used in different representations of payment form. Default value is "standalone". Available values: standalone, iframe, embed, any.
+    string usage = 3;
+    //@inject_tag: json:"button_caption" bson:"button_caption"
+    //
+    //Object contain texts for redirect button for successful and fail payment ending. If fields in object is empty then text for redirect button will be set as "OK".
+    ProjectRedirectSettingsButtonCaption button_caption = 4;
+}
+
 message Project {
     // @inject_tag: json:"id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
@@ -166,6 +196,10 @@ message Project {
     ProjectVirtualCurrency virtual_currency = 35;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 36;
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings"
+    //
+    //Object contain setting for user's redirect after when payment ending
+    ProjectRedirectSettings redirect_settings = 37;
 }
 
 message ProjectOrder {
