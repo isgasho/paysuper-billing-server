@@ -139,6 +139,40 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 		match,
 		{
 			"$lookup": bson.M{
+				"from": "merchant",
+				"let": bson.M{
+					"merchant_id": "$project.merchant_id",
+				},
+				"pipeline": []bson.M{
+					{
+						"$match": bson.M{
+							"$expr": bson.M{
+								"$eq": []string{
+									"$_id",
+									"$$merchant_id",
+								},
+							},
+						},
+					},
+					{
+						"$project": bson.M{
+							"company_name":     "$company.name",
+							"agreement_number": "$agreement_number",
+							"_id":              0,
+						},
+					},
+				},
+				"as": "merchant_info",
+			},
+		},
+		{
+			"$unwind": bson.M{
+				"path":                       "$merchant_info",
+				"preserveNullAndEmptyArrays": true,
+			},
+		},
+		{
+			"$lookup": bson.M{
 				"from": "accounting_entry",
 				"let": bson.M{
 					"order_id":    "$_id",
@@ -3070,6 +3104,25 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 			},
 		},
 		{
+			"$addFields": bson.M{
+				"order_charge_before_vat": bson.M{
+					"amount": bson.M{
+						"$cond": list{
+							bson.M{
+								"$eq": []string{
+									"$type",
+									"order",
+								},
+							},
+							bson.M{"$subtract": list{"$charge_amount", "$payment_tax_fee_origin.amount"}},
+							bson.M{"$subtract": list{"$charge_amount", "$payment_refund_tax_fee_origin.amount"}},
+						},
+					},
+					"currency": "$charge_currency",
+				},
+			},
+		},
+		{
 			"$project": bson.M{
 				"_id":                  1,
 				"uuid":                 1,
@@ -3087,6 +3140,8 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 				"country_code":         1,
 				"merchant_id":          "$project.merchant_id",
 				"status":               1,
+				"tax_rate":             "$tax.rate",
+				"merchant_info":        1,
 				"locale": bson.M{
 					"$cond": list{
 						bson.M{
@@ -3163,6 +3218,7 @@ func (s *Service) doUpdateOrderView(ctx context.Context, match bson.M) error {
 				"payment_ip_country":                                1,
 				"is_ip_country_mismatch_bin":                        1,
 				"order_charge":                                      1,
+				"order_charge_before_vat":                           1,
 				"billing_country_changed_by_user":                   1,
 				"refund_allowed":                                    "$is_refund_allowed",
 				"vat_payer":                                         1,
