@@ -6317,10 +6317,14 @@ func (m *ListProjectsResponse) GetItems() []*billing.Project {
 }
 
 type TokenRequest struct {
-	//@inject_tag: validate:"required"
-	User *billing.TokenUser `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty" validate:"required"`
-	//@inject_tag: validate:"required"
-	Settings             *billing.TokenSettings `protobuf:"bytes,2,opt,name=settings,proto3" json:"settings,omitempty" validate:"required"`
+	//@inject_tag: validate:"required" required:"true"
+	//
+	// The user data.
+	User *billing.TokenUser `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty" validate:"required" required:"true"`
+	//@inject_tag: validate:"required" required:"true"
+	//
+	// The payment order data.
+	Settings             *billing.TokenSettings `protobuf:"bytes,2,opt,name=settings,proto3" json:"settings,omitempty" validate:"required" required:"true"`
 	XXX_NoUnkeyedLiteral struct{}               `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                 `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                  `json:"-" bson:"-" structure:"-" validate:"-"`

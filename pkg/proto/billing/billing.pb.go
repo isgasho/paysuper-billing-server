@@ -6112,7 +6112,10 @@ func (m *Customer) GetNotifyNewRegionEmail() string {
 
 type TokenUserEmailValue struct {
 	//@inject_tag: validate:"omitempty,email"
-	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,email"`
+	//
+	// The user’s email address.
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,email"`
+	// Whether the email has been verified on the merchant side.
 	Verified             bool     `protobuf:"varint,2,opt,name=verified,proto3" json:"verified,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6160,7 +6163,10 @@ func (m *TokenUserEmailValue) GetVerified() bool {
 
 type TokenUserPhoneValue struct {
 	//@inject_tag: validate:"omitempty,phone"
-	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,phone"`
+	//
+	// The user’s phone.
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,phone"`
+	// Whether the phone has been verified on the merchant side.
 	Verified             bool     `protobuf:"varint,2,opt,name=verified,proto3" json:"verified,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6208,6 +6214,8 @@ func (m *TokenUserPhoneValue) GetVerified() bool {
 
 type TokenUserIpValue struct {
 	//@inject_tag: validate:"omitempty,ip"
+	//
+	// The user’s IP address.
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,ip"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6248,6 +6256,8 @@ func (m *TokenUserIpValue) GetValue() string {
 
 type TokenUserLocaleValue struct {
 	//@inject_tag: validate:"omitempty,locale,min=5"
+	//
+	// The user’s locale name. The Accept-Language format by RFC 7231.
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,locale,min=5"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6326,15 +6336,24 @@ func (m *TokenUserValue) GetValue() string {
 }
 
 type TokenUser struct {
-	//@inject_tag: validate:"required"
-	Id       string                `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required"`
-	Email    *TokenUserEmailValue  `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Phone    *TokenUserPhoneValue  `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
-	Name     *TokenUserValue       `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
-	Ip       *TokenUserIpValue     `protobuf:"bytes,7,opt,name=ip,proto3" json:"ip,omitempty"`
-	Locale   *TokenUserLocaleValue `protobuf:"bytes,8,opt,name=locale,proto3" json:"locale,omitempty"`
-	Address  *OrderBillingAddress  `protobuf:"bytes,9,opt,name=address,proto3" json:"address,omitempty"`
-	Metadata map[string]string     `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	//@inject_tag: validate:"required" required:"true"
+	//
+	// The unique identifier for a user in the merchant project.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required" required:"true"`
+	// The user’s email data.
+	Email *TokenUserEmailValue `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// The user’s phone data.
+	Phone *TokenUserPhoneValue `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	// The user’s name data.
+	Name *TokenUserValue `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
+	// The user’s IP address data.
+	Ip *TokenUserIpValue `protobuf:"bytes,7,opt,name=ip,proto3" json:"ip,omitempty"`
+	// The user’s locale data.
+	Locale *TokenUserLocaleValue `protobuf:"bytes,8,opt,name=locale,proto3" json:"locale,omitempty"`
+	// The user’s address data.
+	Address *OrderBillingAddress `protobuf:"bytes,9,opt,name=address,proto3" json:"address,omitempty"`
+	// A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
+	Metadata map[string]string `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	//@inject_tag: json:"-"
 	UserAgent string `protobuf:"bytes,11,opt,name=user_agent,json=userAgent,proto3" json:"-"`
 	//@inject_tag: json:"-"
@@ -6907,11 +6926,11 @@ func (m *GetCountryRequest) GetIsoCode() string {
 type CountryVatThreshold struct {
 	// @inject_tag: json:"year" bson:"year" validate:"numeric,gte=0"
 	//
-	//
+	// The maximum value of the PaySuper's revenue (since the beginning of the year) from this country which subjects to VAT.
 	Year float64 `protobuf:"fixed64,1,opt,name=year,proto3" json:"year" bson:"year" validate:"numeric,gte=0"`
 	// @inject_tag: json:"world" bson:"world" validate:"numeric,gte=0"
 	//
-	//
+	// The maximum value of the PaySuper's worldwide revenue (since the beginning of the year) which subjects to VAT.
 	World                float64  `protobuf:"fixed64,2,opt,name=world,proto3" json:"world" bson:"world" validate:"numeric,gte=0"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6962,15 +6981,15 @@ type Country struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"-" bson:"_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
 	//
-	// Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+	// Two-letter country code by ISO 3166, in uppercase (for instance "US").
 	IsoCodeA2 string `protobuf:"bytes,2,opt,name=iso_code_a2,json=isoCodeA2,proto3" json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"`
 	//@inject_tag: json:"region" bson:"region" validate:"required"
 	//
-	//
+	// A PaySuper system's relative geographical area for this country.
 	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" bson:"region" validate:"required"`
 	//@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
 	//
-	// The currency of the country.
+	// The currency of the country. Three-letter Currency Code ISO 4217, in uppercase.
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" bson:"currency" validate:"required,alpha,len=3"`
 	//@inject_tag: json:"payments_allowed" bson:"payments_allowed"
 	//
@@ -6978,43 +6997,43 @@ type Country struct {
 	PaymentsAllowed bool `protobuf:"varint,5,opt,name=payments_allowed,json=paymentsAllowed,proto3" json:"payments_allowed" bson:"payments_allowed"`
 	//@inject_tag: json:"change_allowed" bson:"change_allowed"
 	//
-	// Allowed to change country.
+	// Has a true value if a user can select another country in case of the payments are disallowed for this country.
 	ChangeAllowed bool `protobuf:"varint,6,opt,name=change_allowed,json=changeAllowed,proto3" json:"change_allowed" bson:"change_allowed"`
 	//@inject_tag: json:"vat_enabled" bson:"vat_enabled"
 	//
-	// Has a true value if the country has VAT.
+	// Has a true value if VAT is calculated and paid for this country.
 	VatEnabled bool `protobuf:"varint,7,opt,name=vat_enabled,json=vatEnabled,proto3" json:"vat_enabled" bson:"vat_enabled"`
 	//@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
 	//
-	// VAT currency.
+	// VAT currency. It can differ from the country currency. Three-letter Currency Code ISO 4217, in uppercase.
 	VatCurrency string `protobuf:"bytes,8,opt,name=vat_currency,json=vatCurrency,proto3" json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"`
 	//@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
 	//
-	//
+	// The unique identifier for a price group this country belongs to.
 	PriceGroupId string `protobuf:"bytes,9,opt,name=price_group_id,json=priceGroupId,proto3" json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
 	//
-	//
+	// VAT threshold for this country.
 	VatThreshold *CountryVatThreshold `protobuf:"bytes,10,opt,name=vat_threshold,json=vatThreshold,proto3" json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"`
 	// @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
 	//
-	//
+	// The length of a tax period in months.
 	VatPeriodMonth int32 `protobuf:"varint,11,opt,name=vat_period_month,json=vatPeriodMonth,proto3" json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"`
 	// @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
 	//
-	//
+	// The number of days after a tax period end to pay VAT.
 	VatDeadlineDays int32 `protobuf:"varint,12,opt,name=vat_deadline_days,json=vatDeadlineDays,proto3" json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"`
 	// @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
 	//
-	//
+	// The number of years to store the VAT payment history for this country.
 	VatStoreYears int32 `protobuf:"varint,13,opt,name=vat_store_years,json=vatStoreYears,proto3" json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"`
 	// @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
 	//
-	//
+	// A calculation policy of VAT with a currency that differs from this country VAT currency. Available values: on-day (a conversion rate on the day of payment), last-day (a conversion rate on the last day of a tax period), mid-month (the system reserved option of a conversion rate calculation. This option is disabled.).
 	VatCurrencyRatesPolicy string `protobuf:"bytes,14,opt,name=vat_currency_rates_policy,json=vatCurrencyRatesPolicy,proto3" json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"`
 	// @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
 	//
-	//
+	// The source of currency rates to calculate a tax amount.
 	VatCurrencyRatesSource string `protobuf:"bytes,15,opt,name=vat_currency_rates_source,json=vatCurrencyRatesSource,proto3" json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"`
 	//@inject_tag: json:"-" bson:"created_at"
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"-" bson:"created_at"`
@@ -7022,15 +7041,15 @@ type Country struct {
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,17,opt,name=updated_at,json=updatedAt,proto3" json:"-" bson:"updated_at"`
 	//@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
 	//
-	//
+	// A PaySuper system's relative geographical area for this country. Available values: asia, europe, latin_america, russia_and_cis, worldwide.
 	PayerTariffRegion string `protobuf:"bytes,18,opt,name=payer_tariff_region,json=payerTariffRegion,proto3" json:"payer_tariff_region" bson:"payer_tariff_region"`
 	//@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
 	//
-	//
+	// Has a true value if payments from this country is allowed. Has a false value for a high-risk merchant.
 	HighRiskPaymentsAllowed bool `protobuf:"varint,19,opt,name=high_risk_payments_allowed,json=highRiskPaymentsAllowed,proto3" json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"`
 	//@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
 	//
-	//
+	// Has a true value if a user can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
 	HighRiskChangeAllowed bool     `protobuf:"varint,20,opt,name=high_risk_change_allowed,json=highRiskChangeAllowed,proto3" json:"high_risk_change_allowed" bson:"high_risk_change_allowed"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized      []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
