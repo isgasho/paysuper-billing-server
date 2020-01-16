@@ -977,6 +977,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projectFixedAmount := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -992,6 +998,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 
 	projectWithProductsInVirtualCurrency := &billing.Project{
@@ -1023,6 +1035,12 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		VatPayer: pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 
 	projectWithProducts := &billing.Project{
@@ -1039,6 +1057,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projectWithKeyProducts := &billing.Project{
 		Id:                       primitive.NewObjectID().Hex(),
@@ -1054,6 +1078,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projectUahLimitCurrency := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1068,6 +1098,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projectIncorrectPaymentMethodId := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1082,6 +1118,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:             pkg.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projectEmptyPaymentMethodTerminal := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1096,6 +1138,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projectWithoutPaymentMethods := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1110,6 +1158,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "test project 1 secret key",
 		Status:             pkg.ProjectStatusInProduction,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	inactiveProject := &billing.Project{
 		Id:                 primitive.NewObjectID().Hex(),
@@ -1124,6 +1178,12 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "test project 2 secret key",
 		Status:             pkg.ProjectStatusDeleted,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	projects := []*billing.Project{
 		project,
@@ -4122,6 +4182,13 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	assert.Equal(suite.T(), req.User.Locale, rsp.Item.Lang)
 	assert.NotNil(suite.T(), rsp.Item.Project)
 	assert.NotZero(suite.T(), rsp.Item.Project.Id)
+	assert.NotNil(suite.T(), rsp.Item.Project.RedirectSettings)
+	assert.Equal(suite.T(), suite.project.RedirectSettings.Usage, rsp.Item.Project.RedirectSettings.Usage)
+	assert.Equal(suite.T(), suite.project.RedirectSettings.Mode, rsp.Item.Project.RedirectSettings.Mode)
+	assert.Equal(suite.T(), suite.project.RedirectSettings.Delay, rsp.Item.Project.RedirectSettings.Delay)
+	assert.Zero(suite.T(), rsp.Item.Project.RedirectSettings.Delay)
+	assert.Equal(suite.T(), suite.project.RedirectSettings.ButtonCaption, rsp.Item.Project.RedirectSettings.ButtonCaption)
+	assert.Zero(suite.T(), rsp.Item.Project.RedirectSettings.ButtonCaption)
 
 	expire := time.Now().Add(time.Minute * 30).Unix()
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{"sub": order.Uuid, "exp": expire})

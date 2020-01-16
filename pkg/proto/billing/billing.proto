@@ -105,22 +105,22 @@ message ProjectRedirectSettingsButtonCaption {
 }
 
 message ProjectRedirectSettings {
-    //@inject_tag: json:"mode" bson:"mode" validate:"omitempty,oneof=disable successful fail any"
+    //@inject_tag: json:"mode" bson:"mode" validate:"required,oneof=disable successful fail any"
     //
-    //Mode of redirection from payment from after the user complete the payment. Default value is "any". Available values: disable, successful, fail, any.
+    //Mode of redirection from payment from after the user complete the payment. Available values: disable, successful, fail, any.
     string mode = 1;
     //@inject_tag: json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"
     //
     //Delay after which the user will be redirected to the return URL. Default values is 0.
     int32 delay = 2;
-    //@inject_tag: json:"mode" bson:"usage" validate:"omitempty,oneof=standalone iframe embed any"
+    //@inject_tag: json:"mode" bson:"usage" validate:"required,oneof=standalone iframe embed any"
     //
-    //Redirect feature could be used in different representations of payment form. Default value is "standalone". Available values: standalone, iframe, embed, any.
+    //Redirect feature could be used in different representations of payment form. Default value is "any". Available values: standalone, iframe, embed, any.
     string usage = 3;
-    //@inject_tag: json:"button_caption" bson:"button_caption"
+    //@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
     //
-    //Object contain texts for redirect button for successful and fail payment ending. If fields in object is empty then text for redirect button will be set as "OK".
-    ProjectRedirectSettingsButtonCaption button_caption = 4;
+    //Texts for redirect button for successful and fail payment ending. If field is empty then text for redirect button will be set as "OK".
+    string button_caption = 4;
 }
 
 message Project {
@@ -196,7 +196,7 @@ message Project {
     ProjectVirtualCurrency virtual_currency = 35;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 36;
-    //@inject_tag: json:"redirect_settings" bson:"redirect_settings"
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
     //
     //Object contain setting for user's redirect after when payment ending
     ProjectRedirectSettings redirect_settings = 37;
@@ -221,6 +221,10 @@ message ProjectOrder {
     int32 status = 16;
     // @inject_tag: json:"-"
     string merchant_royalty_currency = 17;
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
+    //
+    //Object contain setting for user's redirect after when payment ending
+    ProjectRedirectSettings redirect_settings = 18;
 }
 
 message MerchantContact {

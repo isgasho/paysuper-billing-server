@@ -852,10 +852,11 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.Vat = order.Tax.Amount
 	rsp.Item.Currency = order.Currency
 	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
-		Id:         order.Project.Id,
-		Name:       projectName,
-		UrlSuccess: order.Project.UrlSuccess,
-		UrlFail:    order.Project.UrlFail,
+		Id:               order.Project.Id,
+		Name:             projectName,
+		UrlSuccess:       order.Project.UrlSuccess,
+		UrlFail:          order.Project.UrlFail,
+		RedirectSettings: order.Project.RedirectSettings,
 	}
 	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(order.Uuid, expire)
 	rsp.Item.Amount = order.OrderAmount
@@ -2109,6 +2110,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			MerchantId:              v.checked.merchant.Id,
 			Status:                  v.checked.project.Status,
 			MerchantRoyaltyCurrency: v.checked.merchant.GetPayoutCurrency(),
+			RedirectSettings:        v.checked.project.RedirectSettings,
 		},
 		Description:    fmt.Sprintf(orderDefaultDescription, id),
 		ProjectOrderId: v.request.OrderId,

@@ -160,6 +160,12 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		Status:                   pkg.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 		VatPayer:                 pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 
 	products := []interface{}{
@@ -323,6 +329,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 			SellCountType:    "fractional",
 		},
 		VatPayer: pkg.VatPayerSeller,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -618,6 +630,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_Ok() {
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -662,6 +680,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -706,6 +730,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_StatusQuery_Ok()
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -777,6 +807,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_SortQuery_Ok() {
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -823,6 +859,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
@@ -875,6 +917,12 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
 		VatPayer:           pkg.VatPayerBuyer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
