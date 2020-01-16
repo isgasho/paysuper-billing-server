@@ -322,7 +322,7 @@ func (app *Application) Status() (interface{}, error) {
 }
 
 func (app *Application) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	if app.httpServer != nil {
