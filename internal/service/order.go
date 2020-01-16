@@ -4280,6 +4280,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 		ReceiptId:           order.ReceiptId,
 		Url:                 order.ReceiptUrl,
 		VatRate:             fmt.Sprintf("%g", order.Tax.Rate*100) + "%",
+		CustomerEmail:       order.User.Email,
 	}
 
 	return receipt, nil
