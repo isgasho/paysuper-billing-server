@@ -487,7 +487,7 @@ func (s *Service) getVatReportById(ctx context.Context, id string) (*billing.Vat
 	}
 
 	query := bson.M{"_id": oid}
-	err = s.db.Collection(collectionVatReports).FindOne(ctx, query).Decode(&vr)
+	err = s.db.Collection(collectionVatReports).FindOne(ctx, query).Decode(vr)
 
 	if err != nil {
 		zap.L().Error(
