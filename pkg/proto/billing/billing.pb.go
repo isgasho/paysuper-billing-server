@@ -70,7 +70,7 @@ func (m *Name) GetRu() string {
 	return ""
 }
 
-// @desc A payment order data about a customer and payment
+// @summary A payment order data about a customer and payment
 type OrderCreateRequest struct {
 	// @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project"  validate:"omitempty,hexadecimal" required:"true"
 	//
