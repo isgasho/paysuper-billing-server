@@ -4237,7 +4237,8 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 	for i, item := range order.Items {
 		price, err := s.formatter.FormatCurrency(DefaultLanguage, item.Amount, currency)
 
-		if err != nil {
+		// Virtual currency always returns error but formatting with Name  
+		if err != nil && order.IsBuyForVirtualCurrency == false {
 			zap.L().Error(
 				orderErrorDuringFormattingCurrency.Message,
 				zap.Float64("price", item.Amount),
@@ -4281,6 +4282,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 		ReceiptId:           order.ReceiptId,
 		Url:                 order.ReceiptUrl,
 		VatRate:             fmt.Sprintf("%g", order.Tax.Rate*100) + "%",
+		CustomerEmail:       order.User.Email,
 	}
 
 	return receipt, nil

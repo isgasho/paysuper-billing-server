@@ -32,7 +32,7 @@ require (
 	github.com/paysuper/paysuper-tax-service v1.0.0
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.2.1
-	github.com/stoewer/go-strcase v1.0.2
+	github.com/stoewer/go-strcase v1.1.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
 	github.com/ttacon/libphonenumber v1.0.1
