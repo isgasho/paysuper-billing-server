@@ -51,18 +51,17 @@ import (
 )
 
 type Application struct {
-	cfg        *config.Config
-	database   mongodb.SourceInterface
-	redis      *redis.Client
-	service    micro.Service
-	httpServer *http.Server
-	router     *http.ServeMux
-	logger     *zap.Logger
-	svc        *service.Service
-	CliArgs    goConfig.Config
+	cfg          *config.Config
+	database     mongodb.SourceInterface
+	redis        *redis.Client
+	redisCluster *redis.ClusterClient
+	service      micro.Service
+	httpServer   *http.Server
+	router       *http.ServeMux
+	logger       *zap.Logger
+	svc          *service.Service
+	CliArgs      goConfig.Config
 }
-
-type appHealthCheck struct{}
 
 func NewApplication() *Application {
 	return &Application{}
@@ -191,14 +190,14 @@ func (app *Application) Init() {
 		app.logger.Fatal("Create il8n formatter failed", zap.Error(err))
 	}
 
-	redisdb := redis.NewClusterClient(&redis.ClusterOptions{
+	app.redisCluster = redis.NewClusterClient(&redis.ClusterOptions{
 		Addrs:        cfg.CacheRedis.Address,
 		Password:     cfg.CacheRedis.Password,
 		MaxRetries:   cfg.CacheRedis.MaxRetries,
 		MaxRedirects: cfg.CacheRedis.MaxRedirects,
 		PoolSize:     cfg.CacheRedis.PoolSize,
 	})
-	cache, err := database.NewCacheRedis(redisdb, cfg.CacheRedis.Version)
+	cache, err := database.NewCacheRedis(app.redisCluster, cfg.CacheRedis.Version)
 
 	if err != nil {
 		app.logger.Error("Unable to initialize cache for the application", zap.Error(err))
@@ -259,7 +258,7 @@ func (app *Application) initHealth() {
 	err := h.AddChecks([]*health.Config{
 		{
 			Name:     "health-check",
-			Checker:  &appHealthCheck{},
+			Checker:  app,
 			Interval: time.Duration(1) * time.Second,
 			Fatal:    true,
 		},
@@ -299,7 +298,26 @@ func (app *Application) Run() {
 	}
 }
 
-func (c *appHealthCheck) Status() (interface{}, error) {
+func (app *Application) Status() (interface{}, error) {
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	err := app.database.Ping(ctx)
+
+	if err != nil {
+		return "fail", errors.New("mongodb connection lost: " + err.Error())
+	}
+
+	err = app.redis.Ping().Err()
+
+	if err != nil {
+		return "fail", errors.New("redis connection lost: " + err.Error())
+	}
+
+	err = app.redisCluster.Ping().Err()
+
+	if err != nil {
+		return "fail", errors.New("redis cluster connection lost: " + err.Error())
+	}
+
 	return "ok", nil
 }
 

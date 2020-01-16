@@ -42,7 +42,7 @@ require (
 	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/paysuper/paysuper-database-mongo.v2 v2.0.0-20191225152512-d3a7cace0401
+	gopkg.in/paysuper/paysuper-database-mongo.v2 v2.0.0-20200116095540-a477bfd0ce4c
 )
 
 replace (
