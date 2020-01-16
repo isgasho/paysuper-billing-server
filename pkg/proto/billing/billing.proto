@@ -1174,6 +1174,7 @@ message TokenUserLocaleValue {
 }
 
 message TokenUserValue {
+    // The user’s name.
     string value = 1;
 }
 
@@ -1204,8 +1205,12 @@ message TokenUser {
 
 message TokenSettingsReturnUrl {
     //@inject_tag: validate:"omitempty,url"
+    //
+    // The redirect URL for a successful payment.
     string success = 1;
     //@inject_tag: validate:"omitempty,url"
+    //
+    // The redirect URL for a failed payment.
     string fail = 2;
 }
 
@@ -1219,27 +1224,47 @@ message TokenSettingsItem {
 }
 
 message TokenSettings {
-    //@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24" required:"true"
+    //
+    // The ID of the Project found in your merchant account in the PaySuper Dashboard.
     string project_id = 2;
     //@inject_tag: json:"return_url"
+    //
+    // Redirect URLs.
     TokenSettingsReturnUrl return_url = 3;
     //@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
+    //
+    // The order currency. Three-letter Currency Code ISO 4217, in uppercase. It's required for a simple checkout payment.
     string currency = 4;
     //@inject_tag: json:"amount" validate:"omitempty,numeric,gt=0"
+    //
+    // The order amount. It's required for a simple checkout payment.
     double amount = 5;
-    //@inject_tag: json:"payment_method"
+    //@inject_tag: json:"-"
     string payment_method = 6;
     //@inject_tag: json:"description"
+    //
+    // An arbitrary order description.
     string description = 8;
     //@inject_tag: json:"products_ids"
+    //
+    // A list of unique identifiers for Project's products. It's required if a payment type equals to ‘product’ or ‘key’.
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
+    //
+    // A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
     map<string, string> metadata = 10;
     //@inject_tag: json:"platform_id"
+    //
+    // The default platform's name for which a customer buys a key. This field is used only for the key type. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform_id = 11;
-    //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency"
+    //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"
+    //
+    // The order type. It depends on your sales option: Game Keys, Virtual Items, Simple Checkout. Available values: key, product, simple.
     string type = 12;
     //@inject_tag: json:"is_buy_for_virtual_currency"
+    //
+    // Has a true value if an order must be processed using a virtual currency.
     bool is_buy_for_virtual_currency = 13;
 }
 

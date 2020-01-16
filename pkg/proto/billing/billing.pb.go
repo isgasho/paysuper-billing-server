@@ -6297,6 +6297,7 @@ func (m *TokenUserLocaleValue) GetValue() string {
 }
 
 type TokenUserValue struct {
+	// The user’s name.
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6460,8 +6461,12 @@ func (m *TokenUser) GetAcceptLanguage() string {
 
 type TokenSettingsReturnUrl struct {
 	//@inject_tag: validate:"omitempty,url"
+	//
+	// The redirect URL for a successful payment.
 	Success string `protobuf:"bytes,1,opt,name=success,proto3" json:"success,omitempty" validate:"omitempty,url"`
 	//@inject_tag: validate:"omitempty,url"
+	//
+	// The redirect URL for a failed payment.
 	Fail                 string   `protobuf:"bytes,2,opt,name=fail,proto3" json:"fail,omitempty" validate:"omitempty,url"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6566,27 +6571,47 @@ func (m *TokenSettingsItem) GetCurrency() string {
 }
 
 type TokenSettings struct {
-	//@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24"
-	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id" validate:"required,hexadecimal,len=24"`
+	//@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24" required:"true"
+	//
+	// The ID of the Project found in your merchant account in the PaySuper Dashboard.
+	ProjectId string `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id" validate:"required,hexadecimal,len=24" required:"true"`
 	//@inject_tag: json:"return_url"
+	//
+	// Redirect URLs.
 	ReturnUrl *TokenSettingsReturnUrl `protobuf:"bytes,3,opt,name=return_url,json=returnUrl,proto3" json:"return_url"`
 	//@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
+	//
+	// The order currency. Three-letter Currency Code ISO 4217, in uppercase. It's required for a simple checkout payment.
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" validate:"omitempty,alpha,len=3"`
 	//@inject_tag: json:"amount" validate:"omitempty,numeric,gt=0"
+	//
+	// The order amount. It's required for a simple checkout payment.
 	Amount float64 `protobuf:"fixed64,5,opt,name=amount,proto3" json:"amount" validate:"omitempty,numeric,gt=0"`
-	//@inject_tag: json:"payment_method"
-	PaymentMethod string `protobuf:"bytes,6,opt,name=payment_method,json=paymentMethod,proto3" json:"payment_method"`
+	//@inject_tag: json:"-"
+	PaymentMethod string `protobuf:"bytes,6,opt,name=payment_method,json=paymentMethod,proto3" json:"-"`
 	//@inject_tag: json:"description"
+	//
+	// An arbitrary order description.
 	Description string `protobuf:"bytes,8,opt,name=description,proto3" json:"description"`
 	//@inject_tag: json:"products_ids"
+	//
+	// A list of unique identifiers for Project's products. It's required if a payment type equals to ‘product’ or ‘key’.
 	ProductsIds []string `protobuf:"bytes,9,rep,name=products_ids,json=productsIds,proto3" json:"products_ids"`
 	//@inject_tag: json:"metadata"
+	//
+	// A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
 	Metadata map[string]string `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	//@inject_tag: json:"platform_id"
+	//
+	// The default platform's name for which a customer buys a key. This field is used only for the key type. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
 	PlatformId string `protobuf:"bytes,11,opt,name=platform_id,json=platformId,proto3" json:"platform_id"`
-	//@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency"
-	Type string `protobuf:"bytes,12,opt,name=type,proto3" json:"type" validate:"required,oneof=simple key product virtual_currency"`
+	//@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"
+	//
+	// The order type. It depends on your sales option: Game Keys, Virtual Items, Simple Checkout. Available values: key, product, simple.
+	Type string `protobuf:"bytes,12,opt,name=type,proto3" json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"`
 	//@inject_tag: json:"is_buy_for_virtual_currency"
+	//
+	// Has a true value if an order must be processed using a virtual currency.
 	IsBuyForVirtualCurrency bool     `protobuf:"varint,13,opt,name=is_buy_for_virtual_currency,json=isBuyForVirtualCurrency,proto3" json:"is_buy_for_virtual_currency"`
 	XXX_NoUnkeyedLiteral    struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized        []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
