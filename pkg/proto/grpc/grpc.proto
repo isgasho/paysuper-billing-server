@@ -137,7 +137,7 @@ service BillingService {
 
     rpc GetVatReportsDashboard (EmptyRequest) returns (VatReportsResponse) {}
     rpc GetVatReportsForCountry (VatReportsRequest) returns (VatReportsResponse) {}
-    rpc GetVatReportTransactions (VatTransactionsRequest) returns (TransactionsResponse) {}
+    rpc GetVatReportTransactions (VatTransactionsRequest) returns (PrivateTransactionsResponse) {}
     rpc ProcessVatReports (ProcessVatReportsRequest) returns (EmptyResponse) {}
     rpc UpdateVatReportStatus (UpdateVatReportStatusRequest) returns (ResponseError) {}
     rpc GetVatReport (VatReportRequest) returns (VatReportResponse) {}
@@ -1765,12 +1765,27 @@ message TransactionsPaginate {
     repeated billing.OrderViewPublic items = 2; // array of selected transactions
 }
 
+message PrivateTransactionsPaginate {
+    // @inject_tag: json:"count"
+    int32 count = 1; // total count of selected transactions
+    // @inject_tag: json:"items"
+    repeated billing.OrderViewPrivate items = 2; // array of selected transactions
+}
+
 message TransactionsResponse {
     int32 status = 1;
     // @inject_tag: json:"message,omitempty"
     ResponseErrorMessage message = 2;
     // @inject_tag: json:"data"
     TransactionsPaginate data = 3;
+}
+
+message PrivateTransactionsResponse {
+    int32 status = 1;
+    // @inject_tag: json:"message,omitempty"
+    ResponseErrorMessage message = 2;
+    // @inject_tag: json:"data"
+    PrivateTransactionsPaginate data = 3;
 }
 
 message VatReportsRequest {

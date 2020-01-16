@@ -276,7 +276,7 @@ func (s *Service) GetVatReport(
 func (s *Service) GetVatReportTransactions(
 	ctx context.Context,
 	req *grpc.VatTransactionsRequest,
-	res *grpc.TransactionsResponse,
+	res *grpc.PrivateTransactionsResponse,
 ) error {
 	res.Status = pkg.ResponseStatusOk
 
@@ -318,13 +318,13 @@ func (s *Service) GetVatReportTransactions(
 	}
 
 	n, err := s.orderView.CountTransactions(ctx, match)
-	vts, err := s.orderView.GetTransactionsPublic(ctx, match, req.Limit, req.Offset)
+	vts, err := s.orderView.GetTransactionsPrivate(ctx, match, req.Limit, req.Offset)
 
 	if err != nil {
 		return err
 	}
 
-	res.Data = &grpc.TransactionsPaginate{
+	res.Data = &grpc.PrivateTransactionsPaginate{
 		Count: int32(n),
 		Items: vts,
 	}
