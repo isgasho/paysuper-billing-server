@@ -30,7 +30,7 @@ message OrderCreateRequest {
     string currency = 4;
     // @inject_tag: "PO_ACCOUNT" form:"PO_ACCOUNT" json:"account"`
     //
-    // The user's unique account in the merchant project.
+    // The customer's unique account in the merchant project.
     string account = 5;
     // @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
     //
@@ -86,9 +86,9 @@ message OrderCreateRequest {
     string issuer_url = 27;
     // @inject_tag: json:"-"
     bool is_embedded = 28;
-    // An encrypted string that represents certain details of your customer (such as the user ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
+    // An encrypted string that represents certain details of your customer (such as the customer ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
     string token = 29;
-    // The user data.
+    // The customer data.
     OrderUser user = 30;
     // @inject_tag: json:"-" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
@@ -481,15 +481,15 @@ message OrderTax {
 message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
     //
-    // The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+    // The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string country = 1;
-    // The user’s city.
+    // The customer’s city.
     string city = 2;
     // @inject_tag: bson:"postal_code"
     //
-    // The user's postal code.
+    // The customer's postal code.
     string postal_code = 3;
-    // The user's state code by ISO 3166-2.
+    // The customer's state code by ISO 3166-2.
     string state = 4;
 }
 
@@ -500,43 +500,43 @@ message OrderUser {
     string object = 2;
     // @inject_tag: json:"external_id" bson:"external_id"
     //
-    // The user unique identifier in the merchant project.
+    // The customer unique identifier in the merchant project.
     string external_id = 3;
     // @inject_tag: json:"name"
     //
-    // The user's name.
+    // The customer's name.
     string name = 4;
     // @inject_tag: json:"email" validate:"omitempty,email"
     //
-    // The user's email address.
+    // The customer's email address.
     string email = 5;
     // @inject_tag: json:"email_verified" bson:"email_verified"
     //
-    // Whether the user's email address has been verified on the merchant side.
+    // Whether the customer's email address has been verified on the merchant side.
     bool email_verified = 6;
     // @inject_tag: json:"phone" validate:"omitempty,phone"
     //
-    // The user's phone number.
+    // The customer's phone number.
     string phone = 7;
     // @inject_tag: json:"phone_verified" bson:"phone_verified"
     //
-    // Whether the user's phone number has been verified on the merchant side.
+    // Whether the customer's phone number has been verified on the merchant side.
     bool phone_verified = 8;
     // @inject_tag: json:"ip" validate:"omitempty,ip"
     //
-    // The user's IP address.
+    // The customer's IP address.
     string ip = 9;
     // @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
     //
-    // The user's locale name. The language code by ISO 639-1 (for instance "en-US").
+    // The customer's locale name. The language code by ISO 639-1 (for instance "en-US").
     string locale = 10;
     // @inject_tag: json:"address"
     //
-    // The user's address details.
+    // The customer's address details.
     OrderBillingAddress address = 11;
     // @inject_tag: json:"metadata"
     //
-    // A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer's payment.
+    // A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer's payment.
     map<string, string> metadata = 12;
     // @inject_tag: json:"-"
     string tech_email = 13;
@@ -1145,7 +1145,7 @@ message Customer {
 message TokenUserEmailValue {
     //@inject_tag: validate:"omitempty,email"
     //
-    // The user’s email address.
+    // The customer’s email address.
     string value = 1;
     // Whether the email has been verified on the merchant side.
     bool verified = 2;
@@ -1154,7 +1154,7 @@ message TokenUserEmailValue {
 message TokenUserPhoneValue {
     //@inject_tag: validate:"omitempty,phone"
     //
-    // The user’s phone.
+    // The customer’s phone.
     string value = 1;
     // Whether the phone has been verified on the merchant side.
     bool verified = 2;
@@ -1163,40 +1163,40 @@ message TokenUserPhoneValue {
 message TokenUserIpValue {
     //@inject_tag: validate:"omitempty,ip"
     //
-    // The user’s IP address.
+    // The customer’s IP address.
     string value = 1;
 }
 
 message TokenUserLocaleValue {
     //@inject_tag: validate:"omitempty,locale,min=5"
     //
-    // The user’s locale name. The Accept-Language format by RFC 7231.
+    // The customer’s locale name. The Accept-Language format by RFC 7231.
     string value = 1;
 }
 
 message TokenUserValue {
-    // The user’s name.
+    // The customer’s name.
     string value = 1;
 }
 
 message TokenUser {
     //@inject_tag: validate:"required" required:"true"
     //
-    // The unique identifier for a user in the merchant project.
+    // The unique identifier for a customer in the merchant project.
     string id = 1;
-    // The user’s email data.
+    // The customer’s email data.
     TokenUserEmailValue email = 2;
-    // The user’s phone data.
+    // The customer’s phone data.
     TokenUserPhoneValue phone = 4;
-    // The user’s name data.
+    // The customer’s name data.
     TokenUserValue name = 6;
-    // The user’s IP address data.
+    // The customer’s IP address data.
     TokenUserIpValue ip = 7;
-    // The user’s locale data.
+    // The customer’s locale data.
     TokenUserLocaleValue locale = 8;
-    // The user’s address data.
+    // The customer’s address data.
     OrderBillingAddress address = 9;
-    // A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
+    // A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer’s payment.
     map<string, string> metadata = 10;
     //@inject_tag: json:"-"
     string user_agent = 11;
@@ -1253,7 +1253,7 @@ message TokenSettings {
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
     //
-    // A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
+    // A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer’s payment.
     map<string, string> metadata = 10;
     //@inject_tag: json:"platform_id"
     //
@@ -1340,7 +1340,7 @@ message Country {
     bool payments_allowed = 5;
     //@inject_tag: json:"change_allowed" bson:"change_allowed"
     //
-    // Has a true value if a user can select another country in case of the payments are disallowed for this country.
+    // Has a true value if a customer can select another country in case of the payments are disallowed for this country.
     bool change_allowed = 6;
     //@inject_tag: json:"vat_enabled" bson:"vat_enabled"
     //
@@ -1392,7 +1392,7 @@ message Country {
     bool high_risk_payments_allowed = 19;
     //@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
     //
-    // Has a true value if a user can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
+    // Has a true value if a customer can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
     bool high_risk_change_allowed = 20;
 }
 
@@ -1427,16 +1427,25 @@ message PriceGroup {
 
 message ZipCodeState {
     //@inject_tag: bson:"code"
+    //
+    // The state's postal code.
     string code = 1;
     //@inject_tag: bson:"name"
+    //
+    // The state's name.
     string name = 2;
 }
 
 message ZipCode {
+    // The postal code.
     string zip = 1;
+    // The country's name.
     string country = 2;
+    // The city's name.
     string city = 3;
+    // The state data.
     ZipCodeState state = 4;
+    // The date this item was added.
     google.protobuf.Timestamp created_at = 5;
 }
 
@@ -2620,36 +2629,36 @@ message OrderCreateByPaylink {
 message UserIpData {
     // @inject_tag: json:"country"
     //
-    // The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+    // The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string country = 1;
     // @inject_tag: json:"city"
     //
-    // The user's city.
+    // The customer's city.
     string city = 2;
     // @inject_tag: json:"zip"
     //
-    // The user's postal code.
+    // The customer's postal code.
     string zip = 3;
 }
 
 message PaymentFormDataChangeResponseItem {
     // @inject_tag: json:"user_address_data_required"
     //
-    // Has a true value if it's required to get a real user's geo-position information.
+    // Has a true value if it's required to get a real customer's geo-position information.
     bool user_address_data_required = 1;
     // @inject_tag: json:"user_ip_data"
     //
-    // The user's IP address.
+    // The customer's IP address.
     UserIpData user_ip_data = 2;
     //
     string brand = 3;
     //@inject_tag: json:"country_payments_allowed"
     //
-    // Has a true value if the payments are allowed from this user's country.
+    // Has a true value if the payments are allowed from this customer's country.
     bool country_payments_allowed = 4;
     //@inject_tag: json:"country_change_allowed"
     //
-    // Has a true value if a user can select another country in case of the payments are disallowed for his country.
+    // Has a true value if a customer can select another country in case of the payments are disallowed for his country.
     bool country_change_allowed = 5;
     // @inject_tag: json:"has_vat"
     //
@@ -2677,7 +2686,7 @@ message PaymentFormDataChangeResponseItem {
     repeated billing.OrderItem items = 11;
     // @inject_tag: json:"charge_currency"
     //
-    // A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+    // A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
     string charge_currency = 12;
     // @inject_tag: json:"charge_amount"
     //
@@ -2685,7 +2694,7 @@ message PaymentFormDataChangeResponseItem {
     double charge_amount = 13;
     // @inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+    // VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
     double vat_in_charge_currency = 14;
     // @inject_tag: json:"vat_rate"
     //

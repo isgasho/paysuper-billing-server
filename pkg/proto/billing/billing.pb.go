@@ -88,7 +88,7 @@ type OrderCreateRequest struct {
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" query:"PO_CURRENCY" form:"PO_CURRENCY" validate:"omitempty,alpha,len=3"`
 	// @inject_tag: "PO_ACCOUNT" form:"PO_ACCOUNT" json:"account"`
 	//
-	// The user's unique account in the merchant project.
+	// The customer's unique account in the merchant project.
 	Account string `protobuf:"bytes,5,opt,name=account,proto3" json:"account" form:"PO_ACCOUNT"`
 	// @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
 	//
@@ -144,9 +144,9 @@ type OrderCreateRequest struct {
 	IssuerUrl string `protobuf:"bytes,27,opt,name=issuer_url,json=issuerUrl,proto3" json:"-"`
 	// @inject_tag: json:"-"
 	IsEmbedded bool `protobuf:"varint,28,opt,name=is_embedded,json=isEmbedded,proto3" json:"-"`
-	// An encrypted string that represents certain details of your customer (such as the user ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
+	// An encrypted string that represents certain details of your customer (such as the customer ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
 	Token string `protobuf:"bytes,29,opt,name=token,proto3" json:"token,omitempty"`
-	// The user data.
+	// The customer data.
 	User *OrderUser `protobuf:"bytes,30,opt,name=user,proto3" json:"user,omitempty"`
 	// @inject_tag: json:"-" validate:"omitempty,uuid"
 	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"-" validate:"omitempty,uuid"`
@@ -2562,15 +2562,15 @@ func (m *OrderTax) GetCurrency() string {
 type OrderBillingAddress struct {
 	// @inject_tag: validate:"omitempty,alpha,len=2"
 	//
-	// The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country,omitempty" validate:"omitempty,alpha,len=2"`
-	// The user’s city.
+	// The customer’s city.
 	City string `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
 	// @inject_tag: bson:"postal_code"
 	//
-	// The user's postal code.
+	// The customer's postal code.
 	PostalCode string `protobuf:"bytes,3,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty" bson:"postal_code"`
-	// The user's state code by ISO 3166-2.
+	// The customer's state code by ISO 3166-2.
 	State                string   `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -2637,43 +2637,43 @@ type OrderUser struct {
 	Object string `protobuf:"bytes,2,opt,name=object,proto3" json:"-"`
 	// @inject_tag: json:"external_id" bson:"external_id"
 	//
-	// The user unique identifier in the merchant project.
+	// The unique identifier for the customer in the merchant project.
 	ExternalId string `protobuf:"bytes,3,opt,name=external_id,json=externalId,proto3" json:"external_id" bson:"external_id"`
 	// @inject_tag: json:"name"
 	//
-	// The user's name.
+	// The customer's name.
 	Name string `protobuf:"bytes,4,opt,name=name,proto3" json:"name"`
 	// @inject_tag: json:"email" validate:"omitempty,email"
 	//
-	// The user's email address.
+	// The customer's email address.
 	Email string `protobuf:"bytes,5,opt,name=email,proto3" json:"email" validate:"omitempty,email"`
 	// @inject_tag: json:"email_verified" bson:"email_verified"
 	//
-	// Whether the user's email address has been verified on the merchant side.
+	// Whether the customer's email address has been verified on the merchant side.
 	EmailVerified bool `protobuf:"varint,6,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified" bson:"email_verified"`
 	// @inject_tag: json:"phone" validate:"omitempty,phone"
 	//
-	// The user's phone number.
+	// The customer's phone number.
 	Phone string `protobuf:"bytes,7,opt,name=phone,proto3" json:"phone" validate:"omitempty,phone"`
 	// @inject_tag: json:"phone_verified" bson:"phone_verified"
 	//
-	// Whether the user's phone number has been verified on the merchant side.
+	// Whether the customer's phone number has been verified on the merchant side.
 	PhoneVerified bool `protobuf:"varint,8,opt,name=phone_verified,json=phoneVerified,proto3" json:"phone_verified" bson:"phone_verified"`
 	// @inject_tag: json:"ip" validate:"omitempty,ip"
 	//
-	// The user's IP address.
+	// The customer's IP address.
 	Ip string `protobuf:"bytes,9,opt,name=ip,proto3" json:"ip" validate:"omitempty,ip"`
 	// @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
 	//
-	// The user's locale name. The language code by ISO 639-1 (for instance "en-US").
+	// The customer's locale name. The language code by ISO 639-1 (for instance "en-US").
 	Locale string `protobuf:"bytes,10,opt,name=locale,proto3" json:"locale" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"address"
 	//
-	// The user's address details.
+	// The customer's address details.
 	Address *OrderBillingAddress `protobuf:"bytes,11,opt,name=address,proto3" json:"address"`
 	// @inject_tag: json:"metadata"
 	//
-	// A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer's payment.
+	// A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer's payment.
 	Metadata map[string]string `protobuf:"bytes,12,rep,name=metadata,proto3" json:"metadata" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// @inject_tag: json:"-"
 	TechEmail string `protobuf:"bytes,13,opt,name=tech_email,json=techEmail,proto3" json:"-"`
@@ -6114,7 +6114,7 @@ func (m *Customer) GetNotifyNewRegionEmail() string {
 type TokenUserEmailValue struct {
 	//@inject_tag: validate:"omitempty,email"
 	//
-	// The user’s email address.
+	// The customer’s email address.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,email"`
 	// Whether the email has been verified on the merchant side.
 	Verified             bool     `protobuf:"varint,2,opt,name=verified,proto3" json:"verified,omitempty"`
@@ -6165,7 +6165,7 @@ func (m *TokenUserEmailValue) GetVerified() bool {
 type TokenUserPhoneValue struct {
 	//@inject_tag: validate:"omitempty,phone"
 	//
-	// The user’s phone.
+	// The customer’s phone.
 	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,phone"`
 	// Whether the phone has been verified on the merchant side.
 	Verified             bool     `protobuf:"varint,2,opt,name=verified,proto3" json:"verified,omitempty"`
@@ -6216,7 +6216,7 @@ func (m *TokenUserPhoneValue) GetVerified() bool {
 type TokenUserIpValue struct {
 	//@inject_tag: validate:"omitempty,ip"
 	//
-	// The user’s IP address.
+	// The customer’s IP address.
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,ip"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6258,7 +6258,7 @@ func (m *TokenUserIpValue) GetValue() string {
 type TokenUserLocaleValue struct {
 	//@inject_tag: validate:"omitempty,locale,min=5"
 	//
-	// The user’s locale name. The Accept-Language format by RFC 7231.
+	// The customer’s locale name. The Accept-Language format by RFC 7231.
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty" validate:"omitempty,locale,min=5"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6298,7 +6298,7 @@ func (m *TokenUserLocaleValue) GetValue() string {
 }
 
 type TokenUserValue struct {
-	// The user’s name.
+	// The customer’s name.
 	Value                string   `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6340,21 +6340,21 @@ func (m *TokenUserValue) GetValue() string {
 type TokenUser struct {
 	//@inject_tag: validate:"required" required:"true"
 	//
-	// The unique identifier for a user in the merchant project.
+	// The unique identifier for the customer in the merchant project.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" validate:"required" required:"true"`
-	// The user’s email data.
+	// The customer’s email data.
 	Email *TokenUserEmailValue `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	// The user’s phone data.
+	// The customer’s phone data.
 	Phone *TokenUserPhoneValue `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
-	// The user’s name data.
+	// The customer’s name data.
 	Name *TokenUserValue `protobuf:"bytes,6,opt,name=name,proto3" json:"name,omitempty"`
-	// The user’s IP address data.
+	// The customer’s IP address data.
 	Ip *TokenUserIpValue `protobuf:"bytes,7,opt,name=ip,proto3" json:"ip,omitempty"`
-	// The user’s locale data.
+	// The customer’s locale data.
 	Locale *TokenUserLocaleValue `protobuf:"bytes,8,opt,name=locale,proto3" json:"locale,omitempty"`
-	// The user’s address data.
+	// The customer’s address data.
 	Address *OrderBillingAddress `protobuf:"bytes,9,opt,name=address,proto3" json:"address,omitempty"`
-	// A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
+	// A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer’s payment.
 	Metadata map[string]string `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	//@inject_tag: json:"-"
 	UserAgent string `protobuf:"bytes,11,opt,name=user_agent,json=userAgent,proto3" json:"-"`
@@ -6600,7 +6600,7 @@ type TokenSettings struct {
 	ProductsIds []string `protobuf:"bytes,9,rep,name=products_ids,json=productsIds,proto3" json:"products_ids"`
 	//@inject_tag: json:"metadata"
 	//
-	// A string-value description that you can attach to the user object. It can be useful for storing additional information about your customer’s payment.
+	// A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer’s payment.
 	Metadata map[string]string `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	//@inject_tag: json:"platform_id"
 	//
@@ -7023,7 +7023,7 @@ type Country struct {
 	PaymentsAllowed bool `protobuf:"varint,5,opt,name=payments_allowed,json=paymentsAllowed,proto3" json:"payments_allowed" bson:"payments_allowed"`
 	//@inject_tag: json:"change_allowed" bson:"change_allowed"
 	//
-	// Has a true value if a user can select another country in case of the payments are disallowed for this country.
+	// Has a true value if a customer can select another country in case of the payments are disallowed for this country.
 	ChangeAllowed bool `protobuf:"varint,6,opt,name=change_allowed,json=changeAllowed,proto3" json:"change_allowed" bson:"change_allowed"`
 	//@inject_tag: json:"vat_enabled" bson:"vat_enabled"
 	//
@@ -7075,7 +7075,7 @@ type Country struct {
 	HighRiskPaymentsAllowed bool `protobuf:"varint,19,opt,name=high_risk_payments_allowed,json=highRiskPaymentsAllowed,proto3" json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"`
 	//@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
 	//
-	// Has a true value if a user can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
+	// Has a true value if a customer can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
 	HighRiskChangeAllowed bool     `protobuf:"varint,20,opt,name=high_risk_change_allowed,json=highRiskChangeAllowed,proto3" json:"high_risk_change_allowed" bson:"high_risk_change_allowed"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized      []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -7432,8 +7432,12 @@ func (m *PriceGroup) GetIsActive() bool {
 
 type ZipCodeState struct {
 	//@inject_tag: bson:"code"
+	//
+	// The state's postal code.
 	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty" bson:"code"`
 	//@inject_tag: bson:"name"
+	//
+	// The state's name.
 	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty" bson:"name"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -7480,10 +7484,15 @@ func (m *ZipCodeState) GetName() string {
 }
 
 type ZipCode struct {
-	Zip                  string               `protobuf:"bytes,1,opt,name=zip,proto3" json:"zip,omitempty"`
-	Country              string               `protobuf:"bytes,2,opt,name=country,proto3" json:"country,omitempty"`
-	City                 string               `protobuf:"bytes,3,opt,name=city,proto3" json:"city,omitempty"`
-	State                *ZipCodeState        `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	// The postal code.
+	Zip string `protobuf:"bytes,1,opt,name=zip,proto3" json:"zip,omitempty"`
+	// The country's name.
+	Country string `protobuf:"bytes,2,opt,name=country,proto3" json:"country,omitempty"`
+	// The city's name.
+	City string `protobuf:"bytes,3,opt,name=city,proto3" json:"city,omitempty"`
+	// The state data.
+	State *ZipCodeState `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	// The date this item was added.
 	CreatedAt            *timestamp.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -13742,15 +13751,15 @@ func (m *OrderCreateByPaylink) GetCookie() string {
 type UserIpData struct {
 	// @inject_tag: json:"country"
 	//
-	// The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country"`
 	// @inject_tag: json:"city"
 	//
-	// The user's city.
+	// The customer's city.
 	City string `protobuf:"bytes,2,opt,name=city,proto3" json:"city"`
 	// @inject_tag: json:"zip"
 	//
-	// The user's postal code.
+	// The customer's postal code.
 	Zip                  string   `protobuf:"bytes,3,opt,name=zip,proto3" json:"zip"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -13806,21 +13815,21 @@ func (m *UserIpData) GetZip() string {
 type PaymentFormDataChangeResponseItem struct {
 	// @inject_tag: json:"user_address_data_required"
 	//
-	// Has a true value if it's required to get a real user's geo-position information.
+	// Has a true value if it's required to get a real customer's geo-position information.
 	UserAddressDataRequired bool `protobuf:"varint,1,opt,name=user_address_data_required,json=userAddressDataRequired,proto3" json:"user_address_data_required"`
 	// @inject_tag: json:"user_ip_data"
 	//
-	// The user's IP address.
+	// The customer's IP address.
 	UserIpData *UserIpData `protobuf:"bytes,2,opt,name=user_ip_data,json=userIpData,proto3" json:"user_ip_data"`
 	//
 	Brand string `protobuf:"bytes,3,opt,name=brand,proto3" json:"brand,omitempty"`
 	//@inject_tag: json:"country_payments_allowed"
 	//
-	// Has a true value if the payments are allowed from this user's country.
+	// Has a true value if the payments are allowed from this customer's country.
 	CountryPaymentsAllowed bool `protobuf:"varint,4,opt,name=country_payments_allowed,json=countryPaymentsAllowed,proto3" json:"country_payments_allowed"`
 	//@inject_tag: json:"country_change_allowed"
 	//
-	// Has a true value if a user can select another country in case of the payments are disallowed for his country.
+	// Has a true value if a customer can select another country in case of the payments are disallowed for his country.
 	CountryChangeAllowed bool `protobuf:"varint,5,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	// @inject_tag: json:"has_vat"
 	//
@@ -13848,7 +13857,7 @@ type PaymentFormDataChangeResponseItem struct {
 	Items []*OrderItem `protobuf:"bytes,11,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"charge_currency"
 	//
-	// A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+	// A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
 	ChargeCurrency string `protobuf:"bytes,12,opt,name=charge_currency,json=chargeCurrency,proto3" json:"charge_currency"`
 	// @inject_tag: json:"charge_amount"
 	//
@@ -13856,7 +13865,7 @@ type PaymentFormDataChangeResponseItem struct {
 	ChargeAmount float64 `protobuf:"fixed64,13,opt,name=charge_amount,json=chargeAmount,proto3" json:"charge_amount"`
 	// @inject_tag: json:"vat_in_charge_currency"
 	//
-	// VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+	// VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
 	VatInChargeCurrency float64 `protobuf:"fixed64,14,opt,name=vat_in_charge_currency,json=vatInChargeCurrency,proto3" json:"vat_in_charge_currency"`
 	// @inject_tag: json:"vat_rate"
 	//

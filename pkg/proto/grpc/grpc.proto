@@ -490,7 +490,7 @@ message PaymentFormJsonData {
     string id = 1;
     // @inject_tag: json:"account,omitempty"
     //
-    // The user's unique account in the merchant project. The value can be null.
+    // The customer's unique account in the merchant project. Can be null.
     string account = 2;
     // @inject_tag: json:"has_vat"
     //
@@ -514,11 +514,11 @@ message PaymentFormJsonData {
     string token = 11;
     // @inject_tag: json:"user_address_data_required"
     //
-    // Has a true value if it's required to get a real user's geo-position information.
+    // Has a true value if it's required to get a real customer's geo-position information.
     bool user_address_data_required = 12;
     // @inject_tag: json:"user_ip_data"
     //
-    // A user's IP address data.
+    // A customer's IP address data.
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     //
@@ -526,7 +526,7 @@ message PaymentFormJsonData {
     repeated billing.OrderItem items = 14;
     // @inject_tag: json:"email"
     //
-    // A user's email.
+    // A customer's email.
     string email = 16;
     // @inject_tag: json:"description"
     //
@@ -534,11 +534,11 @@ message PaymentFormJsonData {
     string description = 17;
     //@inject_tag: json:"country_payments_allowed"
     //
-    // Has a true value if the payments are allowed from this user's country.
+    // Has a true value if the payments are allowed from this customer's country.
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
     //
-    // Has a true value if a user can select another country in case of the payments are disallowed for his country.
+    // Has a true value if a customer can select another country in case of the payments are disallowed for his country.
     bool country_change_allowed = 19;
     //@inject_tag: json:"platforms"
     //
@@ -562,7 +562,7 @@ message PaymentFormJsonData {
     string type = 24;
     // @inject_tag: json:"charge_currency"
     //
-    // A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+    // A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
     string charge_currency = 25;
     // @inject_tag: json:"charge_amount"
     //
@@ -570,7 +570,7 @@ message PaymentFormJsonData {
     double charge_amount = 26;
     // @inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+    // VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
     double vat_in_charge_currency = 27;
     // @inject_tag: json:"vat_rate"
     //
@@ -856,7 +856,7 @@ message PaymentFormUserChangePaymentAccountRequest {
     string method_id = 2;
     // @inject_tag: validate:"required" required:"true"
     //
-    // The user's unique account in the merchant project.
+    // The customer's unique account in the merchant project.
     string account = 3;
     // @inject_tag: json:"-"
     string ip = 4;
@@ -879,11 +879,11 @@ message ProcessBillingAddressRequest {
     string order_id = 1;
     // @inject_tag: validate:"required,len=2" required:"true"
     //
-    // The user's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+    // The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
     string country = 2;
     // @inject_tag: validate:"omitempty,zip_usa"
     //
-    // The user's ZIP code.
+    // The customer's ZIP code.
     string zip = 4;
     // @inject_tag: json:"-"
     string ip = 5;
@@ -918,7 +918,7 @@ message ProcessBillingAddressResponseItem {
     repeated billing.OrderItem items = 7;
     // @inject_tag: json:"charge_currency"
     //
-    // A currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+    // A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
     string charge_currency = 8;
     // @inject_tag: json:"charge_amount"
     //
@@ -926,11 +926,11 @@ message ProcessBillingAddressResponseItem {
     double charge_amount = 9;
     // @inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT currency of the order charge. It can differ from the order currency because it also depends on a user's card currency.
+    // VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
     double vat_in_charge_currency = 10;
     // @inject_tag: json:"country_change_allowed"
     //
-    // Has a true value if a user can select another country in case of the payments are disallowed for his country.
+    // Has a true value if a customer can select another country in case of the payments are disallowed for his country.
     bool country_change_allowed = 11;
     // @inject_tag: json:"vat_rate"
     //
@@ -1256,7 +1256,7 @@ message ListProjectsResponse {
 message TokenRequest {
     //@inject_tag: validate:"required" required:"true"
     //
-    // The user data.
+    // The customer data.
     billing.TokenUser user = 1;
     //@inject_tag: validate:"required" required:"true"
     //
@@ -1345,7 +1345,7 @@ message SetUserNotifyRequest {
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     //
-    // Has a true value if a user confirmed to receive notifications.
+    // Has a true value if a customer has confirmed to receive notifications.
     bool enable_notification = 2;
     // @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
     //
@@ -1430,8 +1430,12 @@ message FindByZipCodeRequest {
 
 message FindByZipCodeResponse {
     // @inject_tag: json:"count"
+    //
+    // The number of cities.
     int32 count = 1;
     // @inject_tag: json:"items"
+    //
+    // The data found by ZIP code.
     repeated billing.ZipCode items = 2;
 }
 
@@ -1868,7 +1872,9 @@ message CreatePageReviewRequest {
 }
 
 message ConfirmUserEmailRequest {
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required" required:"true"
+    //
+    // An encrypted string that represents information about your customer (such as the customer ID, email and others), a game and purchase parameters.
     string token = 1;
 }
 
