@@ -24,7 +24,6 @@ require (
 	github.com/micro/cli v0.2.0
 	github.com/micro/go-micro v1.18.0
 	github.com/micro/go-plugins v1.2.0
-	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200119221447-498828dffe30
 	github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119221447-498828dffe30
