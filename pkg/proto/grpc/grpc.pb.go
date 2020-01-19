@@ -1790,7 +1790,7 @@ type PaymentFormJsonData struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// @inject_tag: json:"account,omitempty"
 	//
-	// The customer's unique account in the merchant project. The value can be null.
+	// The customer's unique account in the merchant project. Can be null.
 	Account string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
 	// @inject_tag: json:"has_vat"
 	//

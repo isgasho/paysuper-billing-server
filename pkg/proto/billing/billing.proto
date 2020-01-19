@@ -500,7 +500,7 @@ message OrderUser {
     string object = 2;
     // @inject_tag: json:"external_id" bson:"external_id"
     //
-    // The customer unique identifier in the merchant project.
+    // The unique identifier for the customer in the merchant project.
     string external_id = 3;
     // @inject_tag: json:"name"
     //
@@ -1182,7 +1182,7 @@ message TokenUserValue {
 message TokenUser {
     //@inject_tag: validate:"required" required:"true"
     //
-    // The unique identifier for a customer in the merchant project.
+    // The unique identifier for the customer in the merchant project.
     string id = 1;
     // The customer’s email data.
     TokenUserEmailValue email = 2;
