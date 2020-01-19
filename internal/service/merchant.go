@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
-	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	casbinProto "github.com/paysuper/paysuper-proto/go/casbinpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"

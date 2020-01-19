@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/go-redis/redis"
-	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/casbinpb"
 	"github.com/paysuper/paysuper-proto/go/currenciespb"
 	"github.com/paysuper/paysuper-proto/go/document_signerpb"
 	"github.com/paysuper/paysuper-proto/go/recurringpb"
@@ -95,7 +95,7 @@ type Service struct {
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
-	casbinService              casbinProto.CasbinService
+	casbinService              casbinpb.CasbinService
 	country                    repository.CountryRepositoryInterface
 	refundRepository           repository.RefundRepositoryInterface
 	orderRepository            repository.OrderRepositoryInterface
@@ -137,7 +137,7 @@ func NewBillingService(
 	reporterService reporterpb.ReporterService,
 	formatter paysuper_i18n.Formatter,
 	postmarkBroker rabbitmq.BrokerInterface,
-	casbinService casbinProto.CasbinService,
+	casbinService casbinpb.CasbinService,
 ) *Service {
 	return &Service{
 		db:              db,

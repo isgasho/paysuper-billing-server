@@ -19,14 +19,13 @@ import (
 	"github.com/micro/go-micro/config/source"
 	goConfigCli "github.com/micro/go-micro/config/source/cli"
 	"github.com/micro/go-plugins/client/selector/static"
-	casbinPkg "github.com/paysuper/casbin-server/pkg"
-	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	paysuperI18n "github.com/paysuper/paysuper-i18n"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/casbinpb"
 	"github.com/paysuper/paysuper-proto/go/currenciespb"
 	"github.com/paysuper/paysuper-proto/go/document_signerpb"
 	"github.com/paysuper/paysuper-proto/go/postmarkpb"
@@ -177,7 +176,7 @@ func (app *Application) Init() {
 	curService := currenciespb.NewCurrencyRatesService(currenciespb.ServiceName, app.service.Client())
 	documentSignerService := document_signerpb.NewDocumentSignerService(document_signerpb.ServiceName, app.service.Client())
 	reporter := reporterpb.NewReporterService(reporterpb.ServiceName, app.service.Client())
-	casbin := casbinProto.NewCasbinService(casbinPkg.ServiceName, app.service.Client())
+	casbin := casbinpb.NewCasbinService(casbinpb.ServiceName, app.service.Client())
 
 	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
 
