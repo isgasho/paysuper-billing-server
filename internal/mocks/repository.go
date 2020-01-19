@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/micro/go-micro/client"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
