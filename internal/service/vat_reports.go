@@ -476,8 +476,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billingpb.VatReport) 
 }
 
 func (s *Service) getVatReportById(ctx context.Context, id string) (*billingpb.VatReport, error) {
-	var vr *billingpb.VatReport
-
+	vr := &billingpb.VatReport{}
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
