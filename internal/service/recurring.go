@@ -3,9 +3,8 @@ package service
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"go.uber.org/zap"
 )
 
@@ -18,19 +17,19 @@ var (
 
 func (s *Service) DeleteSavedCard(
 	ctx context.Context,
-	req *grpc.DeleteSavedCardRequest,
-	rsp *grpc.EmptyResponseWithStatus,
+	req *billingpb.DeleteSavedCardRequest,
+	rsp *billingpb.EmptyResponseWithStatus,
 ) error {
 	customer, err := s.decryptBrowserCookie(req.Cookie)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = recurringErrorIncorrectCookie
 		return nil
 	}
 
 	if customer.CustomerId == "" && customer.VirtualCustomerId == "" {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = recurringCustomerNotFound
 		return nil
 	}
@@ -39,13 +38,13 @@ func (s *Service) DeleteSavedCard(
 		_, err = s.getCustomerById(ctx, customer.CustomerId)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Status = billingpb.ResponseStatusNotFound
 			rsp.Message = recurringCustomerNotFound
 			return nil
 		}
 	}
 
-	req1 := &repository.DeleteSavedCardRequest{
+	req1 := &recurringpb.DeleteSavedCardRequest{
 		Id:    req.Id,
 		Token: customer.CustomerId,
 	}
@@ -60,23 +59,23 @@ func (s *Service) DeleteSavedCard(
 		zap.L().Error(
 			pkg.ErrorGrpcServiceCallFailed,
 			zap.Error(err),
-			zap.String(errorFieldService, constant.PayOneRepositoryServiceName),
+			zap.String(errorFieldService, recurringpb.PayOneRepositoryServiceName),
 			zap.String(errorFieldMethod, "DeleteSavedCard"),
 			zap.Any(errorFieldRequest, req),
 		)
 
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = recurringErrorUnknown
 		return nil
 	}
 
-	if rsp1.Status != pkg.ResponseStatusOk {
+	if rsp1.Status != billingpb.ResponseStatusOk {
 		rsp.Status = rsp1.Status
 
-		if rsp.Status == pkg.ResponseStatusSystemError {
+		if rsp.Status == billingpb.ResponseStatusSystemError {
 			zap.L().Error(
 				pkg.ErrorGrpcServiceCallFailed,
-				zap.String(errorFieldService, constant.PayOneRepositoryServiceName),
+				zap.String(errorFieldService, recurringpb.PayOneRepositoryServiceName),
 				zap.String(errorFieldMethod, "DeleteSavedCard"),
 				zap.Any(errorFieldRequest, req),
 				zap.Any(pkg.LogFieldResponse, rsp1),
@@ -90,7 +89,7 @@ func (s *Service) DeleteSavedCard(
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
 }

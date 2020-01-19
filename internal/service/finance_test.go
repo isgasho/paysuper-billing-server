@@ -6,9 +6,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,8 +23,8 @@ type FinanceTestSuite struct {
 	log     *zap.Logger
 	cache   database.CacheInterface
 
-	project       *billing.Project
-	paymentMethod *billing.PaymentMethod
+	project       *billingpb.Project
+	paymentMethod *billingpb.PaymentMethod
 }
 
 func Test_Finance(t *testing.T) {
@@ -43,7 +42,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	ps1 := &billing.PaymentSystem{
+	ps1 := &billingpb.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
@@ -52,14 +51,14 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive:           true,
 		Handler:            "cardpay",
 	}
-	pmBankCard := &billing.PaymentMethod{
+	pmBankCard := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "BANKCARD",
-		ProductionSettings: map[string]*billing.PaymentMethodParams{
+		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "15985",
 			}},
@@ -68,7 +67,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 
-	country := &billing.Country{
+	country := &billingpb.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
 		Currency:        "RUB",
@@ -82,41 +81,41 @@ func (suite *FinanceTestSuite) SetupTest() {
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
-	merchant := &billing.Merchant{
+	merchant := &billingpb.Merchant{
 		Id: primitive.NewObjectID().Hex(),
-		Company: &billing.MerchantCompanyInfo{
+		Company: &billingpb.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{
+		Contacts: &billingpb.MerchantContact{
+			Authorized: &billingpb.MerchantContactAuthorized{
 				Name:     "Unit Test",
 				Email:    "test@unit.test",
 				Phone:    "123456789",
 				Position: "Unit Test",
 			},
-			Technical: &billing.MerchantContactTechnical{
+			Technical: &billingpb.MerchantContactTechnical{
 				Name:  "Unit Test",
 				Email: "test@unit.test",
 				Phone: "123456789",
 			},
 		},
-		Banking: &billing.MerchantBanking{
+		Banking: &billingpb.MerchantBanking{
 			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusDraft,
-		LastPayout: &billing.MerchantLastPayout{
+		Status:                    billingpb.MerchantStatusDraft,
+		LastPayout: &billingpb.MerchantLastPayout{
 			Date:   date,
 			Amount: 999999,
 		},
 		IsSigned: true,
-		Tariff: &billing.MerchantTariff{
-			Payment: []*billing.MerchantTariffRatesPayment{
+		Tariff: &billingpb.MerchantTariff{
+			Payment: []*billingpb.MerchantTariffRatesPayment{
 				{
 					MinAmount:              0,
 					MaxAmount:              4.99,
@@ -144,7 +143,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 					PayerRegion:            "europe",
 				},
 			},
-			Payout: &billing.MerchantTariffRatesSettingsItem{
+			Payout: &billingpb.MerchantTariffRatesSettingsItem{
 				MethodPercentFee:       0,
 				MethodFixedFee:         25.0,
 				MethodFixedFeeCurrency: "EUR",
@@ -152,20 +151,20 @@ func (suite *FinanceTestSuite) SetupTest() {
 			},
 			HomeRegion: "russia_and_cis",
 		},
-		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
+		PaymentMethods: map[string]*billingpb.MerchantPaymentMethod{
 			pmBankCard.Id: {
-				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+				PaymentMethod: &billingpb.MerchantPaymentMethodIdentification{
 					Id:   pmBankCard.Id,
 					Name: pmBankCard.Name,
 				},
-				Commission: &billing.MerchantPaymentMethodCommissions{
+				Commission: &billingpb.MerchantPaymentMethodCommissions{
 					Fee: 2.5,
-					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+					PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
 						Currency: "RUB",
 					},
 				},
-				Integration: &billing.MerchantPaymentMethodIntegration{
+				Integration: &billingpb.MerchantPaymentMethodIntegration{
 					TerminalId:       "1234567890",
 					TerminalPassword: "0987654321",
 					Integrated:       true,
@@ -175,7 +174,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		},
 	}
 
-	project := &billing.Project{
+	project := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
 		CallbackProtocol:   "default",
@@ -185,18 +184,18 @@ func (suite *FinanceTestSuite) SetupTest() {
 		Name:               map[string]string{"en": "test project 1"},
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
-		Status:             pkg.ProjectStatusInProduction,
+		Status:             billingpb.ProjectStatusInProduction,
 		MerchantId:         merchant.Id,
 	}
 
-	pmQiwi := &billing.PaymentMethod{
+	pmQiwi := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
-		ProductionSettings: map[string]*billing.PaymentMethodParams{
+		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "15993",
 			}},
@@ -204,14 +203,14 @@ func (suite *FinanceTestSuite) SetupTest() {
 		IsActive:        true,
 		PaymentSystemId: ps1.Id,
 	}
-	pmBitcoin := &billing.PaymentMethod{
+	pmBitcoin := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
-		ProductionSettings: map[string]*billing.PaymentMethodParams{
+		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				TerminalId: "16007",
 			}},
@@ -249,7 +248,7 @@ func (suite *FinanceTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	pms := []*billingpb.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
 	if err := suite.service.paymentMethod.MultipleInsert(ctx, pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}

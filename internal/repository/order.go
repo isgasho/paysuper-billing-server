@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ func NewOrderRepository(db mongodb.SourceInterface) OrderRepositoryInterface {
 	return s
 }
 
-func (h *orderRepository) Insert(ctx context.Context, order *billing.Order) error {
+func (h *orderRepository) Insert(ctx context.Context, order *billingpb.Order) error {
 	_, err := h.db.Collection(CollectionOrder).InsertOne(ctx, order)
 
 	if err != nil {
@@ -36,7 +36,7 @@ func (h *orderRepository) Insert(ctx context.Context, order *billing.Order) erro
 	return nil
 }
 
-func (h *orderRepository) Update(ctx context.Context, order *billing.Order) error {
+func (h *orderRepository) Update(ctx context.Context, order *billingpb.Order) error {
 	oid, err := primitive.ObjectIDFromHex(order.Id)
 
 	if err != nil {
@@ -65,8 +65,8 @@ func (h *orderRepository) Update(ctx context.Context, order *billing.Order) erro
 	return nil
 }
 
-func (h *orderRepository) GetByUuid(ctx context.Context, uuid string) (*billing.Order, error) {
-	order := &billing.Order{}
+func (h *orderRepository) GetByUuid(ctx context.Context, uuid string) (*billingpb.Order, error) {
+	order := &billingpb.Order{}
 	query := bson.M{"uuid": uuid}
 	err := h.db.Collection(CollectionOrder).FindOne(ctx, query).Decode(order)
 
@@ -83,8 +83,8 @@ func (h *orderRepository) GetByUuid(ctx context.Context, uuid string) (*billing.
 	return order, nil
 }
 
-func (h *orderRepository) GetById(ctx context.Context, id string) (*billing.Order, error) {
-	order := &billing.Order{}
+func (h *orderRepository) GetById(ctx context.Context, id string) (*billingpb.Order, error) {
+	order := &billingpb.Order{}
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
@@ -113,8 +113,8 @@ func (h *orderRepository) GetById(ctx context.Context, id string) (*billing.Orde
 	return order, nil
 }
 
-func (h *orderRepository) GetByRefundReceiptNumber(ctx context.Context, id string) (*billing.Order, error) {
-	order := &billing.Order{}
+func (h *orderRepository) GetByRefundReceiptNumber(ctx context.Context, id string) (*billingpb.Order, error) {
+	order := &billingpb.Order{}
 	query := bson.M{"refund.receipt_number": id}
 	err := h.db.Collection(CollectionOrder).FindOne(ctx, query).Decode(&order)
 
@@ -131,8 +131,8 @@ func (h *orderRepository) GetByRefundReceiptNumber(ctx context.Context, id strin
 	return order, nil
 }
 
-func (h *orderRepository) GetByProjectOrderId(ctx context.Context, projectId, projectOrderId string) (*billing.Order, error) {
-	order := &billing.Order{}
+func (h *orderRepository) GetByProjectOrderId(ctx context.Context, projectId, projectOrderId string) (*billingpb.Order, error) {
+	order := &billingpb.Order{}
 	id, err := primitive.ObjectIDFromHex(projectId)
 
 	if err != nil {

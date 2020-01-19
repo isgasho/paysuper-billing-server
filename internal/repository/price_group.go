@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -21,7 +21,7 @@ func NewPriceGroupRepository(db mongodb.SourceInterface, cache database.CacheInt
 	return s
 }
 
-func (r *priceGroupRepository) Insert(ctx context.Context, pg *billing.PriceGroup) error {
+func (r *priceGroupRepository) Insert(ctx context.Context, pg *billingpb.PriceGroup) error {
 	_, err := r.db.Collection(collectionPriceGroup).InsertOne(ctx, pg)
 
 	if err != nil {
@@ -42,7 +42,7 @@ func (r *priceGroupRepository) Insert(ctx context.Context, pg *billing.PriceGrou
 	return nil
 }
 
-func (r priceGroupRepository) MultipleInsert(ctx context.Context, pg []*billing.PriceGroup) error {
+func (r priceGroupRepository) MultipleInsert(ctx context.Context, pg []*billingpb.PriceGroup) error {
 	c := make([]interface{}, len(pg))
 	for i, v := range pg {
 		c[i] = v
@@ -64,7 +64,7 @@ func (r priceGroupRepository) MultipleInsert(ctx context.Context, pg []*billing.
 	return nil
 }
 
-func (r priceGroupRepository) Update(ctx context.Context, pg *billing.PriceGroup) error {
+func (r priceGroupRepository) Update(ctx context.Context, pg *billingpb.PriceGroup) error {
 	oid, err := primitive.ObjectIDFromHex(pg.Id)
 
 	if err != nil {
@@ -98,8 +98,8 @@ func (r priceGroupRepository) Update(ctx context.Context, pg *billing.PriceGroup
 	return nil
 }
 
-func (r priceGroupRepository) GetById(ctx context.Context, id string) (*billing.PriceGroup, error) {
-	var c billing.PriceGroup
+func (r priceGroupRepository) GetById(ctx context.Context, id string) (*billingpb.PriceGroup, error) {
+	var c billingpb.PriceGroup
 	key := fmt.Sprintf(cachePriceGroupId, id)
 	err := r.cache.Get(key, c)
 
@@ -145,8 +145,8 @@ func (r priceGroupRepository) GetById(ctx context.Context, id string) (*billing.
 	return &c, nil
 }
 
-func (r priceGroupRepository) GetByRegion(ctx context.Context, region string) (*billing.PriceGroup, error) {
-	var c billing.PriceGroup
+func (r priceGroupRepository) GetByRegion(ctx context.Context, region string) (*billingpb.PriceGroup, error) {
+	var c billingpb.PriceGroup
 	key := fmt.Sprintf(cachePriceGroupRegion, region)
 
 	if err := r.cache.Get(key, c); err == nil {
@@ -179,8 +179,8 @@ func (r priceGroupRepository) GetByRegion(ctx context.Context, region string) (*
 	return &c, nil
 }
 
-func (r priceGroupRepository) GetAll(ctx context.Context) ([]*billing.PriceGroup, error) {
-	c := []*billing.PriceGroup{}
+func (r priceGroupRepository) GetAll(ctx context.Context) ([]*billingpb.PriceGroup, error) {
+	c := []*billingpb.PriceGroup{}
 
 	if err := r.cache.Get(cachePriceGroupAll, c); err == nil {
 		return c, nil
@@ -224,7 +224,7 @@ func (r priceGroupRepository) GetAll(ctx context.Context) ([]*billing.PriceGroup
 	return c, nil
 }
 
-func (r priceGroupRepository) updateCache(pg *billing.PriceGroup) error {
+func (r priceGroupRepository) updateCache(pg *billingpb.PriceGroup) error {
 	if pg != nil {
 		if err := r.cache.Set(fmt.Sprintf(cachePriceGroupId, pg.Id), pg, 0); err != nil {
 			zap.L().Error(

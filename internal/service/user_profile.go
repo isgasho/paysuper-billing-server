@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/postmarkpb"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -37,8 +36,8 @@ type EmailConfirmToken struct {
 
 func (s *Service) CreateOrUpdateUserProfile(
 	ctx context.Context,
-	req *grpc.UserProfile,
-	rsp *grpc.GetUserProfileResponse,
+	req *billingpb.UserProfile,
+	rsp *billingpb.GetUserProfileResponse,
 ) error {
 	var err error
 
@@ -57,7 +56,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 	profile.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(profile.Id, expire)
 
 	if err = s.userProfileRepository.Upsert(ctx, profile); err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
@@ -67,7 +66,7 @@ func (s *Service) CreateOrUpdateUserProfile(
 		profile.Email.ConfirmationUrl, err = s.setUserEmailConfirmationToken(profile)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = billingpb.ResponseStatusSystemError
 			rsp.Message = userProfileErrorUnknown
 
 			return nil
@@ -76,14 +75,14 @@ func (s *Service) CreateOrUpdateUserProfile(
 		err = s.sendUserEmailConfirmationToken(ctx, profile)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = billingpb.ResponseStatusSystemError
 			rsp.Message = userProfileErrorUnknown
 
 			return nil
 		}
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = profile
 
 	return nil
@@ -91,11 +90,11 @@ func (s *Service) CreateOrUpdateUserProfile(
 
 func (s *Service) GetUserProfile(
 	ctx context.Context,
-	req *grpc.GetUserProfileRequest,
-	rsp *grpc.GetUserProfileResponse,
+	req *billingpb.GetUserProfileRequest,
+	rsp *billingpb.GetUserProfileResponse,
 ) error {
 	var err error
-	var profile *grpc.UserProfile
+	var profile *billingpb.UserProfile
 
 	if req.ProfileId != "" {
 		profile, err = s.userProfileRepository.GetById(ctx, req.ProfileId)
@@ -104,7 +103,7 @@ func (s *Service) GetUserProfile(
 	}
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = userProfileErrorNotFound
 
 		return nil
@@ -115,16 +114,16 @@ func (s *Service) GetUserProfile(
 
 	profile.CentrifugoToken = centrifugoToken
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = profile
 
 	return nil
 }
 
-func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile) *grpc.UserProfile {
+func (s *Service) updateOnboardingProfile(profile, profileReq *billingpb.UserProfile) *billingpb.UserProfile {
 	if profileReq.HasPersonChanges(profile) {
 		if profile.Personal == nil {
-			profile.Personal = &grpc.UserProfilePersonal{}
+			profile.Personal = &billingpb.UserProfilePersonal{}
 		}
 
 		if profile.Personal.FirstName != profileReq.Personal.FirstName {
@@ -142,7 +141,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 	if profileReq.HasHelpChanges(profile) {
 		if profile.Help == nil {
-			profile.Help = &grpc.UserProfileHelp{}
+			profile.Help = &billingpb.UserProfileHelp{}
 		}
 
 		if profile.Help.ProductPromotionAndDevelopment != profileReq.Help.ProductPromotionAndDevelopment {
@@ -164,7 +163,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 	if profileReq.HasCompanyChanges(profile) {
 		if profile.Company == nil {
-			profile.Company = &grpc.UserProfileCompany{}
+			profile.Company = &billingpb.UserProfileCompany{}
 		}
 
 		if profile.Company.CompanyName != profileReq.Company.CompanyName {
@@ -177,7 +176,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 		if profileReq.HasCompanyAnnualIncomeChanges(profile) {
 			if profile.Company.AnnualIncome == nil {
-				profile.Company.AnnualIncome = &billing.RangeInt{}
+				profile.Company.AnnualIncome = &billingpb.RangeInt{}
 			}
 
 			if profile.Company.AnnualIncome.From != profileReq.Company.AnnualIncome.From {
@@ -191,7 +190,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 		if profileReq.HasCompanyNumberOfEmployeesChanges(profile) {
 			if profile.Company.NumberOfEmployees == nil {
-				profile.Company.NumberOfEmployees = &billing.RangeInt{}
+				profile.Company.NumberOfEmployees = &billingpb.RangeInt{}
 			}
 
 			if profile.Company.NumberOfEmployees.From != profileReq.Company.NumberOfEmployees.From {
@@ -209,7 +208,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 		if profileReq.HasCompanyMonetizationChanges(profile) {
 			if profile.Company.Monetization == nil {
-				profile.Company.Monetization = &grpc.UserProfileCompanyMonetization{}
+				profile.Company.Monetization = &billingpb.UserProfileCompanyMonetization{}
 			}
 
 			if profile.Company.Monetization.PaidSubscription != profileReq.Company.Monetization.PaidSubscription {
@@ -235,7 +234,7 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 		if profileReq.HasCompanyPlatformsChanges(profile) {
 			if profile.Company.Platforms == nil {
-				profile.Company.Platforms = &grpc.UserProfileCompanyPlatforms{}
+				profile.Company.Platforms = &billingpb.UserProfileCompanyPlatforms{}
 			}
 
 			if profile.Company.Platforms.PcMac != profileReq.Company.Platforms.PcMac {
@@ -269,13 +268,13 @@ func (s *Service) updateOnboardingProfile(profile, profileReq *grpc.UserProfile)
 
 func (s *Service) ConfirmUserEmail(
 	ctx context.Context,
-	req *grpc.ConfirmUserEmailRequest,
-	rsp *grpc.ConfirmUserEmailResponse,
+	req *billingpb.ConfirmUserEmailRequest,
+	rsp *billingpb.ConfirmUserEmailResponse,
 ) error {
 	userId, err := s.getUserEmailConfirmationToken(req.Token)
 
 	if err != nil || userId == "" {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = userProfileEmailConfirmationTokenNotFound
 
 		return nil
@@ -284,16 +283,16 @@ func (s *Service) ConfirmUserEmail(
 	rsp.Profile, err = s.userProfileRepository.GetByUserId(ctx, userId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	if rsp.Profile.IsEmailVerified() {
-		rsp.Status = pkg.ResponseStatusOk
+		rsp.Status = billingpb.ResponseStatusOk
 
 		return nil
 	}
@@ -301,7 +300,7 @@ func (s *Service) ConfirmUserEmail(
 	err = s.emailConfirmedSuccessfully(ctx, rsp.Profile)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
@@ -310,7 +309,7 @@ func (s *Service) ConfirmUserEmail(
 	return nil
 }
 
-func (s *Service) setUserEmailConfirmationToken(profile *grpc.UserProfile) (string, error) {
+func (s *Service) setUserEmailConfirmationToken(profile *billingpb.UserProfile) (string, error) {
 	stToken := &EmailConfirmToken{
 		Token:     s.getTokenString(s.cfg.Length),
 		ProfileId: profile.Id,
@@ -362,8 +361,8 @@ func (s *Service) getUserEmailConfirmationToken(token string) (string, error) {
 	return data, err
 }
 
-func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *grpc.UserProfile) error {
-	payload := &postmarkSdrPkg.Payload{
+func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *billingpb.UserProfile) error {
+	payload := &postmarkpb.Payload{
 		TemplateAlias: s.cfg.EmailTemplates.ConfirmAccount,
 		TemplateModel: map[string]string{
 			"confirm_url": profile.Email.ConfirmationUrl,
@@ -371,7 +370,7 @@ func (s *Service) sendUserEmailConfirmationToken(ctx context.Context, profile *g
 		To: profile.Email.Email,
 	}
 
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err := s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		zap.S().Error(
@@ -396,7 +395,7 @@ func (s *Service) getConfirmEmailStorageKey(token string) string {
 	return fmt.Sprintf(userEmailConfirmTokenStorage, token)
 }
 
-func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.UserProfile) error {
+func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *billingpb.UserProfile) error {
 	profile.Email.Confirmed = true
 	profile.Email.ConfirmedAt = ptypes.TimestampNow()
 
@@ -410,7 +409,7 @@ func (s *Service) emailConfirmedSuccessfully(ctx context.Context, profile *grpc.
 	return s.centrifugoDashboard.Publish(ctx, ch, msg)
 }
 
-func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.UserProfile) error {
+func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *billingpb.UserProfile) error {
 	profile.Email.Confirmed = false
 	profile.Email.ConfirmedAt = nil
 
@@ -426,10 +425,10 @@ func (s *Service) emailConfirmedTruncate(ctx context.Context, profile *grpc.User
 
 func (s *Service) CreatePageReview(
 	ctx context.Context,
-	req *grpc.CreatePageReviewRequest,
-	rsp *grpc.CheckProjectRequestSignatureResponse,
+	req *billingpb.CreatePageReviewRequest,
+	rsp *billingpb.CheckProjectRequestSignatureResponse,
 ) error {
-	review := &grpc.PageReview{
+	review := &billingpb.PageReview{
 		Id:        primitive.NewObjectID().Hex(),
 		UserId:    req.UserId,
 		Review:    req.Review,
@@ -447,32 +446,32 @@ func (s *Service) CreatePageReview(
 			zap.Any("data", review),
 		)
 
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = userProfileErrorUnknown
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) GetCommonUserProfile(
 	ctx context.Context,
-	req *grpc.CommonUserProfileRequest,
-	rsp *grpc.CommonUserProfileResponse,
+	req *billingpb.CommonUserProfileRequest,
+	rsp *billingpb.CommonUserProfileResponse,
 ) error {
 	profile, err := s.userProfileRepository.GetByUserId(ctx, req.UserId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = userProfileErrorNotFound
 
 		return nil
 	}
 
-	rsp.Profile = &grpc.CommonUserProfile{
+	rsp.Profile = &billingpb.CommonUserProfile{
 		Profile: profile,
 	}
 
@@ -490,13 +489,13 @@ func (s *Service) GetCommonUserProfile(
 		)
 		rsp.Profile.Merchant.HasProjects = s.getProjectsCountByMerchant(ctx, rsp.Profile.Merchant.Id) > 0
 
-		if role.Role != pkg.RoleMerchantOwner &&
-			role.Role != pkg.RoleMerchantAccounting &&
-			role.Role != pkg.RoleMerchantDeveloper {
-			merchant := &billing.Merchant{
+		if role.Role != billingpb.RoleMerchantOwner &&
+			role.Role != billingpb.RoleMerchantAccounting &&
+			role.Role != billingpb.RoleMerchantDeveloper {
+			merchant := &billingpb.Merchant{
 				Id:          rsp.Profile.Merchant.Id,
-				Company:     &billing.MerchantCompanyInfo{Name: rsp.Profile.Merchant.Company.Name},
-				Banking:     &billing.MerchantBanking{Currency: rsp.Profile.Merchant.Banking.Currency},
+				Company:     &billingpb.MerchantCompanyInfo{Name: rsp.Profile.Merchant.Company.Name},
+				Banking:     &billingpb.MerchantBanking{Currency: rsp.Profile.Merchant.Banking.Currency},
 				Status:      rsp.Profile.Merchant.Status,
 				HasProjects: rsp.Profile.Merchant.HasProjects,
 			}
@@ -518,12 +517,12 @@ func (s *Service) GetCommonUserProfile(
 		}
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
-func (s *Service) findRoleForUser(ctx context.Context, merchantId string, userId string) *billing.UserRole {
+func (s *Service) findRoleForUser(ctx context.Context, merchantId string, userId string) *billingpb.UserRole {
 	if merchantId != "" {
 		role, _ := s.userRoleRepository.GetMerchantUserByUserId(ctx, merchantId, userId)
 		return role

@@ -4,8 +4,7 @@ import (
 	"context"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.uber.org/zap"
 )
 
@@ -17,8 +16,8 @@ var (
 
 func (s *Service) GetCountriesList(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *billing.CountriesList,
+	req *billingpb.EmptyRequest,
+	res *billingpb.CountriesList,
 ) error {
 	countries, err := s.country.GetAll(ctx)
 	if err != nil {
@@ -32,11 +31,11 @@ func (s *Service) GetCountriesList(
 
 func (s *Service) GetCountriesListForOrder(
 	ctx context.Context,
-	req *grpc.GetCountriesListForOrderRequest,
-	res *grpc.GetCountriesListForOrderResponse,
+	req *billingpb.GetCountriesListForOrderRequest,
+	res *billingpb.GetCountriesListForOrderResponse,
 ) error {
 	if req.OrderId == "" {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorCountryOrderIdRequired
 		return nil
 	}
@@ -45,8 +44,8 @@ func (s *Service) GetCountriesListForOrder(
 	if err != nil {
 		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = e
 			return nil
 		}
@@ -59,15 +58,15 @@ func (s *Service) GetCountriesListForOrder(
 	}
 
 	res.Item = countries
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) GetCountry(
 	ctx context.Context,
-	req *billing.GetCountryRequest,
-	res *billing.Country,
+	req *billingpb.GetCountryRequest,
+	res *billingpb.Country,
 ) error {
 	country, err := s.country.GetByIsoCodeA2(ctx, req.IsoCode)
 	if err != nil {
@@ -98,8 +97,8 @@ func (s *Service) GetCountry(
 
 func (s *Service) UpdateCountry(
 	ctx context.Context,
-	req *billing.Country,
-	res *billing.Country,
+	req *billingpb.Country,
+	res *billingpb.Country,
 ) error {
 
 	country, err := s.country.GetByIsoCodeA2(ctx, req.IsoCodeA2)
@@ -112,18 +111,18 @@ func (s *Service) UpdateCountry(
 		return err
 	}
 
-	var threshold *billing.CountryVatThreshold
+	var threshold *billingpb.CountryVatThreshold
 
 	if req.VatThreshold != nil {
 		threshold = req.VatThreshold
 	} else {
-		threshold = &billing.CountryVatThreshold{
+		threshold = &billingpb.CountryVatThreshold{
 			Year:  0,
 			World: 0,
 		}
 	}
 
-	update := &billing.Country{
+	update := &billingpb.Country{
 		Id:                      country.Id,
 		IsoCodeA2:               country.IsoCodeA2,
 		Region:                  req.Region,

@@ -10,8 +10,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -48,9 +47,9 @@ var (
 )
 
 type Token struct {
-	CustomerId string                 `json:"customer_id"`
-	User       *billing.TokenUser     `json:"user"`
-	Settings   *billing.TokenSettings `json:"settings"`
+	CustomerId string                   `json:"customer_id"`
+	User       *billingpb.TokenUser     `json:"user"`
+	Settings   *billingpb.TokenSettings `json:"settings"`
 }
 
 type tokenRepository struct {
@@ -73,14 +72,14 @@ type BrowserCookieCustomer struct {
 
 func (s *Service) CreateToken(
 	ctx context.Context,
-	req *grpc.TokenRequest,
-	rsp *grpc.TokenResponse,
+	req *billingpb.TokenRequest,
+	rsp *billingpb.TokenResponse,
 ) error {
 	identityExist := req.User.Id != "" || (req.User.Email != nil && req.User.Email.Value != "") ||
 		(req.User.Phone != nil && req.User.Phone.Value != "")
 
 	if identityExist == false {
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = tokenErrorUserIdentityRequired
 
 		return nil
@@ -88,7 +87,7 @@ func (s *Service) CreateToken(
 
 	processor := &OrderCreateRequestProcessor{
 		Service: s,
-		request: &billing.OrderCreateRequest{
+		request: &billingpb.OrderCreateRequest{
 			ProjectId:  req.Settings.ProjectId,
 			Amount:     req.Settings.Amount,
 			Currency:   req.Settings.Currency,
@@ -96,7 +95,7 @@ func (s *Service) CreateToken(
 			PlatformId: req.Settings.PlatformId,
 		},
 		checked: &orderCreateRequestProcessorChecked{
-			user: &billing.OrderUser{},
+			user: &billingpb.OrderUser{},
 		},
 		ctx: ctx,
 	}
@@ -104,28 +103,28 @@ func (s *Service) CreateToken(
 	err := processor.processProject()
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusBadData
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 		return nil
 	}
 
 	err = processor.processMerchant()
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusBadData
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 		return nil
 	}
 
-	if req.Settings.Type == billing.OrderType_product || req.Settings.Type == billing.OrderType_key {
+	if req.Settings.Type == pkg.OrderType_product || req.Settings.Type == pkg.OrderType_key {
 		if req.Settings.Amount > 0 || req.Settings.Currency != "" {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsAmountAndCurrencyParamNotAllowedForType
 			return nil
 		}
 
 		if len(req.Settings.ProductsIds) <= 0 {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsProductAndKeyProductIdsParamsRequired
 			return nil
 		}
@@ -139,8 +138,8 @@ func (s *Service) CreateToken(
 				address, err := s.getAddressByIp(req.User.Ip.Value)
 				if err != nil {
 					zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
-					if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-						rsp.Status = pkg.ResponseStatusBadData
+					if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+						rsp.Status = billingpb.ResponseStatusBadData
 						rsp.Message = e
 						return nil
 					}
@@ -153,21 +152,21 @@ func (s *Service) CreateToken(
 
 	err = processor.processCurrency(req.Settings.Type)
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusBadData
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 		return nil
 	}
 
 	switch req.Settings.Type {
-	case billing.OrderType_simple:
+	case pkg.OrderType_simple:
 		if len(req.Settings.ProductsIds) > 0 {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsProductIdsParamNotAllowedForType
 			return nil
 		}
 
 		if req.Settings.Amount <= 0 || req.Settings.Currency == "" {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = tokenErrorSettingsSimpleCheckoutParamsRequired
 			return nil
 		}
@@ -176,19 +175,19 @@ func (s *Service) CreateToken(
 		err = processor.processLimitAmounts()
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = err.(*billingpb.ResponseErrorMessage)
 			return nil
 		}
 		break
-	case billing.OrderType_product:
+	case pkg.OrderType_product:
 		err = processor.processPaylinkProducts()
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = tokenErrorUnknown
 
-			e, ok := err.(*grpc.ResponseErrorMessage)
+			e, ok := err.(*billingpb.ResponseErrorMessage)
 
 			if ok {
 				rsp.Message = e
@@ -197,14 +196,14 @@ func (s *Service) CreateToken(
 			return nil
 		}
 		break
-	case billing.OrderType_key:
+	case pkg.OrderType_key:
 		err = processor.processPaylinkKeyProducts()
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = tokenErrorUnknown
 
-			e, ok := err.(*grpc.ResponseErrorMessage)
+			e, ok := err.(*billingpb.ResponseErrorMessage)
 
 			if ok {
 				rsp.Message = e
@@ -213,7 +212,7 @@ func (s *Service) CreateToken(
 			return nil
 		}
 		break
-	case billing.OrderTypeVirtualCurrency:
+	case pkg.OrderTypeVirtualCurrency:
 		err := processor.processVirtualCurrency()
 		if err != nil {
 			zap.L().Error(
@@ -221,13 +220,13 @@ func (s *Service) CreateToken(
 				zap.Error(err),
 			)
 
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = err.(*billingpb.ResponseErrorMessage)
 			return nil
 		}
 		break
 	default:
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = tokenErrorSettingsTypeRequired
 		return nil
 	}
@@ -236,8 +235,8 @@ func (s *Service) CreateToken(
 	customer, err := s.findCustomer(ctx, req, project)
 
 	if err != nil && err != customerNotFound {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusBadData
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 		return nil
 	}
 
@@ -249,8 +248,8 @@ func (s *Service) CreateToken(
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
@@ -261,21 +260,21 @@ func (s *Service) CreateToken(
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
 		return err
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Token = token
 
 	return nil
 }
 
-func (s *Service) createToken(req *grpc.TokenRequest, customer *billing.Customer) (string, error) {
+func (s *Service) createToken(req *billingpb.TokenRequest, customer *billingpb.Customer) (string, error) {
 	tokenRep := &tokenRepository{
 		service: s,
 		token: &Token{
@@ -308,8 +307,8 @@ func (s *Service) getTokenBy(token string) (*Token, error) {
 	return tokenRep.token, nil
 }
 
-func (s *Service) getCustomerById(ctx context.Context, id string) (*billing.Customer, error) {
-	var customer *billing.Customer
+func (s *Service) getCustomerById(ctx context.Context, id string) (*billingpb.Customer, error) {
+	var customer *billingpb.Customer
 	oid, _ := primitive.ObjectIDFromHex(id)
 	filter := bson.M{"_id": oid}
 	err := s.db.Collection(collectionCustomer).FindOne(ctx, filter).Decode(&customer)
@@ -333,9 +332,9 @@ func (s *Service) getCustomerById(ctx context.Context, id string) (*billing.Cust
 
 func (s *Service) findCustomer(
 	ctx context.Context,
-	req *grpc.TokenRequest,
-	project *billing.Project,
-) (*billing.Customer, error) {
+	req *billingpb.TokenRequest,
+	project *billingpb.Project,
+) (*billingpb.Customer, error) {
 	var subQuery []bson.M
 	var subQueryItem bson.M
 
@@ -385,7 +384,7 @@ func (s *Service) findCustomer(
 	}
 
 	query := make(bson.M)
-	customer := new(billing.Customer)
+	customer := new(billingpb.Customer)
 
 	if subQuery == nil || len(subQuery) <= 0 {
 		return nil, customerNotFound
@@ -418,12 +417,12 @@ func (s *Service) findCustomer(
 
 func (s *Service) createCustomer(
 	ctx context.Context,
-	req *grpc.TokenRequest,
-	project *billing.Project,
-) (*billing.Customer, error) {
+	req *billingpb.TokenRequest,
+	project *billingpb.Project,
+) (*billingpb.Customer, error) {
 	id := primitive.NewObjectID().Hex()
 
-	customer := &billing.Customer{
+	customer := &billingpb.Customer{
 		Id:        id,
 		TechEmail: id + pkg.TechEmailDomain,
 		Metadata:  req.User.Metadata,
@@ -450,10 +449,10 @@ func (s *Service) createCustomer(
 
 func (s *Service) updateCustomer(
 	ctx context.Context,
-	req *grpc.TokenRequest,
-	project *billing.Project,
-	customer *billing.Customer,
-) (*billing.Customer, error) {
+	req *billingpb.TokenRequest,
+	project *billingpb.Project,
+	customer *billingpb.Customer,
+) (*billingpb.Customer, error) {
 	s.processCustomer(req, project, customer)
 	oid, _ := primitive.ObjectIDFromHex(customer.Id)
 	filter := bson.M{"_id": oid}
@@ -474,15 +473,15 @@ func (s *Service) updateCustomer(
 }
 
 func (s *Service) processCustomer(
-	req *grpc.TokenRequest,
-	project *billing.Project,
-	customer *billing.Customer,
+	req *billingpb.TokenRequest,
+	project *billingpb.Project,
+	customer *billingpb.Customer,
 ) {
 	user := req.User
 
 	if user.Id != "" && user.Id != customer.ExternalId {
 		customer.ExternalId = user.Id
-		identity := &billing.CustomerIdentity{
+		identity := &billingpb.CustomerIdentity{
 			MerchantId: project.MerchantId,
 			ProjectId:  project.Id,
 			Type:       pkg.UserIdentityTypeExternal,
@@ -497,7 +496,7 @@ func (s *Service) processCustomer(
 	if user.Email != nil && (customer.Email != user.Email.Value || customer.EmailVerified != user.Email.Verified) {
 		customer.Email = user.Email.Value
 		customer.EmailVerified = user.Email.Verified
-		identity := &billing.CustomerIdentity{
+		identity := &billingpb.CustomerIdentity{
 			MerchantId: project.MerchantId,
 			ProjectId:  project.Id,
 			Type:       pkg.UserIdentityTypeEmail,
@@ -512,7 +511,7 @@ func (s *Service) processCustomer(
 	if user.Phone != nil && (customer.Phone != user.Phone.Value || customer.PhoneVerified != user.Phone.Verified) {
 		customer.Phone = user.Phone.Value
 		customer.PhoneVerified = user.Phone.Verified
-		identity := &billing.CustomerIdentity{
+		identity := &billingpb.CustomerIdentity{
 			MerchantId: project.MerchantId,
 			ProjectId:  project.Id,
 			Type:       pkg.UserIdentityTypePhone,
@@ -533,7 +532,7 @@ func (s *Service) processCustomer(
 		customer.Ip = net.ParseIP(user.Ip.Value)
 
 		if len(ip) > 0 && ip.String() != user.Ip.Value {
-			history := &billing.CustomerIpHistory{
+			history := &billingpb.CustomerIpHistory{
 				Ip:        ip,
 				CreatedAt: ptypes.TimestampNow(),
 			}
@@ -542,7 +541,7 @@ func (s *Service) processCustomer(
 	}
 
 	if user.Locale != nil && user.Locale.Value != "" && customer.Locale != user.Locale.Value {
-		history := &billing.CustomerStringValueHistory{
+		history := &billingpb.CustomerStringValueHistory{
 			Value:     customer.Locale,
 			CreatedAt: ptypes.TimestampNow(),
 		}
@@ -555,7 +554,7 @@ func (s *Service) processCustomer(
 
 	if user.Address != nil && customer.Address != user.Address {
 		if customer.Address != nil {
-			history := &billing.CustomerAddressHistory{
+			history := &billingpb.CustomerAddressHistory{
 				Country:    customer.Address.Country,
 				City:       customer.Address.City,
 				PostalCode: customer.Address.PostalCode,
@@ -573,7 +572,7 @@ func (s *Service) processCustomer(
 	}
 
 	if user.AcceptLanguage != "" && customer.AcceptLanguage != user.AcceptLanguage {
-		history := &billing.CustomerStringValueHistory{
+		history := &billingpb.CustomerStringValueHistory{
 			Value:     customer.AcceptLanguage,
 			CreatedAt: ptypes.TimestampNow(),
 		}
@@ -586,9 +585,9 @@ func (s *Service) processCustomer(
 }
 
 func (s *Service) processCustomerIdentity(
-	currentIdentities []*billing.CustomerIdentity,
-	newIdentity *billing.CustomerIdentity,
-) []*billing.CustomerIdentity {
+	currentIdentities []*billingpb.CustomerIdentity,
+	newIdentity *billingpb.CustomerIdentity,
+) []*billingpb.CustomerIdentity {
 	if len(currentIdentities) <= 0 {
 		return append(currentIdentities, newIdentity)
 	}
@@ -614,37 +613,37 @@ func (s *Service) processCustomerIdentity(
 	return currentIdentities
 }
 
-func (s *Service) transformOrderUser2TokenRequest(user *billing.OrderUser) *grpc.TokenRequest {
-	tokenReq := &grpc.TokenRequest{User: &billing.TokenUser{}}
+func (s *Service) transformOrderUser2TokenRequest(user *billingpb.OrderUser) *billingpb.TokenRequest {
+	tokenReq := &billingpb.TokenRequest{User: &billingpb.TokenUser{}}
 
 	if user.ExternalId != "" {
 		tokenReq.User.Id = user.ExternalId
 	}
 
 	if user.Name != "" {
-		tokenReq.User.Name = &billing.TokenUserValue{Value: user.Name}
+		tokenReq.User.Name = &billingpb.TokenUserValue{Value: user.Name}
 	}
 
 	if user.Email != "" {
-		tokenReq.User.Email = &billing.TokenUserEmailValue{
+		tokenReq.User.Email = &billingpb.TokenUserEmailValue{
 			Value:    user.Email,
 			Verified: user.EmailVerified,
 		}
 	}
 
 	if user.Phone != "" {
-		tokenReq.User.Phone = &billing.TokenUserPhoneValue{
+		tokenReq.User.Phone = &billingpb.TokenUserPhoneValue{
 			Value:    user.Phone,
 			Verified: user.PhoneVerified,
 		}
 	}
 
 	if user.Ip != "" {
-		tokenReq.User.Ip = &billing.TokenUserIpValue{Value: user.Ip}
+		tokenReq.User.Ip = &billingpb.TokenUserIpValue{Value: user.Ip}
 	}
 
 	if user.Locale != "" {
-		tokenReq.User.Locale = &billing.TokenUserLocaleValue{Value: user.Locale}
+		tokenReq.User.Locale = &billingpb.TokenUserLocaleValue{Value: user.Locale}
 	}
 
 	if user.Address != nil {
@@ -714,22 +713,22 @@ func (s *Service) getTokenString(n int) string {
 
 func (s *Service) updateCustomerFromRequest(
 	ctx context.Context,
-	order *billing.Order,
-	req *grpc.TokenRequest,
+	order *billingpb.Order,
+	req *billingpb.TokenRequest,
 	ip, acceptLanguage, userAgent string,
-) (*billing.Customer, error) {
+) (*billingpb.Customer, error) {
 	customer, err := s.getCustomerById(ctx, order.User.Id)
-	project := &billing.Project{Id: order.Project.Id, MerchantId: order.Project.MerchantId}
+	project := &billingpb.Project{Id: order.Project.Id, MerchantId: order.Project.MerchantId}
 
 	if err != nil {
 		return nil, err
 	}
 
-	req.User.Ip = &billing.TokenUserIpValue{Value: ip}
+	req.User.Ip = &billingpb.TokenUserIpValue{Value: ip}
 	req.User.AcceptLanguage = acceptLanguage
 	req.User.UserAgent = userAgent
 
-	req.User.Locale = &billing.TokenUserLocaleValue{}
+	req.User.Locale = &billingpb.TokenUserLocaleValue{}
 	req.User.Locale.Value, _ = s.getCountryFromAcceptLanguage(acceptLanguage)
 
 	return s.updateCustomer(ctx, req, project, customer)
@@ -737,12 +736,12 @@ func (s *Service) updateCustomerFromRequest(
 
 func (s *Service) updateCustomerFromRequestLocale(
 	ctx context.Context,
-	order *billing.Order,
+	order *billingpb.Order,
 	ip, acceptLanguage, userAgent, locale string,
 ) {
-	tokenReq := &grpc.TokenRequest{
-		User: &billing.TokenUser{
-			Locale: &billing.TokenUserLocaleValue{Value: locale},
+	tokenReq := &billingpb.TokenRequest{
+		User: &billingpb.TokenUser{
+			Locale: &billingpb.TokenUserLocaleValue{Value: locale},
 		},
 	}
 

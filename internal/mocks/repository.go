@@ -5,8 +5,8 @@ import (
 	"errors"
 	"github.com/micro/go-micro/client"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/entity"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -14,49 +14,49 @@ type RepositoryServiceOk struct{}
 type RepositoryServiceEmpty struct{}
 type RepositoryServiceError struct{}
 
-func NewRepositoryServiceOk() repository.RepositoryService {
+func NewRepositoryServiceOk() recurringpb.RepositoryService {
 	return &RepositoryServiceOk{}
 }
 
-func NewRepositoryServiceEmpty() repository.RepositoryService {
+func NewRepositoryServiceEmpty() recurringpb.RepositoryService {
 	return &RepositoryServiceEmpty{}
 }
 
-func NewRepositoryServiceError() repository.RepositoryService {
+func NewRepositoryServiceError() recurringpb.RepositoryService {
 	return &RepositoryServiceError{}
 }
 
 func (r *RepositoryServiceOk) InsertSavedCard(
 	ctx context.Context,
-	in *repository.SavedCardRequest,
+	in *recurringpb.SavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.Result, error) {
-	return &repository.Result{}, nil
+) (*recurringpb.Result, error) {
+	return &recurringpb.Result{}, nil
 }
 
 func (r *RepositoryServiceOk) DeleteSavedCard(
 	ctx context.Context,
-	in *repository.DeleteSavedCardRequest,
+	in *recurringpb.DeleteSavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.DeleteSavedCardResponse, error) {
-	return &repository.DeleteSavedCardResponse{Status: pkg.ResponseStatusOk}, nil
+) (*recurringpb.DeleteSavedCardResponse, error) {
+	return &recurringpb.DeleteSavedCardResponse{Status: billingpb.ResponseStatusOk}, nil
 }
 
 func (r *RepositoryServiceOk) FindSavedCards(
 	ctx context.Context,
-	in *repository.SavedCardRequest,
+	in *recurringpb.SavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.SavedCardList, error) {
+) (*recurringpb.SavedCardList, error) {
 	projectId := primitive.NewObjectID().Hex()
 
-	return &repository.SavedCardList{
-		SavedCards: []*entity.SavedCard{
+	return &recurringpb.SavedCardList{
+		SavedCards: []*recurringpb.SavedCard{
 			{
 				Id:        primitive.NewObjectID().Hex(),
 				Token:     primitive.NewObjectID().Hex(),
 				ProjectId: projectId,
 				MaskedPan: "555555******4444",
-				Expire:    &entity.CardExpire{Month: "12", Year: "2019"},
+				Expire:    &recurringpb.CardExpire{Month: "12", Year: "2019"},
 				IsActive:  true,
 			},
 			{
@@ -64,7 +64,7 @@ func (r *RepositoryServiceOk) FindSavedCards(
 				Token:     primitive.NewObjectID().Hex(),
 				ProjectId: projectId,
 				MaskedPan: "400000******0002",
-				Expire:    &entity.CardExpire{Month: "12", Year: "2019"},
+				Expire:    &recurringpb.CardExpire{Month: "12", Year: "2019"},
 				IsActive:  true,
 			},
 		},
@@ -73,41 +73,41 @@ func (r *RepositoryServiceOk) FindSavedCards(
 
 func (r *RepositoryServiceOk) FindSavedCardById(
 	ctx context.Context,
-	in *repository.FindByStringValue,
+	in *recurringpb.FindByStringValue,
 	opts ...client.CallOption,
-) (*entity.SavedCard, error) {
-	return &entity.SavedCard{
+) (*recurringpb.SavedCard, error) {
+	return &recurringpb.SavedCard{
 		Id:          primitive.NewObjectID().Hex(),
 		Token:       primitive.NewObjectID().Hex(),
 		ProjectId:   primitive.NewObjectID().Hex(),
 		MerchantId:  primitive.NewObjectID().Hex(),
 		MaskedPan:   "400000******0002",
 		RecurringId: primitive.NewObjectID().Hex(),
-		Expire:      &entity.CardExpire{Month: "12", Year: "2019"},
+		Expire:      &recurringpb.CardExpire{Month: "12", Year: "2019"},
 		IsActive:    true,
 	}, nil
 }
 
 func (r *RepositoryServiceEmpty) InsertSavedCard(
 	ctx context.Context,
-	in *repository.SavedCardRequest,
+	in *recurringpb.SavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.Result, error) {
-	return &repository.Result{}, nil
+) (*recurringpb.Result, error) {
+	return &recurringpb.Result{}, nil
 }
 
 func (r *RepositoryServiceEmpty) DeleteSavedCard(
 	ctx context.Context,
-	in *repository.DeleteSavedCardRequest,
+	in *recurringpb.DeleteSavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.DeleteSavedCardResponse, error) {
-	rsp := &repository.DeleteSavedCardResponse{
-		Status:  pkg.ResponseStatusBadData,
+) (*recurringpb.DeleteSavedCardResponse, error) {
+	rsp := &recurringpb.DeleteSavedCardResponse{
+		Status:  billingpb.ResponseStatusBadData,
 		Message: "some error",
 	}
 
 	if in.Token == "ffffffffffffffffffffffff" {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 	}
 
 	return rsp, nil
@@ -115,48 +115,48 @@ func (r *RepositoryServiceEmpty) DeleteSavedCard(
 
 func (r *RepositoryServiceEmpty) FindSavedCards(
 	ctx context.Context,
-	in *repository.SavedCardRequest,
+	in *recurringpb.SavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.SavedCardList, error) {
-	return &repository.SavedCardList{}, nil
+) (*recurringpb.SavedCardList, error) {
+	return &recurringpb.SavedCardList{}, nil
 }
 
 func (r *RepositoryServiceEmpty) FindSavedCardById(
 	ctx context.Context,
-	in *repository.FindByStringValue,
+	in *recurringpb.FindByStringValue,
 	opts ...client.CallOption,
-) (*entity.SavedCard, error) {
-	return &entity.SavedCard{}, nil
+) (*recurringpb.SavedCard, error) {
+	return &recurringpb.SavedCard{}, nil
 }
 
 func (r *RepositoryServiceError) InsertSavedCard(
 	ctx context.Context,
-	in *repository.SavedCardRequest,
+	in *recurringpb.SavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.Result, error) {
-	return &repository.Result{}, nil
+) (*recurringpb.Result, error) {
+	return &recurringpb.Result{}, nil
 }
 
 func (r *RepositoryServiceError) DeleteSavedCard(
 	ctx context.Context,
-	in *repository.DeleteSavedCardRequest,
+	in *recurringpb.DeleteSavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.DeleteSavedCardResponse, error) {
+) (*recurringpb.DeleteSavedCardResponse, error) {
 	return nil, errors.New("some error")
 }
 
 func (r *RepositoryServiceError) FindSavedCards(
 	ctx context.Context,
-	in *repository.SavedCardRequest,
+	in *recurringpb.SavedCardRequest,
 	opts ...client.CallOption,
-) (*repository.SavedCardList, error) {
-	return &repository.SavedCardList{}, errors.New("some error")
+) (*recurringpb.SavedCardList, error) {
+	return &recurringpb.SavedCardList{}, errors.New("some error")
 }
 
 func (r *RepositoryServiceError) FindSavedCardById(
 	ctx context.Context,
-	in *repository.FindByStringValue,
+	in *recurringpb.FindByStringValue,
 	opts ...client.CallOption,
-) (*entity.SavedCard, error) {
-	return &entity.SavedCard{}, nil
+) (*recurringpb.SavedCard, error) {
+	return &recurringpb.SavedCard{}, nil
 }

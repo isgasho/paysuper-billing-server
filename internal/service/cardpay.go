@@ -10,10 +10,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
+	tools "github.com/paysuper/paysuper-tools/string"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -44,11 +43,11 @@ var (
 	cardPayTokens = map[string]*cardPayToken{}
 
 	successRefundResponseStatuses = map[string]bool{
-		pkg.CardPayPaymentResponseStatusAuthorized: true,
-		pkg.CardPayPaymentResponseStatusInProgress: true,
-		pkg.CardPayPaymentResponseStatusPending:    true,
-		pkg.CardPayPaymentResponseStatusRefunded:   true,
-		pkg.CardPayPaymentResponseStatusCompleted:  true,
+		billingpb.CardPayPaymentResponseStatusAuthorized: true,
+		billingpb.CardPayPaymentResponseStatusInProgress: true,
+		billingpb.CardPayPaymentResponseStatusPending:    true,
+		billingpb.CardPayPaymentResponseStatusRefunded:   true,
+		billingpb.CardPayPaymentResponseStatusCompleted:  true,
 	}
 )
 
@@ -247,7 +246,7 @@ func newCardPayHandler() PaymentSystem {
 }
 
 func (h *cardPay) CreatePayment(
-	order *billing.Order,
+	order *billingpb.Order,
 	successUrl, failUrl string,
 	requisites map[string]string,
 ) (string, error) {
@@ -275,7 +274,7 @@ func (h *cardPay) CreatePayment(
 		return "", err
 	}
 
-	order.PrivateStatus = constant.OrderStatusPaymentSystemRejectOnCreate
+	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemRejectOnCreate
 
 	b, _ := json.Marshal(request)
 	req, err := http.NewRequest(pkg.CardPayPaths[action].Method, u, bytes.NewBuffer(b))
@@ -374,14 +373,14 @@ func (h *cardPay) CreatePayment(
 		return "", err
 	}
 
-	order.PrivateStatus = constant.OrderStatusPaymentSystemCreate
+	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemCreate
 
 	return cpResponse.RedirectUrl, nil
 }
 
-func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, raw, signature string) error {
-	req := message.(*billing.CardPayPaymentCallback)
-	order.PrivateStatus = constant.OrderStatusPaymentSystemReject
+func (h *cardPay) ProcessPayment(order *billingpb.Order, message proto.Message, raw, signature string) error {
+	req := message.(*billingpb.CardPayPaymentCallback)
+	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemReject
 	err := h.checkCallbackRequestSignature(order, raw, signature)
 
 	if err != nil {
@@ -420,16 +419,16 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 	}
 
 	switch req.PaymentMethod {
-	case constant.PaymentSystemGroupAliasBankCard:
+	case recurringpb.PaymentSystemGroupAliasBankCard:
 		order.PaymentMethodTxnParams = req.GetBankCardTxnParams()
 		break
-	case constant.PaymentSystemGroupAliasQiwi,
-		constant.PaymentSystemGroupAliasWebMoney,
-		constant.PaymentSystemGroupAliasNeteller,
-		constant.PaymentSystemGroupAliasAlipay:
+	case recurringpb.PaymentSystemGroupAliasQiwi,
+		recurringpb.PaymentSystemGroupAliasWebMoney,
+		recurringpb.PaymentSystemGroupAliasNeteller,
+		recurringpb.PaymentSystemGroupAliasAlipay:
 		order.PaymentMethodTxnParams = req.GetEWalletTxnParams()
 		break
-	case constant.PaymentSystemGroupAliasBitcoin:
+	case recurringpb.PaymentSystemGroupAliasBitcoin:
 		order.PaymentMethodTxnParams = req.GetCryptoCurrencyTxnParams()
 		break
 	default:
@@ -439,27 +438,27 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 	status := req.GetStatus()
 
 	switch status {
-	case pkg.CardPayPaymentResponseStatusDeclined:
-		order.PrivateStatus = constant.OrderStatusPaymentSystemDeclined
+	case billingpb.CardPayPaymentResponseStatusDeclined:
+		order.PrivateStatus = recurringpb.OrderStatusPaymentSystemDeclined
 		break
-	case pkg.CardPayPaymentResponseStatusCancelled:
-		order.PrivateStatus = constant.OrderStatusPaymentSystemCanceled
+	case billingpb.CardPayPaymentResponseStatusCancelled:
+		order.PrivateStatus = recurringpb.OrderStatusPaymentSystemCanceled
 		order.CanceledAt = ptypes.TimestampNow()
 		break
-	case pkg.CardPayPaymentResponseStatusCompleted:
-		order.PrivateStatus = constant.OrderStatusPaymentSystemComplete
+	case billingpb.CardPayPaymentResponseStatusCompleted:
+		order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
 		order.IsRefundAllowed = order.PaymentMethod.RefundAllowed
 		break
 	default:
 		return newBillingServerResponseError(pkg.StatusTemporary, paymentSystemErrorRequestTemporarySkipped)
 	}
 
-	if status == pkg.CardPayPaymentResponseStatusDeclined || status == pkg.CardPayPaymentResponseStatusCancelled {
-		declineCode, hasDeclineCode := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineCode]
-		declineReason, hasDeclineReason := order.PaymentMethodTxnParams[pkg.TxnParamsFieldDeclineReason]
+	if status == billingpb.CardPayPaymentResponseStatusDeclined || status == billingpb.CardPayPaymentResponseStatusCancelled {
+		declineCode, hasDeclineCode := order.PaymentMethodTxnParams[billingpb.TxnParamsFieldDeclineCode]
+		declineReason, hasDeclineReason := order.PaymentMethodTxnParams[billingpb.TxnParamsFieldDeclineReason]
 
 		if hasDeclineCode || hasDeclineReason {
-			order.Cancellation = &billing.OrderNotificationCancellation{}
+			order.Cancellation = &billingpb.OrderNotificationCancellation{}
 		}
 
 		if declineCode != "" {
@@ -478,15 +477,15 @@ func (h *cardPay) ProcessPayment(order *billing.Order, message proto.Message, ra
 }
 
 func (h *cardPay) IsRecurringCallback(request proto.Message) bool {
-	req := request.(*billing.CardPayPaymentCallback)
-	return req.PaymentMethod == constant.PaymentSystemGroupAliasBankCard && req.IsRecurring()
+	req := request.(*billingpb.CardPayPaymentCallback)
+	return req.PaymentMethod == recurringpb.PaymentSystemGroupAliasBankCard && req.IsRecurring()
 }
 
 func (h *cardPay) GetRecurringId(request proto.Message) string {
-	return request.(*billing.CardPayPaymentCallback).RecurringData.Filing.Id
+	return request.(*billingpb.CardPayPaymentCallback).RecurringData.Filing.Id
 }
 
-func (h *cardPay) auth(order *billing.Order) error {
+func (h *cardPay) auth(order *billingpb.Order) error {
 	if token := h.getToken(order); token != nil {
 		return nil
 	}
@@ -559,7 +558,7 @@ func (h *cardPay) auth(order *billing.Order) error {
 	return nil
 }
 
-func (h *cardPay) refresh(order *billing.Order) error {
+func (h *cardPay) refresh(order *billingpb.Order) error {
 	data := url.Values{
 		cardPayRequestFieldGrantType:    []string{cardPayGrantTypeRefreshToken},
 		cardPayRequestFieldTerminalCode: []string{order.PaymentMethod.Params.TerminalId},
@@ -645,7 +644,7 @@ func (h *cardPay) setToken(b []byte, pmKey string) error {
 	return nil
 }
 
-func (h *cardPay) getToken(order *billing.Order) *cardPayToken {
+func (h *cardPay) getToken(order *billingpb.Order) *cardPayToken {
 	token, ok := cardPayTokens[order.PaymentMethod.ExternalId]
 
 	if !ok {
@@ -672,7 +671,7 @@ func (h *cardPay) getToken(order *billing.Order) *cardPayToken {
 }
 
 func (h *cardPay) getCardPayOrder(
-	order *billing.Order,
+	order *billingpb.Order,
 	successUrl, failUrl string,
 	requisites map[string]string,
 ) (*CardPayOrder, error) {
@@ -722,8 +721,8 @@ func (h *cardPay) getCardPayOrder(
 		},
 	}
 
-	storeData, okStoreData := requisites[pkg.PaymentCreateFieldStoreData]
-	recurringId, okRecurringId := requisites[pkg.PaymentCreateFieldRecurringId]
+	storeData, okStoreData := requisites[billingpb.PaymentCreateFieldStoreData]
+	recurringId, okRecurringId := requisites[billingpb.PaymentCreateFieldRecurringId]
 
 	if order.PaymentMethod.IsBankCard() && (okStoreData && storeData == "1") ||
 		(okRecurringId && recurringId != "") {
@@ -748,16 +747,16 @@ func (h *cardPay) getCardPayOrder(
 	}
 
 	switch order.PaymentMethod.ExternalId {
-	case constant.PaymentSystemGroupAliasBankCard:
+	case recurringpb.PaymentSystemGroupAliasBankCard:
 		h.geBankCardCardPayOrder(cardPayOrder, requisites)
 		break
-	case constant.PaymentSystemGroupAliasQiwi,
-		constant.PaymentSystemGroupAliasWebMoney,
-		constant.PaymentSystemGroupAliasNeteller,
-		constant.PaymentSystemGroupAliasAlipay:
+	case recurringpb.PaymentSystemGroupAliasQiwi,
+		recurringpb.PaymentSystemGroupAliasWebMoney,
+		recurringpb.PaymentSystemGroupAliasNeteller,
+		recurringpb.PaymentSystemGroupAliasAlipay:
 		h.getEWalletCardPayOrder(cardPayOrder, requisites)
 		break
-	case constant.PaymentSystemGroupAliasBitcoin:
+	case recurringpb.PaymentSystemGroupAliasBitcoin:
 		h.getCryptoCurrencyCardPayOrder(cardPayOrder, requisites)
 		break
 	default:
@@ -772,13 +771,13 @@ func (h *cardPay) getCardPayOrder(
 }
 
 func (h *cardPay) geBankCardCardPayOrder(cpo *CardPayOrder, requisites map[string]string) {
-	expire := requisites[pkg.PaymentCreateFieldMonth] + "/" + requisites[pkg.PaymentCreateFieldYear]
+	expire := requisites[billingpb.PaymentCreateFieldMonth] + "/" + requisites[billingpb.PaymentCreateFieldYear]
 
 	cpo.CardAccount = &CardPayCardAccount{
 		Card: &CardPayBankCardAccount{
-			Pan:        requisites[pkg.PaymentCreateFieldPan],
-			HolderName: strings.ToUpper(requisites[pkg.PaymentCreateFieldHolder]),
-			Cvv:        requisites[pkg.PaymentCreateFieldCvv],
+			Pan:        requisites[billingpb.PaymentCreateFieldPan],
+			HolderName: strings.ToUpper(requisites[billingpb.PaymentCreateFieldHolder]),
+			Cvv:        requisites[billingpb.PaymentCreateFieldCvv],
 			Expire:     expire,
 		},
 	}
@@ -786,17 +785,17 @@ func (h *cardPay) geBankCardCardPayOrder(cpo *CardPayOrder, requisites map[strin
 
 func (h *cardPay) getEWalletCardPayOrder(cpo *CardPayOrder, requisites map[string]string) {
 	cpo.EWalletAccount = &CardPayEWalletAccount{
-		Id: requisites[pkg.PaymentCreateFieldEWallet],
+		Id: requisites[billingpb.PaymentCreateFieldEWallet],
 	}
 }
 
 func (h *cardPay) getCryptoCurrencyCardPayOrder(cpo *CardPayOrder, requisites map[string]string) {
 	cpo.CryptoCurrencyAccount = &CardPayCryptoCurrencyAccount{
-		RollbackAddress: requisites[pkg.PaymentCreateFieldCrypto],
+		RollbackAddress: requisites[billingpb.PaymentCreateFieldCrypto],
 	}
 }
 
-func (h *cardPay) checkCallbackRequestSignature(order *billing.Order, raw, signature string) error {
+func (h *cardPay) checkCallbackRequestSignature(order *billingpb.Order, raw, signature string) error {
 	hash := sha512.New()
 	hash.Write([]byte(raw + order.PaymentMethod.Params.SecretCallback))
 
@@ -875,7 +874,7 @@ func (t *cardPayTransport) log(reqUrl string, reqHeader http.Header, reqBody []b
 	)
 }
 
-func (h *cardPay) CreateRefund(order *billing.Order, refund *billing.Refund) error {
+func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund) error {
 	err := h.auth(order)
 
 	if err != nil {
@@ -1004,31 +1003,31 @@ func (h *cardPay) CreateRefund(order *billing.Order, refund *billing.Refund) err
 }
 
 func (h *cardPay) ProcessRefund(
-	order *billing.Order,
-	refund *billing.Refund,
+	order *billingpb.Order,
+	refund *billingpb.Refund,
 	message proto.Message,
 	raw, signature string,
 ) error {
-	req := message.(*billing.CardPayRefundCallback)
+	req := message.(*billingpb.CardPayRefundCallback)
 	refund.Status = pkg.RefundStatusRejected
 
 	err := h.checkCallbackRequestSignature(order, raw, signature)
 
 	if err != nil {
-		err.(*grpc.ResponseError).Status = pkg.ResponseStatusBadData
+		err.(*billingpb.ResponseError).Status = billingpb.ResponseStatusBadData
 		return err
 	}
 
 	if !req.IsRefundAllowedStatus() {
-		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRequestStatusIsInvalid)
+		return newBillingServerResponseError(billingpb.ResponseStatusBadData, paymentSystemErrorRequestStatusIsInvalid)
 	}
 
 	if req.PaymentMethod != order.PaymentMethod.ExternalId {
-		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRequestPaymentMethodIsInvalid)
+		return newBillingServerResponseError(billingpb.ResponseStatusBadData, paymentSystemErrorRequestPaymentMethodIsInvalid)
 	}
 
 	if req.RefundData.Amount != refund.Amount || req.RefundData.Currency != refund.Currency {
-		return newBillingServerResponseError(pkg.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
+		return newBillingServerResponseError(billingpb.ResponseStatusBadData, paymentSystemErrorRefundRequestAmountOrCurrencyIsInvalid)
 	}
 
 	t, err := time.Parse(cardPayDateFormat, req.CallbackTime)
@@ -1044,17 +1043,17 @@ func (h *cardPay) ProcessRefund(
 	}
 
 	switch req.RefundData.Status {
-	case pkg.CardPayPaymentResponseStatusDeclined:
+	case billingpb.CardPayPaymentResponseStatusDeclined:
 		refund.Status = pkg.RefundStatusPaymentSystemDeclined
 		break
-	case pkg.CardPayPaymentResponseStatusCancelled:
+	case billingpb.CardPayPaymentResponseStatusCancelled:
 		refund.Status = pkg.RefundStatusPaymentSystemCanceled
 		break
-	case pkg.CardPayPaymentResponseStatusCompleted:
+	case billingpb.CardPayPaymentResponseStatusCompleted:
 		refund.Status = pkg.RefundStatusCompleted
 		break
 	default:
-		return newBillingServerResponseError(pkg.ResponseStatusTemporary, paymentSystemErrorRequestTemporarySkipped)
+		return newBillingServerResponseError(billingpb.ResponseStatusTemporary, paymentSystemErrorRequestTemporarySkipped)
 	}
 
 	refund.ExternalId = req.RefundData.Id
@@ -1071,6 +1070,6 @@ func (h *CardPayOrderRecurringResponse) IsSuccessStatus() bool {
 
 	status := h.RecurringData.Status
 
-	return status == pkg.CardPayPaymentResponseStatusInProgress || status == pkg.CardPayPaymentResponseStatusPending ||
-		status == pkg.CardPayPaymentResponseStatusAuthorized || status == pkg.CardPayPaymentResponseStatusCompleted
+	return status == billingpb.CardPayPaymentResponseStatusInProgress || status == billingpb.CardPayPaymentResponseStatusPending ||
+		status == billingpb.CardPayPaymentResponseStatusAuthorized || status == billingpb.CardPayPaymentResponseStatusCompleted
 }

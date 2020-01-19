@@ -7,10 +7,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,7 +28,7 @@ type BillingServiceTestSuite struct {
 	service *Service
 	cache   database.CacheInterface
 
-	project *billing.Project
+	project *billingpb.Project
 }
 
 func Test_BillingService(t *testing.T) {
@@ -85,7 +83,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	ps := &billing.PaymentSystem{
+	ps := &billingpb.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
@@ -94,7 +92,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		IsActive:           true,
 	}
 
-	country := &billing.Country{
+	country := &billingpb.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
 		Currency:        "RUB",
@@ -105,14 +103,14 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		VatCurrency:     "RUB",
 	}
 
-	pmBankCard := &billing.PaymentMethod{
+	pmBankCard := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
-		TestSettings: map[string]*billing.PaymentMethodParams{
+		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				Currency:       "RUB",
 				TerminalId:     "15985",
@@ -128,53 +126,53 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 	assert.NoError(suite.T(), err, "Generate merchant date failed")
 
-	merchant := &billing.Merchant{
+	merchant := &billingpb.Merchant{
 		Id: primitive.NewObjectID().Hex(),
-		Company: &billing.MerchantCompanyInfo{
+		Company: &billingpb.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{
+		Contacts: &billingpb.MerchantContact{
+			Authorized: &billingpb.MerchantContactAuthorized{
 				Name:     "Unit Test",
 				Email:    "test@unit.test",
 				Phone:    "123456789",
 				Position: "Unit Test",
 			},
-			Technical: &billing.MerchantContactTechnical{
+			Technical: &billingpb.MerchantContactTechnical{
 				Name:  "Unit Test",
 				Email: "test@unit.test",
 				Phone: "123456789",
 			},
 		},
-		Banking: &billing.MerchantBanking{
+		Banking: &billingpb.MerchantBanking{
 			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusDraft,
-		LastPayout: &billing.MerchantLastPayout{
+		Status:                    billingpb.MerchantStatusDraft,
+		LastPayout: &billingpb.MerchantLastPayout{
 			Date:   date,
 			Amount: 999999,
 		},
 		IsSigned: true,
-		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
+		PaymentMethods: map[string]*billingpb.MerchantPaymentMethod{
 			pmBankCard.Id: {
-				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+				PaymentMethod: &billingpb.MerchantPaymentMethodIdentification{
 					Id:   pmBankCard.Id,
 					Name: pmBankCard.Name,
 				},
-				Commission: &billing.MerchantPaymentMethodCommissions{
+				Commission: &billingpb.MerchantPaymentMethodCommissions{
 					Fee: 2.5,
-					PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+					PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{
 						Fee:      30,
 						Currency: "RUB",
 					},
 				},
-				Integration: &billing.MerchantPaymentMethodIntegration{
+				Integration: &billingpb.MerchantPaymentMethodIntegration{
 					TerminalId:       "1234567890",
 					TerminalPassword: "0987654321",
 					Integrated:       true,
@@ -184,7 +182,7 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		},
 	}
 
-	projectDefault := &billing.Project{
+	projectDefault := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
@@ -195,10 +193,10 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		IsProductsCheckout:       true,
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
-		Status:                   pkg.ProjectStatusInProduction,
+		Status:                   billingpb.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 	}
-	projectXsolla := &billing.Project{
+	projectXsolla := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
@@ -209,9 +207,9 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Name:               map[string]string{"en": "test project 2"},
 		IsProductsCheckout: true,
 		SecretKey:          "test project 2 secret key",
-		Status:             pkg.ProjectStatusInProduction,
+		Status:             billingpb.ProjectStatusInProduction,
 	}
-	projectCardpay := &billing.Project{
+	projectCardpay := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
@@ -222,17 +220,17 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		Name:               map[string]string{"en": "test project 3"},
 		IsProductsCheckout: true,
 		SecretKey:          "test project 3 secret key",
-		Status:             pkg.ProjectStatusInProduction,
+		Status:             billingpb.ProjectStatusInProduction,
 	}
 
-	pmQiwi := &billing.PaymentMethod{
+	pmQiwi := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Qiwi",
 		Group:            "QIWI",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "QIWI",
-		TestSettings: map[string]*billing.PaymentMethodParams{
+		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				Currency:   "RUB",
 				TerminalId: "15993",
@@ -242,14 +240,14 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		IsActive:        true,
 		PaymentSystemId: ps.Id,
 	}
-	pmBitcoin := &billing.PaymentMethod{
+	pmBitcoin := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
-		TestSettings: map[string]*billing.PaymentMethodParams{
+		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				Currency:   "RUB",
 				TerminalId: "16007",
@@ -260,13 +258,13 @@ func (suite *BillingServiceTestSuite) SetupTest() {
 		PaymentSystemId: ps.Id,
 	}
 
-	projects := []*billing.Project{
+	projects := []*billingpb.Project{
 		projectDefault,
 		projectXsolla,
 		projectCardpay,
 	}
 
-	pms := []*billing.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
+	pms := []*billingpb.PaymentMethod{pmBankCard, pmQiwi, pmBitcoin}
 	if err := suite.service.paymentMethod.MultipleInsert(context.TODO(), pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
@@ -377,43 +375,43 @@ func (suite *BillingServiceTestSuite) TestBillingService_IsProductionEnvironment
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSignature_Ok() {
-	req := &grpc.CheckProjectRequestSignatureRequest{
+	req := &billingpb.CheckProjectRequestSignatureRequest{
 		Body:      `{"field1": "val1", "field2": "val2", "field3": "val3"}`,
 		ProjectId: suite.project.Id,
 	}
-	rsp := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp := &billingpb.CheckProjectRequestSignatureResponse{}
 
 	req.Signature = suite.project.SecretKey
 
 	err := suite.service.CheckProjectRequestSignature(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSignature_ProjectNotFound_Error() {
-	req := &grpc.CheckProjectRequestSignatureRequest{
+	req := &billingpb.CheckProjectRequestSignatureRequest{
 		Body:      `{"field1": "val1", "field2": "val2", "field3": "val3"}`,
 		ProjectId: primitive.NewObjectID().Hex(),
 	}
-	rsp := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp := &billingpb.CheckProjectRequestSignatureResponse{}
 
 	err := suite.service.CheckProjectRequestSignature(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), orderErrorProjectNotFound, rsp.Message)
 }
 
 func (suite *BillingServiceTestSuite) TestBillingService_CheckProjectRequestSignature_IncorrectSignature_Error() {
-	req := &grpc.CheckProjectRequestSignatureRequest{
+	req := &billingpb.CheckProjectRequestSignatureRequest{
 		Body:      `{"field1": "val1", "field2": "val2", "field3": "val3"}`,
 		ProjectId: suite.project.Id,
 	}
-	rsp := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp := &billingpb.CheckProjectRequestSignatureResponse{}
 
 	req.Signature = "some_random_string"
 
 	err := suite.service.CheckProjectRequestSignature(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), orderErrorSignatureInvalid, rsp.Message)
 }

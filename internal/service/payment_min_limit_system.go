@@ -6,9 +6,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,10 +29,10 @@ var (
 )
 
 type PaymentMinLimitSystemInterface interface {
-	GetByCurrency(ctx context.Context, currency string) (pmls *billing.PaymentMinLimitSystem, err error)
-	GetAll(ctx context.Context) (result []*billing.PaymentMinLimitSystem, err error)
-	Upsert(ctx context.Context, pmls *billing.PaymentMinLimitSystem) (err error)
-	MultipleInsert(ctx context.Context, pmlsArray []*billing.PaymentMinLimitSystem) (err error)
+	GetByCurrency(ctx context.Context, currency string) (pmls *billingpb.PaymentMinLimitSystem, err error)
+	GetAll(ctx context.Context) (result []*billingpb.PaymentMinLimitSystem, err error)
+	Upsert(ctx context.Context, pmls *billingpb.PaymentMinLimitSystem) (err error)
+	MultipleInsert(ctx context.Context, pmlsArray []*billingpb.PaymentMinLimitSystem) (err error)
 }
 
 func newPaymentMinLimitSystem(svc *Service) PaymentMinLimitSystemInterface {
@@ -43,32 +42,32 @@ func newPaymentMinLimitSystem(svc *Service) PaymentMinLimitSystemInterface {
 
 func (s *Service) GetPaymentMinLimitsSystem(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *grpc.GetPaymentMinLimitsSystemResponse,
+	req *billingpb.EmptyRequest,
+	res *billingpb.GetPaymentMinLimitsSystemResponse,
 ) (err error) {
 	res.Items, err = s.paymentMinLimitSystem.GetAll(ctx)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return
 }
 
 func (s *Service) SetPaymentMinLimitSystem(
 	ctx context.Context,
-	req *billing.PaymentMinLimitSystem,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.PaymentMinLimitSystem,
+	res *billingpb.EmptyResponseWithStatus,
 ) (err error) {
 	pmls, err := s.paymentMinLimitSystem.GetByCurrency(ctx, req.Currency)
 	if err != nil && err != errorPaymentMinLimitSystemNotFound {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -77,12 +76,12 @@ func (s *Service) SetPaymentMinLimitSystem(
 
 	if err == errorPaymentMinLimitSystemNotFound || pmls == nil {
 		if !helper.Contains(s.supportedCurrencies, req.Currency) {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorPaymentMinLimitSystemCurrencyUnknown
 			return nil
 		}
 
-		pmls = &billing.PaymentMinLimitSystem{
+		pmls = &billingpb.PaymentMinLimitSystem{
 			Id:        primitive.NewObjectID().Hex(),
 			Currency:  req.Currency,
 			CreatedAt: ptypes.TimestampNow(),
@@ -90,7 +89,7 @@ func (s *Service) SetPaymentMinLimitSystem(
 	}
 
 	if req.Amount < 0 {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorPaymentMinLimitSystemInvalidAmount
 		return nil
 	}
@@ -100,22 +99,22 @@ func (s *Service) SetPaymentMinLimitSystem(
 
 	err = s.paymentMinLimitSystem.Upsert(ctx, pmls)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return
 }
 
 func (p PaymentMinLimitSystem) GetByCurrency(
 	ctx context.Context,
 	currency string,
-) (pmls *billing.PaymentMinLimitSystem, err error) {
+) (pmls *billingpb.PaymentMinLimitSystem, err error) {
 	key := fmt.Sprintf(cacheKeyPaymentMinLimitSystem, currency)
 	if err = p.svc.cacher.Get(key, &pmls); err == nil {
 		return pmls, nil
@@ -151,7 +150,7 @@ func (p PaymentMinLimitSystem) GetByCurrency(
 	return
 }
 
-func (p PaymentMinLimitSystem) GetAll(ctx context.Context) (result []*billing.PaymentMinLimitSystem, err error) {
+func (p PaymentMinLimitSystem) GetAll(ctx context.Context) (result []*billingpb.PaymentMinLimitSystem, err error) {
 	if err = p.svc.cacher.Get(cacheKeyAllPaymentMinLimitSystem, &result); err == nil {
 		return result, nil
 	}
@@ -194,7 +193,7 @@ func (p PaymentMinLimitSystem) GetAll(ctx context.Context) (result []*billing.Pa
 	return
 }
 
-func (p PaymentMinLimitSystem) Upsert(ctx context.Context, pmls *billing.PaymentMinLimitSystem) (err error) {
+func (p PaymentMinLimitSystem) Upsert(ctx context.Context, pmls *billingpb.PaymentMinLimitSystem) (err error) {
 	pmls.Amount = tools.FormatAmount(pmls.Amount)
 	oid, _ := primitive.ObjectIDFromHex(pmls.Id)
 	filter := bson.M{"_id": oid}
@@ -240,7 +239,7 @@ func (p PaymentMinLimitSystem) Upsert(ctx context.Context, pmls *billing.Payment
 
 func (p PaymentMinLimitSystem) MultipleInsert(
 	ctx context.Context,
-	pmlsArray []*billing.PaymentMinLimitSystem,
+	pmlsArray []*billingpb.PaymentMinLimitSystem,
 ) (err error) {
 	c := make([]interface{}, len(pmlsArray))
 	for i, v := range pmlsArray {

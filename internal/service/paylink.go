@@ -8,9 +8,7 @@ import (
 	"github.com/google/go-querystring/query"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/paylink"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,7 +17,7 @@ import (
 	"time"
 )
 
-type orderViewPaylinkStatFunc func(OrderViewServiceInterface, context.Context, string, string, int64, int64) (*paylink.GroupStatCommon, error)
+type orderViewPaylinkStatFunc func(OrderViewServiceInterface, context.Context, string, string, int64, int64) (*billingpb.GroupStatCommon, error)
 
 type paylinkVisits struct {
 	PaylinkId primitive.ObjectID `bson:"paylink_id"`
@@ -34,14 +32,14 @@ type utmQueryParams struct {
 
 type PaylinkServiceInterface interface {
 	CountByQuery(ctx context.Context, query bson.M) (n int64, err error)
-	GetListByQuery(ctx context.Context, query bson.M, limit, offset int64) (result []*paylink.Paylink, err error)
-	GetById(ctx context.Context, id string) (pl *paylink.Paylink, err error)
-	GetByIdAndMerchant(ctx context.Context, id, merchantId string) (pl *paylink.Paylink, err error)
+	GetListByQuery(ctx context.Context, query bson.M, limit, offset int64) (result []*billingpb.Paylink, err error)
+	GetById(ctx context.Context, id string) (pl *billingpb.Paylink, err error)
+	GetByIdAndMerchant(ctx context.Context, id, merchantId string) (pl *billingpb.Paylink, err error)
 	IncrVisits(ctx context.Context, id string) error
 	GetUrl(ctx context.Context, id, merchantId, urlMask, utmSource, utmMedium, utmCampaign string) (string, error)
 	Delete(ctx context.Context, id, merchantId string) error
-	Insert(ctx context.Context, pl *paylink.Paylink) error
-	Update(ctx context.Context, pl *paylink.Paylink) error
+	Insert(ctx context.Context, pl *billingpb.Paylink) error
+	Update(ctx context.Context, pl *billingpb.Paylink) error
 	UpdatePaylinkTotalStat(ctx context.Context, id, merchantId string) error
 	GetPaylinkVisits(ctx context.Context, id string, from, to int64) (int64, error)
 }
@@ -82,8 +80,8 @@ func newPaylinkService(svc *Service) *Paylink {
 // GetPaylinks returns list of all payment links
 func (s *Service) GetPaylinks(
 	ctx context.Context,
-	req *grpc.GetPaylinksRequest,
-	res *grpc.GetPaylinksResponse,
+	req *billingpb.GetPaylinksRequest,
+	res *billingpb.GetPaylinksResponse,
 ) error {
 	merchantOid, _ := primitive.ObjectIDFromHex(req.MerchantId)
 	dbQuery := bson.M{
@@ -97,21 +95,21 @@ func (s *Service) GetPaylinks(
 
 	n, err := s.paylinkService.CountByQuery(ctx, dbQuery)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return err
 	}
 
-	res.Data = &grpc.PaylinksPaginate{}
+	res.Data = &billingpb.PaylinksPaginate{}
 
 	if n > 0 {
 		res.Data.Items, err = s.paylinkService.GetListByQuery(ctx, dbQuery, req.Limit, req.Offset)
 		if err != nil {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusBadData
+			if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = e
 				return nil
 			}
@@ -129,7 +127,7 @@ func (s *Service) GetPaylinks(
 	}
 
 	res.Data.Count = int32(n)
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
@@ -137,19 +135,19 @@ func (s *Service) GetPaylinks(
 // GetPaylink returns one payment link
 func (s *Service) GetPaylink(
 	ctx context.Context,
-	req *grpc.PaylinkRequest,
-	res *grpc.GetPaylinkResponse,
+	req *billingpb.PaylinkRequest,
+	res *billingpb.GetPaylinkResponse,
 ) (err error) {
 
 	res.Item, err = s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorPaylinkNotFound
 			return nil
 		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -162,24 +160,24 @@ func (s *Service) GetPaylink(
 	}
 	res.Item.UpdateConversion()
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
 func (s *Service) GetPaylinkTransactions(
 	ctx context.Context,
-	req *grpc.GetPaylinkTransactionsRequest,
-	res *grpc.TransactionsResponse,
+	req *billingpb.GetPaylinkTransactionsRequest,
+	res *billingpb.TransactionsResponse,
 ) error {
 	pl, err := s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorPaylinkNotFound
 			return nil
 		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -199,7 +197,7 @@ func (s *Service) GetPaylinkTransactions(
 		return err
 	}
 
-	res.Data = &grpc.TransactionsPaginate{
+	res.Data = &billingpb.TransactionsPaginate{
 		Count: int32(len(ts)),
 		Items: ts,
 	}
@@ -210,8 +208,8 @@ func (s *Service) GetPaylinkTransactions(
 // IncrPaylinkVisits adds a visit hit to stat
 func (s *Service) IncrPaylinkVisits(
 	ctx context.Context,
-	req *grpc.PaylinkRequestById,
-	res *grpc.EmptyResponse,
+	req *billingpb.PaylinkRequestById,
+	res *billingpb.EmptyResponse,
 ) error {
 	err := s.paylinkService.IncrVisits(ctx, req.Id)
 	if err != nil {
@@ -223,22 +221,22 @@ func (s *Service) IncrPaylinkVisits(
 // GetPaylinkURL returns public url for Paylink
 func (s *Service) GetPaylinkURL(
 	ctx context.Context,
-	req *grpc.GetPaylinkURLRequest,
-	res *grpc.GetPaylinkUrlResponse,
+	req *billingpb.GetPaylinkURLRequest,
+	res *billingpb.GetPaylinkUrlResponse,
 ) (err error) {
 
 	res.Url, err = s.paylinkService.GetUrl(ctx, req.Id, req.MerchantId, req.UrlMask, req.UtmMedium, req.UtmMedium, req.UtmCampaign)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorPaylinkNotFound
 			return nil
 		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
 			if err == errorPaylinkExpired {
-				res.Status = pkg.ResponseStatusGone
+				res.Status = billingpb.ResponseStatusGone
 			} else {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 			}
 
 			res.Message = e
@@ -247,46 +245,46 @@ func (s *Service) GetPaylinkURL(
 		return err
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
 // DeletePaylink deletes payment link
 func (s *Service) DeletePaylink(
 	ctx context.Context,
-	req *grpc.PaylinkRequest,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.PaylinkRequest,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 
 	err := s.paylinkService.Delete(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorPaylinkNotFound
 			return nil
 		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return err
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
 // CreateOrUpdatePaylink create or modify payment link
 func (s *Service) CreateOrUpdatePaylink(
 	ctx context.Context,
-	req *paylink.CreatePaylinkRequest,
-	res *grpc.GetPaylinkResponse,
+	req *billingpb.CreatePaylinkRequest,
+	res *billingpb.GetPaylinkResponse,
 ) (err error) {
 
 	isNew := req.GetId() == ""
 
-	pl := &paylink.Paylink{}
+	pl := &billingpb.Paylink{}
 
 	if isNew {
 		pl.Id = primitive.NewObjectID().Hex()
@@ -299,12 +297,12 @@ func (s *Service) CreateOrUpdatePaylink(
 		pl, err = s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 		if err != nil {
 			if err == mongo.ErrNoDocuments {
-				res.Status = pkg.ResponseStatusNotFound
+				res.Status = billingpb.ResponseStatusNotFound
 				res.Message = errorPaylinkNotFound
 				return nil
 			}
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusBadData
+			if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = e
 				return nil
 			}
@@ -312,7 +310,7 @@ func (s *Service) CreateOrUpdatePaylink(
 		}
 
 		if pl.ProjectId != req.ProjectId {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorPaylinkProjectMismatch
 			return nil
 		}
@@ -327,8 +325,8 @@ func (s *Service) CreateOrUpdatePaylink(
 	dbQuery := bson.M{"_id": projectOid, "merchant_id": merchantOid}
 	_, err = s.getProjectBy(ctx, dbQuery)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -339,7 +337,7 @@ func (s *Service) CreateOrUpdatePaylink(
 		expiresAt := now.New(time.Unix(req.ExpiresAt, 0)).EndOfDay()
 
 		if time.Now().After(expiresAt) {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorPaylinkExpiresInPast
 			return nil
 		}
@@ -358,7 +356,7 @@ func (s *Service) CreateOrUpdatePaylink(
 
 	productsLength := len(req.Products)
 	if productsLength < s.cfg.PaylinkMinProducts || productsLength > s.cfg.PaylinkMaxProducts {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorPaylinkProductsLengthInvalid
 		return nil
 	}
@@ -366,17 +364,17 @@ func (s *Service) CreateOrUpdatePaylink(
 	for _, productId := range req.Products {
 		switch req.ProductsType {
 
-		case billing.OrderType_product:
+		case pkg.OrderType_product:
 			product, err := s.productService.GetById(ctx, productId)
 			if err != nil {
 				if err.Error() == "product not found" || err == mongo.ErrNoDocuments {
-					res.Status = pkg.ResponseStatusNotFound
+					res.Status = billingpb.ResponseStatusNotFound
 					res.Message = errorPaylinkProductNotFoundOrInvalidType
 					return nil
 				}
 
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					res.Status = pkg.ResponseStatusBadData
+				if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+					res.Status = billingpb.ResponseStatusBadData
 					res.Message = e
 					return nil
 				}
@@ -384,30 +382,30 @@ func (s *Service) CreateOrUpdatePaylink(
 			}
 
 			if product.MerchantId != pl.MerchantId {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = errorPaylinkProductNotBelongToMerchant
 				return nil
 			}
 
 			if product.ProjectId != pl.ProjectId {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = errorPaylinkProductNotBelongToProject
 				return nil
 			}
 
 			break
 
-		case billing.OrderType_key:
+		case pkg.OrderType_key:
 			product, err := s.keyProductRepository.GetById(ctx, productId)
 			if err != nil {
 				if err.Error() == "key_product not found" || err == mongo.ErrNoDocuments {
-					res.Status = pkg.ResponseStatusNotFound
+					res.Status = billingpb.ResponseStatusNotFound
 					res.Message = errorPaylinkProductNotFoundOrInvalidType
 					return nil
 				}
 
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					res.Status = pkg.ResponseStatusBadData
+				if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+					res.Status = billingpb.ResponseStatusBadData
 					res.Message = e
 					return nil
 				}
@@ -415,20 +413,20 @@ func (s *Service) CreateOrUpdatePaylink(
 			}
 
 			if product.MerchantId != pl.MerchantId {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = errorPaylinkProductNotBelongToMerchant
 				return nil
 			}
 
 			if product.ProjectId != pl.ProjectId {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = errorPaylinkProductNotBelongToProject
 				return nil
 			}
 			break
 
 		default:
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorPaylinkProductsTypeInvalid
 			return nil
 		}
@@ -443,8 +441,8 @@ func (s *Service) CreateOrUpdatePaylink(
 		err = s.paylinkService.Update(ctx, pl)
 	}
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -452,7 +450,7 @@ func (s *Service) CreateOrUpdatePaylink(
 	}
 
 	res.Item = pl
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
@@ -460,19 +458,19 @@ func (s *Service) CreateOrUpdatePaylink(
 // GetPaylinkStatTotal returns total stat for requested paylink and period
 func (s *Service) GetPaylinkStatTotal(
 	ctx context.Context,
-	req *grpc.GetPaylinkStatCommonRequest,
-	res *grpc.GetPaylinkStatCommonResponse,
+	req *billingpb.GetPaylinkStatCommonRequest,
+	res *billingpb.GetPaylinkStatCommonResponse,
 ) (err error) {
 
 	pl, err := s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorPaylinkNotFound
 			return nil
 		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -481,8 +479,8 @@ func (s *Service) GetPaylinkStatTotal(
 
 	visits, err := s.paylinkService.GetPaylinkVisits(ctx, pl.Id, req.PeriodFrom, req.PeriodTo)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -491,8 +489,8 @@ func (s *Service) GetPaylinkStatTotal(
 
 	res.Item, err = s.orderView.GetPaylinkStat(ctx, pl.Id, req.MerchantId, req.PeriodFrom, req.PeriodTo)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -503,15 +501,15 @@ func (s *Service) GetPaylinkStatTotal(
 	res.Item.Visits = int32(visits)
 	res.Item.UpdateConversion()
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
 // GetPaylinkStatByCountry returns stat groped by country for requested paylink and period
 func (s *Service) GetPaylinkStatByCountry(
 	ctx context.Context,
-	req *grpc.GetPaylinkStatCommonRequest,
-	res *grpc.GetPaylinkStatCommonGroupResponse,
+	req *billingpb.GetPaylinkStatCommonRequest,
+	res *billingpb.GetPaylinkStatCommonGroupResponse,
 ) (err error) {
 	err = s.getPaylinkStatGroup(ctx, req, res, "GetPaylinkStatByCountry")
 	if err != nil {
@@ -523,8 +521,8 @@ func (s *Service) GetPaylinkStatByCountry(
 // GetPaylinkStatByReferrer returns stat grouped by referer hosts for requested paylink and period
 func (s *Service) GetPaylinkStatByReferrer(
 	ctx context.Context,
-	req *grpc.GetPaylinkStatCommonRequest,
-	res *grpc.GetPaylinkStatCommonGroupResponse,
+	req *billingpb.GetPaylinkStatCommonRequest,
+	res *billingpb.GetPaylinkStatCommonGroupResponse,
 ) (err error) {
 	err = s.getPaylinkStatGroup(ctx, req, res, "GetPaylinkStatByReferrer")
 	if err != nil {
@@ -536,8 +534,8 @@ func (s *Service) GetPaylinkStatByReferrer(
 // GetPaylinkStatByDate returns stat groped by date for requested paylink and period
 func (s *Service) GetPaylinkStatByDate(
 	ctx context.Context,
-	req *grpc.GetPaylinkStatCommonRequest,
-	res *grpc.GetPaylinkStatCommonGroupResponse,
+	req *billingpb.GetPaylinkStatCommonRequest,
+	res *billingpb.GetPaylinkStatCommonGroupResponse,
 ) (err error) {
 	err = s.getPaylinkStatGroup(ctx, req, res, "GetPaylinkStatByDate")
 	if err != nil {
@@ -549,8 +547,8 @@ func (s *Service) GetPaylinkStatByDate(
 // GetPaylinkStatByUtm returns stat groped by utm labels for requested paylink and period
 func (s *Service) GetPaylinkStatByUtm(
 	ctx context.Context,
-	req *grpc.GetPaylinkStatCommonRequest,
-	res *grpc.GetPaylinkStatCommonGroupResponse,
+	req *billingpb.GetPaylinkStatCommonRequest,
+	res *billingpb.GetPaylinkStatCommonGroupResponse,
 ) (err error) {
 	err = s.getPaylinkStatGroup(ctx, req, res, "GetPaylinkStatByUtm")
 	if err != nil {
@@ -561,19 +559,19 @@ func (s *Service) GetPaylinkStatByUtm(
 
 func (s *Service) getPaylinkStatGroup(
 	ctx context.Context,
-	req *grpc.GetPaylinkStatCommonRequest,
-	res *grpc.GetPaylinkStatCommonGroupResponse,
+	req *billingpb.GetPaylinkStatCommonRequest,
+	res *billingpb.GetPaylinkStatCommonGroupResponse,
 	function string,
 ) (err error) {
 	pl, err := s.paylinkService.GetByIdAndMerchant(ctx, req.Id, req.MerchantId)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorPaylinkNotFound
 			return nil
 		}
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
@@ -582,14 +580,14 @@ func (s *Service) getPaylinkStatGroup(
 
 	res.Item, err = orderViewPaylinkStatFuncMap[function](s.orderView, ctx, pl.Id, pl.MerchantId, req.PeriodFrom, req.PeriodTo)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return err
 	}
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
@@ -607,7 +605,7 @@ func (p Paylink) CountByQuery(ctx context.Context, query bson.M) (n int64, err e
 	return
 }
 
-func (p Paylink) GetListByQuery(ctx context.Context, query bson.M, limit, offset int64) (result []*paylink.Paylink, err error) {
+func (p Paylink) GetListByQuery(ctx context.Context, query bson.M, limit, offset int64) (result []*billingpb.Paylink, err error) {
 	if limit <= 0 {
 		limit = pkg.DatabaseRequestDefaultLimit
 	}
@@ -647,14 +645,14 @@ func (p Paylink) GetListByQuery(ctx context.Context, query bson.M, limit, offset
 	return
 }
 
-func (p Paylink) GetById(ctx context.Context, id string) (pl *paylink.Paylink, err error) {
+func (p Paylink) GetById(ctx context.Context, id string) (pl *billingpb.Paylink, err error) {
 	key := fmt.Sprintf(cacheKeyPaylink, id)
 	oid, _ := primitive.ObjectIDFromHex(id)
 	dbQuery := bson.M{"_id": oid, "deleted": false}
 	return p.getBy(ctx, key, dbQuery)
 }
 
-func (p Paylink) GetByIdAndMerchant(ctx context.Context, id, merchantId string) (pl *paylink.Paylink, err error) {
+func (p Paylink) GetByIdAndMerchant(ctx context.Context, id, merchantId string) (pl *billingpb.Paylink, err error) {
 	oid, _ := primitive.ObjectIDFromHex(id)
 	merchantOid, _ := primitive.ObjectIDFromHex(merchantId)
 	key := fmt.Sprintf(cacheKeyPaylinkMerchant, id, merchantId)
@@ -662,7 +660,7 @@ func (p Paylink) GetByIdAndMerchant(ctx context.Context, id, merchantId string) 
 	return p.getBy(ctx, key, dbQuery)
 }
 
-func (p Paylink) getBy(ctx context.Context, key string, dbQuery bson.M) (pl *paylink.Paylink, err error) {
+func (p Paylink) getBy(ctx context.Context, key string, dbQuery bson.M) (pl *billingpb.Paylink, err error) {
 	if err = p.svc.cacher.Get(key, &pl); err == nil {
 		pl.IsExpired = pl.GetIsExpired()
 		return pl, nil
@@ -771,7 +769,7 @@ func (p Paylink) Delete(ctx context.Context, id, merchantId string) error {
 	return nil
 }
 
-func (p Paylink) Update(ctx context.Context, pl *paylink.Paylink) (err error) {
+func (p Paylink) Update(ctx context.Context, pl *billingpb.Paylink) (err error) {
 	pl.IsExpired = pl.IsPaylinkExpired()
 
 	plMgo, err := pl.GetMgoPaylink()
@@ -808,7 +806,7 @@ func (p Paylink) Update(ctx context.Context, pl *paylink.Paylink) (err error) {
 	return
 }
 
-func (p Paylink) Insert(ctx context.Context, pl *paylink.Paylink) (err error) {
+func (p Paylink) Insert(ctx context.Context, pl *billingpb.Paylink) (err error) {
 	oid, _ := primitive.ObjectIDFromHex(pl.Id)
 	filter := bson.M{"_id": oid}
 	opts := options.FindOneAndReplace().SetUpsert(true)
@@ -925,7 +923,7 @@ func (p Paylink) UpdatePaylinkTotalStat(ctx context.Context, id, merchantId stri
 	return
 }
 
-func (p Paylink) updateCaches(pl *paylink.Paylink) (err error) {
+func (p Paylink) updateCaches(pl *billingpb.Paylink) (err error) {
 	key1 := fmt.Sprintf(cacheKeyPaylink, pl.Id)
 	key2 := fmt.Sprintf(cacheKeyPaylinkMerchant, pl.Id, pl.MerchantId)
 

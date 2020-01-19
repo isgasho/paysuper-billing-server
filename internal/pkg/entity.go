@@ -1,6 +1,8 @@
 package pkg
 
-import "github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+import (
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+)
 
 type CountryAndRegionItem struct {
 	Country           string `bson:"iso_code_a2"`
@@ -13,21 +15,21 @@ type CountryAndRegionItems struct {
 }
 
 type PaymentChannelCostMerchantSet struct {
-	Id  string                                `bson:"_id"`
-	Set []*billing.PaymentChannelCostMerchant `bson:"set"`
+	Id  string                                  `bson:"_id"`
+	Set []*billingpb.PaymentChannelCostMerchant `bson:"set"`
 }
 
 type PaymentChannelCostSystemSet struct {
-	Id  string                              `bson:"_id"`
-	Set []*billing.PaymentChannelCostSystem `bson:"set"`
+	Id  string                                `bson:"_id"`
+	Set []*billingpb.PaymentChannelCostSystem `bson:"set"`
 }
 
 type MoneyBackCostMerchantSet struct {
-	Id  string                           `bson:"_id"`
-	Set []*billing.MoneyBackCostMerchant `bson:"set"`
+	Id  string                             `bson:"_id"`
+	Set []*billingpb.MoneyBackCostMerchant `bson:"set"`
 }
 
 type MoneyBackCostSystemSet struct {
-	Id  string                         `bson:"_id"`
-	Set []*billing.MoneyBackCostSystem `bson:"set"`
+	Id  string                           `bson:"_id"`
+	Set []*billingpb.MoneyBackCostSystem `bson:"set"`
 }

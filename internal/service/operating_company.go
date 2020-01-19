@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -29,10 +28,10 @@ var (
 )
 
 type OperatingCompanyInterface interface {
-	GetById(ctx context.Context, id string) (oc *billing.OperatingCompany, err error)
-	GetByPaymentCountry(ctx context.Context, countryCode string) (oc *billing.OperatingCompany, err error)
-	GetAll(ctx context.Context) (result []*billing.OperatingCompany, err error)
-	Upsert(ctx context.Context, oc *billing.OperatingCompany) (err error)
+	GetById(ctx context.Context, id string) (oc *billingpb.OperatingCompany, err error)
+	GetByPaymentCountry(ctx context.Context, countryCode string) (oc *billingpb.OperatingCompany, err error)
+	GetAll(ctx context.Context) (result []*billingpb.OperatingCompany, err error)
+	Upsert(ctx context.Context, oc *billingpb.OperatingCompany) (err error)
 	Exists(ctx context.Context, id string) bool
 }
 
@@ -43,29 +42,29 @@ func newOperatingCompanyService(svc *Service) OperatingCompanyInterface {
 
 func (s *Service) GetOperatingCompaniesList(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *grpc.GetOperatingCompaniesListResponse,
+	req *billingpb.EmptyRequest,
+	res *billingpb.GetOperatingCompaniesListResponse,
 ) (err error) {
 	res.Items, err = s.operatingCompany.GetAll(ctx)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return
 }
 
 func (s *Service) AddOperatingCompany(
 	ctx context.Context,
-	req *billing.OperatingCompany,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.OperatingCompany,
+	res *billingpb.EmptyResponseWithStatus,
 ) (err error) {
-	oc := &billing.OperatingCompany{
+	oc := &billingpb.OperatingCompany{
 		Id:               primitive.NewObjectID().Hex(),
 		PaymentCountries: []string{},
 		CreatedAt:        ptypes.TimestampNow(),
@@ -74,7 +73,7 @@ func (s *Service) AddOperatingCompany(
 	if req.Id != "" {
 		oc, err = s.operatingCompany.GetById(ctx, req.Id)
 		if err != nil {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorOperatingCompanyNotFound
 			return nil
 		}
@@ -83,15 +82,15 @@ func (s *Service) AddOperatingCompany(
 	if req.PaymentCountries == nil || len(req.PaymentCountries) == 0 {
 		ocCheck, err := s.operatingCompany.GetByPaymentCountry(ctx, "")
 		if err != nil && err != errorOperatingCompanyNotFound {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusBadData
+			if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = e
 				return nil
 			}
 			return err
 		}
 		if ocCheck != nil && ocCheck.Id != oc.Id {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorOperatingCompanyCountryAlreadyExists
 			return nil
 		}
@@ -101,22 +100,22 @@ func (s *Service) AddOperatingCompany(
 		for _, countryCode := range req.PaymentCountries {
 			ocCheck, err := s.operatingCompany.GetByPaymentCountry(ctx, countryCode)
 			if err != nil && err != errorOperatingCompanyNotFound {
-				if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-					res.Status = pkg.ResponseStatusBadData
+				if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+					res.Status = billingpb.ResponseStatusBadData
 					res.Message = e
 					return nil
 				}
 				return err
 			}
 			if ocCheck != nil && ocCheck.Id != oc.Id {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = errorOperatingCompanyCountryAlreadyExists
 				return nil
 			}
 
 			_, err = s.country.GetByIsoCodeA2(ctx, countryCode)
 			if err != nil {
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = errorOperatingCompanyCountryUnknown
 				return nil
 			}
@@ -139,38 +138,38 @@ func (s *Service) AddOperatingCompany(
 
 	err = s.operatingCompany.Upsert(ctx, oc)
 	if err != nil {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = e
 			return nil
 		}
 		return
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return
 }
 
 func (s *Service) GetOperatingCompany(
 	ctx context.Context,
-	req *grpc.GetOperatingCompanyRequest,
-	res *grpc.GetOperatingCompanyResponse,
+	req *billingpb.GetOperatingCompanyRequest,
+	res *billingpb.GetOperatingCompanyResponse,
 ) (err error) {
 	oc, err := s.operatingCompany.GetById(ctx, req.Id)
 
 	if err != nil {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorOperatingCompanyNotFound
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Company = oc
 
 	return
 }
 
-func (o OperatingCompany) GetById(ctx context.Context, id string) (oc *billing.OperatingCompany, err error) {
+func (o OperatingCompany) GetById(ctx context.Context, id string) (oc *billingpb.OperatingCompany, err error) {
 	key := fmt.Sprintf(cacheKeyOperatingCompany, id)
 	if err = o.svc.cacher.Get(key, &oc); err == nil {
 		return oc, nil
@@ -212,7 +211,7 @@ func (o OperatingCompany) GetById(ctx context.Context, id string) (oc *billing.O
 func (o OperatingCompany) GetByPaymentCountry(
 	ctx context.Context,
 	countryCode string,
-) (oc *billing.OperatingCompany, err error) {
+) (oc *billingpb.OperatingCompany, err error) {
 	key := fmt.Sprintf(cacheKeyOperatingCompanyByPaymentCountry, countryCode)
 	if err = o.svc.cacher.Get(key, &oc); err == nil {
 		return oc, nil
@@ -261,8 +260,8 @@ func (o OperatingCompany) GetByPaymentCountry(
 	return
 }
 
-func (o OperatingCompany) GetAll(ctx context.Context) ([]*billing.OperatingCompany, error) {
-	var result []*billing.OperatingCompany
+func (o OperatingCompany) GetAll(ctx context.Context) ([]*billingpb.OperatingCompany, error) {
+	var result []*billingpb.OperatingCompany
 	err := o.svc.cacher.Get(cacheKeyAllOperatingCompanies, &result)
 
 	if err == nil {
@@ -306,7 +305,7 @@ func (o OperatingCompany) GetAll(ctx context.Context) ([]*billing.OperatingCompa
 	return result, nil
 }
 
-func (o OperatingCompany) Upsert(ctx context.Context, oc *billing.OperatingCompany) error {
+func (o OperatingCompany) Upsert(ctx context.Context, oc *billingpb.OperatingCompany) error {
 	oid, _ := primitive.ObjectIDFromHex(oc.Id)
 	filter := bson.M{"_id": oid}
 	_, err := o.svc.db.Collection(collectionOperatingCompanies).ReplaceOne(ctx, filter, oc, options.Replace().SetUpsert(true))

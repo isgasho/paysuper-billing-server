@@ -10,13 +10,11 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	curPkg "github.com/paysuper/paysuper-currencies/pkg"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
@@ -33,8 +31,8 @@ type TurnoversTestSuite struct {
 	service          *Service
 	log              *zap.Logger
 	cache            database.CacheInterface
-	country          *billing.Country
-	operatingCompany *billing.OperatingCompany
+	country          *billingpb.Country
+	operatingCompany *billingpb.OperatingCompany
 }
 
 func Test_Turnovers(t *testing.T) {
@@ -83,7 +81,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 
 	suite.operatingCompany = helperOperatingCompany(suite.Suite, suite.service)
 
-	pg := &billing.PriceGroup{
+	pg := &billingpb.PriceGroup{
 		Id:       primitive.NewObjectID().Hex(),
 		Currency: "USD",
 		Region:   "",
@@ -93,7 +91,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
-	countryRu := &billing.Country{
+	countryRu := &billingpb.Country{
 		Id:              primitive.NewObjectID().Hex(),
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
@@ -103,7 +101,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "RUB",
-		VatThreshold: &billing.CountryVatThreshold{
+		VatThreshold: &billingpb.CountryVatThreshold{
 			Year:  0,
 			World: 0,
 		},
@@ -114,7 +112,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		VatCurrencyRatesSource: "cbrf",
 	}
 
-	countryTr := &billing.Country{
+	countryTr := &billingpb.Country{
 		Id:              primitive.NewObjectID().Hex(),
 		IsoCodeA2:       "TR",
 		Region:          "West Asia",
@@ -124,7 +122,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		VatEnabled:      true,
 		PriceGroupId:    pg.Id,
 		VatCurrency:     "TRY",
-		VatThreshold: &billing.CountryVatThreshold{
+		VatThreshold: &billingpb.CountryVatThreshold{
 			Year:  0,
 			World: 0,
 		},
@@ -135,7 +133,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		VatCurrencyRatesSource: "cbtr",
 	}
 
-	countries := []*billing.Country{countryRu, countryTr}
+	countries := []*billingpb.Country{countryRu, countryTr}
 	if err := suite.service.country.MultipleInsert(context.TODO(), countries); err != nil {
 		suite.FailNow("Insert country test data failed", "%v", err)
 	}
@@ -164,7 +162,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover_Empty() {
 	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 
-	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks, "", suite.operatingCompany.Id)
+	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, currenciespb.RateTypeCentralbanks, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), amount, float64(0))
 }
@@ -194,12 +192,12 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	from, to, err := suite.service.getLastVatReportTime(int32(3))
 	assert.NoError(suite.T(), err)
 
-	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, curPkg.RateTypeCentralbanks, "", suite.operatingCompany.Id)
+	amount, err := suite.service.getTurnover(context.TODO(), from, to, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy, currenciespb.RateTypeCentralbanks, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	ref1 := suite.getTurnoverReference(from, to, suite.operatingCompany.Id, countryCode, country.VatCurrency, country.VatCurrencyRatesPolicy)
 	assert.Equal(suite.T(), amount, ref1)
 
-	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), now.EndOfYear(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
+	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), now.EndOfYear(), "", "RUB", "on-day", currenciespb.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), now.EndOfYear(), suite.operatingCompany.Id, "", "RUB", "on-day")
 	assert.Equal(suite.T(), worldAmount, ref2)
@@ -209,7 +207,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_getTurnover() {
 	err = suite.service.updateOrderView(context.TODO(), []string{})
 	assert.NoError(suite.T(), err)
 
-	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), now.EndOfYear(), "", "RUB", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
+	worldAmount, err = suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), now.EndOfYear(), "", "RUB", "on-day", currenciespb.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 	ref3 := suite.getTurnoverReference(now.BeginningOfYear(), now.EndOfYear(), suite.operatingCompany.Id, "", "RUB", "on-day")
 	assert.Equal(suite.T(), worldAmount, ref3)
@@ -244,7 +242,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	err := suite.service.updateOrderView(context.TODO(), []string{})
 	assert.NoError(suite.T(), err)
 
-	err = suite.service.CalcAnnualTurnovers(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	err = suite.service.CalcAnnualTurnovers(context.TODO(), &billingpb.EmptyRequest{}, &billingpb.EmptyResponse{})
 	assert.NoError(suite.T(), err)
 
 	at, err := suite.service.turnoverRepository.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
@@ -261,7 +259,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	assert.Equal(suite.T(), at.Country, "")
 	assert.Equal(suite.T(), at.Currency, "EUR")
 
-	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "EUR", "on-day", curPkg.RateTypeOxr, "", suite.operatingCompany.Id)
+	worldAmount, err := suite.service.getTurnover(context.TODO(), now.BeginningOfYear(), time.Now(), "", "EUR", "on-day", currenciespb.RateTypeOxr, "", suite.operatingCompany.Id)
 	assert.Equal(suite.T(), tools.FormatAmount(at.Amount), tools.FormatAmount(worldAmount))
 
 	countries, err := suite.service.country.FindByVatEnabled(context.TODO())
@@ -286,7 +284,7 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 		refund:   nil,
 		merchant: nil,
 		country:  country,
-		req:      &grpc.CreateAccountingEntryRequest{},
+		req:      &billingpb.CreateAccountingEntryRequest{},
 	}
 
 	currs := []string{"RUB", "USD"}
@@ -307,23 +305,23 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 		createdAt, err := ptypes.TimestampProto(date)
 		assert.NoError(suite.T(), err)
 
-		order := &billing.Order{
+		order := &billingpb.Order{
 			Id:                 primitive.NewObjectID().Hex(),
-			Status:             constant.OrderPublicStatusProcessed,
-			PrivateStatus:      constant.OrderStatusProjectComplete,
+			Status:             recurringpb.OrderPublicStatusProcessed,
+			PrivateStatus:      recurringpb.OrderStatusProjectComplete,
 			CreatedAt:          createdAt,
 			TotalPaymentAmount: float64(count + 1),
 			Currency:           currs[count%2],
-			BillingAddress: &billing.OrderBillingAddress{
+			BillingAddress: &billingpb.OrderBillingAddress{
 				Country: countryCode,
 			},
-			Tax: &billing.OrderTax{
+			Tax: &billingpb.OrderTax{
 				Type:     "",
 				Rate:     0,
 				Amount:   0,
 				Currency: currs[count%2],
 			},
-			Project: &billing.ProjectOrder{
+			Project: &billingpb.ProjectOrder{
 				Id:         primitive.NewObjectID().Hex(),
 				MerchantId: primitive.NewObjectID().Hex(),
 			},
@@ -338,11 +336,11 @@ func (suite *TurnoversTestSuite) fillAccountingEntries(operatingCompanyId, count
 
 		_, err = suite.service.db.Collection(repository.CollectionOrder).InsertOne(context.TODO(), order)
 
-		entry := &billing.AccountingEntry{
+		entry := &billingpb.AccountingEntry{
 			Id:     primitive.NewObjectID().Hex(),
 			Object: pkg.ObjectTypeBalanceTransaction,
 			Type:   types[count%2],
-			Source: &billing.AccountingEntrySource{
+			Source: &billingpb.AccountingEntrySource{
 				Id:   order.Id,
 				Type: repository.CollectionOrder,
 			},
@@ -372,7 +370,7 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, operat
 		"operating_company_id": operatingCompanyId,
 		"is_production":        true,
 		"type":                 pkg.OrderTypeOrder,
-		"status":               constant.OrderPublicStatusProcessed,
+		"status":               recurringpb.OrderPublicStatusProcessed,
 		"payment_gross_revenue_origin": bson.M{
 			"$ne": nil,
 		},
@@ -441,11 +439,11 @@ func (suite *TurnoversTestSuite) getTurnoverReference(from, to time.Time, operat
 			continue
 		}
 
-		req := &currencies.ExchangeCurrencyByDateCommonRequest{
+		req := &currenciespb.ExchangeCurrencyByDateCommonRequest{
 			From:              v.Id,
 			To:                targetCurrency,
-			RateType:          curPkg.RateTypeOxr,
-			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			RateType:          currenciespb.RateTypeOxr,
+			ExchangeDirection: currenciespb.ExchangeDirectionBuy,
 			Amount:            v.Amount,
 			Datetime:          nil,
 		}

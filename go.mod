@@ -5,6 +5,7 @@ require (
 	github.com/ProtocolONE/geoip-service v0.0.0-20190903084234-1d5ae6b96679
 	github.com/ProtocolONE/go-micro-plugins v0.3.0
 	github.com/PuerkitoBio/purell v1.0.0
+	github.com/alicebob/gopher-json v0.0.0-20180125190556-5a6b3ba71ee6 // indirect
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/centrifugal/gocent v2.0.2+incompatible
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -17,28 +18,32 @@ require (
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-querystring v1.0.0
 	github.com/google/uuid v1.1.1
-	github.com/jinzhu/copier v0.0.0-20190625015134-976e0346caa8
-	github.com/jinzhu/now v1.0.1
+	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
+	github.com/jinzhu/now v1.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/micro/cli v0.2.0
-	github.com/micro/go-micro v1.8.0
+	github.com/micro/go-micro v1.18.0
 	github.com/micro/go-plugins v1.2.0
 	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
-	github.com/paysuper/document-signer v0.0.0-20191205124524-761027640a4f
-	github.com/paysuper/paysuper-currencies v0.0.0-20191209131235-52121b09aab0
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
-	github.com/paysuper/paysuper-recurring-repository v1.0.128
-	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
-	github.com/paysuper/paysuper-tax-service v1.0.0
-	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
+	github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200119171242-a5509c703c1a
+	github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119004420-095f33cbe4b8 // indirect
+	github.com/paysuper/paysuper-proto/go/currenciespb v0.0.0-20200119003232-91615911efec
+	github.com/paysuper/paysuper-proto/go/document_signerpb v0.0.0-20200117170849-2e388108ebcc
+	github.com/paysuper/paysuper-proto/go/postmarkpb v0.0.0-20200117180736-12adca1f8860
+	github.com/paysuper/paysuper-proto/go/recurringpb v0.0.0-20200119004420-095f33cbe4b8
+	github.com/paysuper/paysuper-proto/go/reporterpb v0.0.0-20200117172130-df1a443c1fe8
+	github.com/paysuper/paysuper-proto/go/taxpb v0.0.0-20200118235449-5c93300b7a1f
+	github.com/paysuper/paysuper-tools v0.0.0-20200117101901-522574ce4d1c
 	github.com/prometheus/client_golang v1.2.1
 	github.com/stoewer/go-strcase v1.1.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
+	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/ttacon/libphonenumber v1.0.1
 	github.com/yuin/gopher-lua v0.0.0-20191128022950-c6266f4fe8d7 // indirect
-	go.mongodb.org/mongo-driver v1.1.3
-	go.uber.org/zap v1.10.0
+	go.mongodb.org/mongo-driver v1.2.1
+	go.uber.org/zap v1.13.0
 	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df

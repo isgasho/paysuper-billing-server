@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 )
 
 func (s *Service) FindByZipCode(
 	ctx context.Context,
-	req *grpc.FindByZipCodeRequest,
-	rsp *grpc.FindByZipCodeResponse,
+	req *billingpb.FindByZipCodeRequest,
+	rsp *billingpb.FindByZipCodeResponse,
 ) error {
 	if req.Country != CountryCodeUSA {
 		return nil

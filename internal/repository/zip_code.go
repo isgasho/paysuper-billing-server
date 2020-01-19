@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,7 +22,7 @@ func NewZipCodeRepository(db mongodb.SourceInterface, cache database.CacheInterf
 	return s
 }
 
-func (h *zipCodeRepository) Insert(ctx context.Context, zipCode *billing.ZipCode) error {
+func (h *zipCodeRepository) Insert(ctx context.Context, zipCode *billingpb.ZipCode) error {
 	_, err := h.db.Collection(collectionZipCode).InsertOne(ctx, zipCode)
 
 	if err != nil {
@@ -51,8 +51,8 @@ func (h *zipCodeRepository) Insert(ctx context.Context, zipCode *billing.ZipCode
 	return nil
 }
 
-func (h *zipCodeRepository) GetByZipAndCountry(ctx context.Context, zip, country string) (*billing.ZipCode, error) {
-	data := &billing.ZipCode{}
+func (h *zipCodeRepository) GetByZipAndCountry(ctx context.Context, zip, country string) (*billingpb.ZipCode, error) {
+	data := &billingpb.ZipCode{}
 	var key = fmt.Sprintf(cacheZipCodeByZipAndCountry, zip, country)
 
 	if err := h.cache.Get(key, data); err == nil {
@@ -85,8 +85,8 @@ func (h *zipCodeRepository) GetByZipAndCountry(ctx context.Context, zip, country
 	return data, nil
 }
 
-func (h *zipCodeRepository) FindByZipAndCountry(ctx context.Context, zip, country string, offset, limit int64) ([]*billing.ZipCode, error) {
-	var data []*billing.ZipCode
+func (h *zipCodeRepository) FindByZipAndCountry(ctx context.Context, zip, country string, offset, limit int64) ([]*billingpb.ZipCode, error) {
+	var data []*billingpb.ZipCode
 
 	query := bson.D{{"zip", primitive.Regex{Pattern: zip}}, {"country", country}}
 	opts := options.Find().SetLimit(limit).SetSkip(offset)

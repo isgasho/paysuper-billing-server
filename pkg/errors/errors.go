@@ -1,8 +1,10 @@
 package errors
 
-import "github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+import (
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+)
 
-func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.ResponseErrorMessage {
+func newBillingServerErrorMsg(code, msg string, details ...string) *billingpb.ResponseErrorMessage {
 	var det string
 
 	if len(details) > 0 && details[0] != "" {
@@ -11,7 +13,7 @@ func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.Respons
 		det = ""
 	}
 
-	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
+	return &billingpb.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
 var (

@@ -5,9 +5,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -19,35 +18,35 @@ import (
 
 var (
 	bankCardRequisites = map[string]string{
-		pkg.PaymentCreateFieldPan:    "4000000000000002",
-		pkg.PaymentCreateFieldMonth:  "12",
-		pkg.PaymentCreateFieldYear:   "2019",
-		pkg.PaymentCreateFieldHolder: "Mr. Card Holder",
-		pkg.PaymentCreateFieldCvv:    "000",
+		billingpb.PaymentCreateFieldPan:    "4000000000000002",
+		billingpb.PaymentCreateFieldMonth:  "12",
+		billingpb.PaymentCreateFieldYear:   "2019",
+		billingpb.PaymentCreateFieldHolder: "Mr. Card Holder",
+		billingpb.PaymentCreateFieldCvv:    "000",
 	}
 
-	orderSimpleBankCard = &billing.Order{
+	orderSimpleBankCard = &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			Name:       map[string]string{"en": "Project Name"},
 			UrlSuccess: "http://localhost/success",
 			UrlFail:    "http://localhost/false",
 		},
 		Description:        fmt.Sprintf(orderDefaultDescription, primitive.NewObjectID().Hex()),
-		PrivateStatus:      constant.OrderStatusNew,
+		PrivateStatus:      recurringpb.OrderStatusNew,
 		CreatedAt:          ptypes.TimestampNow(),
 		IsJsonRequest:      false,
-		Items:              []*billing.OrderItem{},
+		Items:              []*billingpb.OrderItem{},
 		TotalPaymentAmount: 10.2,
 		Currency:           "RUB",
-		User: &billing.OrderUser{
+		User: &billingpb.OrderUser{
 			Id:     primitive.NewObjectID().Hex(),
 			Object: "user",
 			Email:  "test@unit.test",
 			Ip:     "127.0.0.1",
 			Locale: "ru",
-			Address: &billing.OrderBillingAddress{
+			Address: &billingpb.OrderBillingAddress{
 				Country:    "RU",
 				City:       "St.Petersburg",
 				PostalCode: "190000",
@@ -55,12 +54,12 @@ var (
 			},
 			TechEmail: fmt.Sprintf("%s@paysuper.com", primitive.NewObjectID().Hex()),
 		},
-		PaymentMethod: &billing.PaymentMethodOrder{
+		PaymentMethod: &billingpb.PaymentMethodOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			Name:       "Bank card",
 			Handler:    "cardpay",
 			ExternalId: "BANKCARD",
-			Params: &billing.PaymentMethodParams{
+			Params: &billingpb.PaymentMethodParams{
 				Currency:       "USD",
 				TerminalId:     "123456",
 				Secret:         "secret_key",

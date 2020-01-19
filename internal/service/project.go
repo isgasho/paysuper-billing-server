@@ -6,8 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -40,15 +39,15 @@ var (
 
 func (s *Service) ChangeProject(
 	ctx context.Context,
-	req *billing.Project,
-	rsp *grpc.ChangeProjectResponse,
+	req *billingpb.Project,
+	rsp *billingpb.ChangeProjectResponse,
 ) error {
-	var project *billing.Project
+	var project *billingpb.Project
 	var err error
 
-	var merchant = &billing.Merchant{}
+	var merchant = &billingpb.Merchant{}
 	if merchant, err = s.merchant.GetById(ctx, req.MerchantId); err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 
 		return nil
@@ -61,7 +60,7 @@ func (s *Service) ChangeProject(
 		project, err = s.getProjectBy(ctx, filter)
 
 		if err != nil || project.MerchantId != req.MerchantId {
-			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Status = billingpb.ResponseStatusNotFound
 			rsp.Message = projectErrorNotFound
 
 			return nil
@@ -69,7 +68,7 @@ func (s *Service) ChangeProject(
 	}
 
 	if _, ok := req.Name[DefaultLanguage]; !ok {
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = projectErrorNameDefaultLangRequired
 
 		return nil
@@ -77,7 +76,7 @@ func (s *Service) ChangeProject(
 
 	if req.CallbackCurrency != "" {
 		if !helper.Contains(s.supportedCurrencies, req.CallbackCurrency) {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = projectErrorCallbackCurrencyIncorrect
 
 			return nil
@@ -86,7 +85,7 @@ func (s *Service) ChangeProject(
 
 	if req.LimitsCurrency != "" {
 		if !helper.Contains(s.supportedCurrencies, req.LimitsCurrency) {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = projectErrorLimitCurrencyIncorrect
 
 			return nil
@@ -96,7 +95,7 @@ func (s *Service) ChangeProject(
 	if len(req.Currencies) > 0 {
 		for _, v := range req.Currencies {
 			if !helper.Contains(s.supportedCurrencies, v.Currency) {
-				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Status = billingpb.ResponseStatusBadData
 				rsp.Message = projectErrorCurrencyIsNotSupport
 				rsp.Message.Details = v.Currency
 
@@ -110,8 +109,8 @@ func (s *Service) ChangeProject(
 		err = s.validateProjectVirtualCurrency(req.VirtualCurrency, payoutCurrency)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 			return nil
 		}
@@ -123,7 +122,7 @@ func (s *Service) ChangeProject(
 
 	if len(req.ShortDescription) > 0 {
 		if _, ok := req.ShortDescription[DefaultLanguage]; !ok {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = projectErrorShortDescriptionDefaultLangRequired
 
 			return nil
@@ -132,7 +131,7 @@ func (s *Service) ChangeProject(
 
 	if len(req.FullDescription) > 0 {
 		if _, ok := req.FullDescription[DefaultLanguage]; !ok {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = projectErrorFullDescriptionDefaultLangRequired
 
 			return nil
@@ -140,17 +139,17 @@ func (s *Service) ChangeProject(
 	}
 
 	if (req.MinPaymentAmount > 0 || req.MaxPaymentAmount > 0) && req.LimitsCurrency == "" {
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = projectErrorLimitCurrencyRequired
 
 		return nil
 	}
 
 	if merchant.DontChargeVat == true {
-		req.VatPayer = pkg.VatPayerNobody
+		req.VatPayer = billingpb.VatPayerNobody
 	} else {
-		if req.VatPayer != pkg.VatPayerBuyer && req.VatPayer != pkg.VatPayerSeller {
-			rsp.Status = pkg.ResponseStatusBadData
+		if req.VatPayer != billingpb.VatPayerBuyer && req.VatPayer != billingpb.VatPayerSeller {
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = projectErrorVatPayerUnknown
 
 			return nil
@@ -164,14 +163,14 @@ func (s *Service) ChangeProject(
 	}
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		zap.S().Errorw("create or update project error", "err", err, "req", req)
 		rsp.Message = projectErrorUnknown
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = project
 
 	return nil
@@ -179,8 +178,8 @@ func (s *Service) ChangeProject(
 
 func (s *Service) GetProject(
 	ctx context.Context,
-	req *grpc.GetProjectRequest,
-	rsp *grpc.ChangeProjectResponse,
+	req *billingpb.GetProjectRequest,
+	rsp *billingpb.ChangeProjectResponse,
 ) error {
 	oid, _ := primitive.ObjectIDFromHex(req.ProjectId)
 	query := bson.M{"_id": oid}
@@ -192,7 +191,7 @@ func (s *Service) GetProject(
 	project, err := s.getProjectBy(ctx, query)
 
 	if err != nil || project.MerchantId != req.MerchantId {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = projectErrorNotFound
 
 		return nil
@@ -200,7 +199,7 @@ func (s *Service) GetProject(
 
 	project.ProductsCount = s.getProductsCountByProject(ctx, project.Id)
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = project
 
 	return nil
@@ -208,10 +207,10 @@ func (s *Service) GetProject(
 
 func (s *Service) ListProjects(
 	ctx context.Context,
-	req *grpc.ListProjectsRequest,
-	rsp *grpc.ListProjectsResponse,
+	req *billingpb.ListProjectsRequest,
+	rsp *billingpb.ListProjectsResponse,
 ) error {
-	var projects []*billing.Project
+	var projects []*billingpb.Project
 	query := make(bson.M)
 
 	if req.MerchantId != "" {
@@ -309,7 +308,7 @@ func (s *Service) ListProjects(
 	}
 
 	rsp.Count = count
-	rsp.Items = []*billing.Project{}
+	rsp.Items = []*billingpb.Project{}
 
 	if count > 0 {
 		rsp.Items = projects
@@ -320,8 +319,8 @@ func (s *Service) ListProjects(
 
 func (s *Service) DeleteProject(
 	ctx context.Context,
-	req *grpc.GetProjectRequest,
-	rsp *grpc.ChangeProjectResponse,
+	req *billingpb.GetProjectRequest,
+	rsp *billingpb.ChangeProjectResponse,
 ) error {
 	oid, _ := primitive.ObjectIDFromHex(req.ProjectId)
 	query := bson.M{"_id": oid}
@@ -329,24 +328,24 @@ func (s *Service) DeleteProject(
 	project, err := s.getProjectBy(ctx, query)
 
 	if err != nil || req.MerchantId != project.MerchantId {
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = projectErrorNotFound
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	if project.IsDeleted() == true {
 		return nil
 	}
 
-	project.Status = pkg.ProjectStatusDeleted
+	project.Status = billingpb.ProjectStatusDeleted
 
 	if err := s.project.Update(ctx, project); err != nil {
 		zap.S().Errorf("Query to delete project failed", "err", err.Error(), "data", project)
 
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = projectErrorUnknown
 
 		return nil
@@ -355,7 +354,7 @@ func (s *Service) DeleteProject(
 	return nil
 }
 
-func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *billing.Project, err error) {
+func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *billingpb.Project, err error) {
 	err = s.db.Collection(collectionProject).FindOne(ctx, query).Decode(&project)
 
 	if err != nil {
@@ -369,8 +368,8 @@ func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *bill
 	return
 }
 
-func (s *Service) createProject(ctx context.Context, req *billing.Project) (*billing.Project, error) {
-	project := &billing.Project{
+func (s *Service) createProject(ctx context.Context, req *billingpb.Project) (*billingpb.Project, error) {
+	project := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
 		MerchantId:               req.MerchantId,
 		Cover:                    req.Cover,
@@ -396,7 +395,7 @@ func (s *Service) createProject(ctx context.Context, req *billing.Project) (*bil
 		UrlCancelPayment:         req.UrlCancelPayment,
 		UrlFraudPayment:          req.UrlFraudPayment,
 		UrlRefundPayment:         req.UrlRefundPayment,
-		Status:                   pkg.ProjectStatusDraft,
+		Status:                   billingpb.ProjectStatusDraft,
 		Localizations:            req.Localizations,
 		FullDescription:          req.FullDescription,
 		ShortDescription:         req.ShortDescription,
@@ -415,7 +414,7 @@ func (s *Service) createProject(ctx context.Context, req *billing.Project) (*bil
 	return project, nil
 }
 
-func (s *Service) updateProject(ctx context.Context, req *billing.Project, project *billing.Project) error {
+func (s *Service) updateProject(ctx context.Context, req *billingpb.Project, project *billingpb.Project) error {
 	project.Name = req.Name
 	project.CallbackCurrency = req.CallbackCurrency
 	project.CreateOrderAllowedUrls = req.CreateOrderAllowedUrls
@@ -435,7 +434,7 @@ func (s *Service) updateProject(ctx context.Context, req *billing.Project, proje
 	project.UpdatedAt = ptypes.TimestampNow()
 
 	if project.NeedChangeStatusToDraft(req) == true {
-		project.Status = pkg.ProjectStatusDraft
+		project.Status = billingpb.ProjectStatusDraft
 	}
 
 	project.CallbackProtocol = req.CallbackProtocol
@@ -481,7 +480,7 @@ func (s *Service) getProjectsCountByMerchant(ctx context.Context, merchantId str
 	return int32(count)
 }
 
-func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.ProjectVirtualCurrency, payoutCurrency string) error {
+func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billingpb.ProjectVirtualCurrency, payoutCurrency string) error {
 	if _, ok := virtualCurrency.Name[DefaultLanguage]; !ok {
 		return projectErrorVirtualCurrencyNameDefaultLangRequired
 	}
@@ -524,7 +523,7 @@ func newProjectService(svc *Service) *Project {
 	return s
 }
 
-func (h *Project) Insert(ctx context.Context, project *billing.Project) error {
+func (h *Project) Insert(ctx context.Context, project *billingpb.Project) error {
 	_, err := h.svc.db.Collection(collectionProject).InsertOne(ctx, project)
 
 	if err != nil {
@@ -555,7 +554,7 @@ func (h *Project) Insert(ctx context.Context, project *billing.Project) error {
 	return nil
 }
 
-func (h *Project) MultipleInsert(ctx context.Context, projects []*billing.Project) error {
+func (h *Project) MultipleInsert(ctx context.Context, projects []*billingpb.Project) error {
 	p := make([]interface{}, len(projects))
 	for i, v := range projects {
 		p[i] = v
@@ -577,7 +576,7 @@ func (h *Project) MultipleInsert(ctx context.Context, projects []*billing.Projec
 	return nil
 }
 
-func (h *Project) Update(ctx context.Context, project *billing.Project) error {
+func (h *Project) Update(ctx context.Context, project *billingpb.Project) error {
 	oid, _ := primitive.ObjectIDFromHex(project.Id)
 	filter := bson.M{"_id": oid}
 	_, err := h.svc.db.Collection(collectionProject).ReplaceOne(ctx, filter, project)
@@ -610,8 +609,8 @@ func (h *Project) Update(ctx context.Context, project *billing.Project) error {
 	return nil
 }
 
-func (h Project) GetById(ctx context.Context, id string) (*billing.Project, error) {
-	var c billing.Project
+func (h Project) GetById(ctx context.Context, id string) (*billingpb.Project, error) {
+	var c billingpb.Project
 	key := fmt.Sprintf(cacheProjectId, id)
 	err := h.svc.cacher.Get(key, c)
 
@@ -648,8 +647,8 @@ func (h Project) GetById(ctx context.Context, id string) (*billing.Project, erro
 	return &c, nil
 }
 
-func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *grpc.CheckSkuAndKeyProjectRequest, rsp *grpc.EmptyResponseWithStatus) error {
-	rsp.Status = pkg.ResponseStatusOk
+func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *billingpb.CheckSkuAndKeyProjectRequest, rsp *billingpb.EmptyResponseWithStatus) error {
+	rsp.Status = billingpb.ResponseStatusOk
 
 	oid, _ := primitive.ObjectIDFromHex(req.ProjectId)
 	dupQuery := bson.M{"project_id": oid, "sku": req.Sku, "deleted": false}

@@ -6,8 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
@@ -22,14 +21,14 @@ const (
 )
 
 type TariffRates struct {
-	Items []*billing.MerchantTariffRatesPayment `json:"items"`
+	Items []*billingpb.MerchantTariffRatesPayment `json:"items"`
 }
 
 type MerchantTariffRatesInterface interface {
-	GetPaymentTariffsBy(context.Context, *grpc.GetMerchantTariffRatesRequest) ([]*billing.MerchantTariffRatesPayment, error)
-	GetTariffsSettings(ctx context.Context, in *grpc.GetMerchantTariffRatesRequest) (*billing.MerchantTariffRatesSettings, error)
-	GetBy(ctx context.Context, in *grpc.GetMerchantTariffRatesRequest) (*grpc.GetMerchantTariffRatesResponseItems, error)
-	GetCacheKeyForGetBy(*grpc.GetMerchantTariffRatesRequest) (string, error)
+	GetPaymentTariffsBy(context.Context, *billingpb.GetMerchantTariffRatesRequest) ([]*billingpb.MerchantTariffRatesPayment, error)
+	GetTariffsSettings(ctx context.Context, in *billingpb.GetMerchantTariffRatesRequest) (*billingpb.MerchantTariffRatesSettings, error)
+	GetBy(ctx context.Context, in *billingpb.GetMerchantTariffRatesRequest) (*billingpb.GetMerchantTariffRatesResponseItems, error)
+	GetCacheKeyForGetBy(*billingpb.GetMerchantTariffRatesRequest) (string, error)
 }
 
 func newMerchantsTariffRatesRepository(s *Service) *MerchantsTariffRatesRepository {
@@ -38,8 +37,8 @@ func newMerchantsTariffRatesRepository(s *Service) *MerchantsTariffRatesReposito
 
 func (h *MerchantsTariffRatesRepository) GetBy(
 	ctx context.Context,
-	in *grpc.GetMerchantTariffRatesRequest,
-) (*grpc.GetMerchantTariffRatesResponseItems, error) {
+	in *billingpb.GetMerchantTariffRatesRequest,
+) (*billingpb.GetMerchantTariffRatesResponseItems, error) {
 	payment, err := h.GetPaymentTariffsBy(ctx, in)
 
 	if err != nil {
@@ -52,7 +51,7 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 		return nil, err
 	}
 
-	tariffs := &grpc.GetMerchantTariffRatesResponseItems{
+	tariffs := &billingpb.GetMerchantTariffRatesResponseItems{
 		Payment:       payment,
 		Refund:        settings.Refund,
 		Chargeback:    settings.Chargeback,
@@ -66,14 +65,14 @@ func (h *MerchantsTariffRatesRepository) GetBy(
 
 func (h *MerchantsTariffRatesRepository) GetTariffsSettings(
 	ctx context.Context,
-	in *grpc.GetMerchantTariffRatesRequest,
-) (*billing.MerchantTariffRatesSettings, error) {
+	in *billingpb.GetMerchantTariffRatesRequest,
+) (*billingpb.MerchantTariffRatesSettings, error) {
 	mccCode, err := getMccByOperationsType(in.MerchantOperationsType)
 	if err != nil {
 		return nil, err
 	}
 
-	item := new(billing.MerchantTariffRatesSettings)
+	item := new(billingpb.MerchantTariffRatesSettings)
 	key := fmt.Sprintf(merchantTariffsSettingsKey, mccCode)
 	err = h.svc.cacher.Get(key, &item)
 
@@ -111,8 +110,8 @@ func (h *MerchantsTariffRatesRepository) GetTariffsSettings(
 
 func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 	ctx context.Context,
-	in *grpc.GetMerchantTariffRatesRequest,
-) ([]*billing.MerchantTariffRatesPayment, error) {
+	in *billingpb.GetMerchantTariffRatesRequest,
+) ([]*billingpb.MerchantTariffRatesPayment, error) {
 	item := new(TariffRates)
 	key, err := h.GetCacheKeyForGetBy(in)
 
@@ -190,7 +189,7 @@ func (h *MerchantsTariffRatesRepository) GetPaymentTariffsBy(
 	return item.Items, nil
 }
 
-func (h *MerchantsTariffRatesRepository) GetCacheKeyForGetBy(req *grpc.GetMerchantTariffRatesRequest) (string, error) {
+func (h *MerchantsTariffRatesRepository) GetCacheKeyForGetBy(req *billingpb.GetMerchantTariffRatesRequest) (string, error) {
 	b, err := json.Marshal(req)
 
 	if err != nil {

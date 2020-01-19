@@ -10,10 +10,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -33,14 +31,14 @@ type UserProfileTestSuite struct {
 	log     *zap.Logger
 	cache   database.CacheInterface
 
-	merchant          *billing.Merchant
-	merchantAgreement *billing.Merchant
-	merchant1         *billing.Merchant
+	merchant          *billingpb.Merchant
+	merchantAgreement *billingpb.Merchant
+	merchant1         *billingpb.Merchant
 
-	project *billing.Project
+	project *billingpb.Project
 
-	pmBankCard *billing.PaymentMethod
-	pmQiwi     *billing.PaymentMethod
+	pmBankCard *billingpb.PaymentMethod
+	pmQiwi     *billingpb.PaymentMethod
 
 	logObserver *zap.Logger
 	zapRecorder *observer.ObservedLogs
@@ -96,7 +94,7 @@ func (suite *UserProfileTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	country := &billing.Country{
+	country := &billingpb.Country{
 		IsoCodeA2:       "RU",
 		Region:          "Russia",
 		Currency:        "RUB",
@@ -133,17 +131,17 @@ func (suite *UserProfileTestSuite) TearDownTest() {
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
@@ -151,7 +149,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 		},
 		LastStep: "step2",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
 	assert.NotNil(suite.T(), err)
@@ -159,10 +157,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.Id)
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
@@ -171,7 +169,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), profile)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
 
 	assert.Equal(suite.T(), profile.UserId, rsp.Item.UserId)
 	assert.Equal(suite.T(), profile.LastStep, rsp.Item.LastStep)
@@ -190,17 +188,17 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_ChangeProfileWithSendConfirmEmail_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
@@ -208,7 +206,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 		},
 		LastStep: "step2",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
 	assert.NotNil(suite.T(), err)
@@ -216,27 +214,27 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.Id)
 	assert.NotEmpty(suite.T(), rsp.Item.CreatedAt)
 	assert.NotEmpty(suite.T(), rsp.Item.UpdatedAt)
 
-	req = &grpc.UserProfile{
+	req = &billingpb.UserProfile{
 		UserId: req.UserId,
 		Email:  req.Email,
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
@@ -244,7 +242,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	}
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -252,7 +250,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), profile)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
 
 	assert.Equal(suite.T(), profile.UserId, rsp.Item.UserId)
 	assert.Equal(suite.T(), profile.LastStep, rsp.Item.LastStep)
@@ -271,45 +269,45 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_Cha
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfile_ExistProfile_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
 	b, ok := suite.service.postmarkBroker.(*mocks.BrokerMockOk)
@@ -318,33 +316,33 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 
 	b.IsSent = false
 
-	req1 := &grpc.UserProfile{
+	req1 := &billingpb.UserProfile{
 		UserId: req.UserId,
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "test",
 			LastName:  "test",
 			Position:  "unit",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: true,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          true,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "company name",
 			Website:           "http://127.0.0.1",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100000},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 50},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100000},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 50},
 			KindOfActivity:    "test",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription:  true,
 				InGameAdvertising: true,
 				InGamePurchases:   true,
 				PremiumAccess:     true,
 				Other:             true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				PcMac:        true,
 				GameConsole:  true,
 				MobileDevice: true,
@@ -354,10 +352,10 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 		},
 	}
 
-	rsp1 := &grpc.GetUserProfileResponse{}
+	rsp1 := &billingpb.GetUserProfileResponse{}
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.NotEmpty(suite.T(), rsp1.Item.CentrifugoToken)
@@ -381,38 +379,38 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateOnboardingProfi
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SetUserEmailConfirmationToken_Error() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
 	assert.NotNil(suite.T(), err)
@@ -430,7 +428,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
@@ -438,38 +436,38 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_NewProfile_SendUserEmailConfirmationToken_Error() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	profile, err := suite.service.userProfileRepository.GetByUserId(context.TODO(), req.UserId)
 	assert.NotNil(suite.T(), err)
@@ -483,7 +481,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 
 	err = suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp.Message)
 
 	messages := recorded.All()
@@ -491,17 +489,17 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreateOrUpdateUserProfile_New
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
@@ -509,21 +507,21 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
 		},
 		LastStep: "step2",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
-	assert.IsType(suite.T(), &grpc.UserProfile{}, rsp.Item)
+	assert.IsType(suite.T(), &billingpb.UserProfile{}, rsp.Item)
 	assert.NotEmpty(suite.T(), rsp.Item.CentrifugoToken)
 
-	req1 := &grpc.GetUserProfileRequest{UserId: req.UserId}
-	rsp1 := &grpc.GetUserProfileResponse{}
+	req1 := &billingpb.GetUserProfileRequest{UserId: req.UserId}
+	rsp1 := &billingpb.GetUserProfileResponse{}
 	err = suite.service.GetUserProfile(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.NotEmpty(suite.T(), rsp1.Item.CentrifugoToken)
@@ -542,52 +540,52 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_Ok() {
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetOnboardingProfile_NotFound_Error() {
-	req := &grpc.GetUserProfileRequest{UserId: primitive.NewObjectID().Hex()}
-	rsp := &grpc.GetUserProfileResponse{}
+	req := &billingpb.GetUserProfileRequest{UserId: primitive.NewObjectID().Hex()}
+	rsp := &billingpb.GetUserProfileResponse{}
 	err := suite.service.GetUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), userProfileErrorNotFound, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -604,11 +602,11 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 	zap.ReplaceGlobals(suite.logObserver)
 	suite.service.centrifugoDashboard = newCentrifugo(suite.service.cfg.CentrifugoDashboard, mocks.NewClientStatusOk())
 
-	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.ConfirmUserEmailResponse{}
+	req2 := &billingpb.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &billingpb.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
 	messages := suite.zapRecorder.All()
@@ -622,51 +620,51 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_Ok() {
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_TokenNotFound_Error() {
-	req := &grpc.ConfirmUserEmailRequest{Token: primitive.NewObjectID().Hex()}
-	rsp := &grpc.ConfirmUserEmailResponse{}
+	req := &billingpb.ConfirmUserEmailRequest{Token: primitive.NewObjectID().Hex()}
+	rsp := &billingpb.ConfirmUserEmailResponse{}
 	err := suite.service.ConfirmUserEmail(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), userProfileEmailConfirmationTokenNotFound, rsp.Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound_Error() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -688,51 +686,51 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_UserNotFound
 	).Err()
 	assert.NoError(suite.T(), err)
 
-	req2 := &grpc.ConfirmUserEmailRequest{Token: token}
-	rsp2 := &grpc.ConfirmUserEmailResponse{}
+	req2 := &billingpb.ConfirmUserEmailRequest{Token: token}
+	rsp2 := &billingpb.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp2.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp2.Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlreadyConfirmed_Error() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -750,56 +748,56 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailAlready
 	ci.On("Publish", mock2.Anything, mock2.Anything, mock2.Anything).Return(nil)
 	suite.service.centrifugoDashboard = ci
 
-	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.ConfirmUserEmailResponse{}
+	req2 := &billingpb.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &billingpb.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirmedSuccessfully_Error() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
 			Other:                          false,
 		},
-		Company: &grpc.UserProfileCompany{
+		Company: &billingpb.UserProfileCompany{
 			CompanyName:       "Unit test",
 			Website:           "http://localhost",
-			AnnualIncome:      &billing.RangeInt{From: 10, To: 100},
-			NumberOfEmployees: &billing.RangeInt{From: 10, To: 100},
+			AnnualIncome:      &billingpb.RangeInt{From: 10, To: 100},
+			NumberOfEmployees: &billingpb.RangeInt{From: 10, To: 100},
 			KindOfActivity:    "develop_and_publish_your_games",
-			Monetization: &grpc.UserProfileCompanyMonetization{
+			Monetization: &billingpb.UserProfileCompanyMonetization{
 				PaidSubscription: true,
 			},
-			Platforms: &grpc.UserProfileCompanyPlatforms{
+			Platforms: &billingpb.UserProfileCompanyPlatforms{
 				WebBrowser: true,
 			},
 		},
 		LastStep: "step3",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -813,26 +811,26 @@ func (suite *UserProfileTestSuite) TestUserProfile_ConfirmUserEmail_EmailConfirm
 	assert.Len(suite.T(), p, 1)
 	assert.Contains(suite.T(), p, "token")
 
-	req2 := &grpc.ConfirmUserEmailRequest{Token: p["token"][0]}
-	rsp2 := &grpc.ConfirmUserEmailResponse{}
+	req2 := &billingpb.ConfirmUserEmailRequest{Token: p["token"][0]}
+	rsp2 := &billingpb.ConfirmUserEmailResponse{}
 	err = suite.service.ConfirmUserEmail(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, rsp2.Status)
 	assert.Equal(suite.T(), userProfileErrorUnknown, rsp2.Message)
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
@@ -840,38 +838,38 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 		},
 		LastStep: "step2",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	req1 := &grpc.CreatePageReviewRequest{
+	req1 := &billingpb.CreatePageReviewRequest{
 		UserId: req.UserId,
 		Review: "review 1",
 		Url:    "primary_onboarding",
 	}
-	rsp1 := &grpc.CheckProjectRequestSignatureResponse{}
+	rsp1 := &billingpb.CheckProjectRequestSignatureResponse{}
 	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 
 	req1.Review = "review 2"
 	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 
 	req1.Review = "review 3"
 	err = suite.service.CreatePageReview(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 
-	var reviews []*grpc.PageReview
+	var reviews []*billingpb.PageReview
 	cursor, err := suite.service.db.Collection(collectionOPageReview).Find(context.TODO(), bson.M{})
 	assert.NoError(suite.T(), err)
 	err = cursor.All(context.TODO(), &reviews)
@@ -886,17 +884,17 @@ func (suite *UserProfileTestSuite) TestUserProfile_CreatePageReview_Ok() {
 }
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok() {
-	req := &grpc.UserProfile{
+	req := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
@@ -904,18 +902,18 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok
 		},
 		LastStep: "step2",
 	}
-	rsp := &grpc.GetUserProfileResponse{}
+	rsp := &billingpb.GetUserProfileResponse{}
 	err := suite.service.CreateOrUpdateUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
-	req1 := &grpc.GetUserProfileRequest{ProfileId: rsp.Item.Id}
-	rsp1 := &grpc.GetUserProfileResponse{}
+	req1 := &billingpb.GetUserProfileRequest{ProfileId: rsp.Item.Id}
+	rsp1 := &billingpb.GetUserProfileResponse{}
 	err = suite.service.GetUserProfile(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.NotNil(suite.T(), rsp1.Item)
 	assert.Equal(suite.T(), rsp.Item.Id, rsp1.Item.Id)
 	assert.Equal(suite.T(), rsp.Item.UserId, rsp1.Item.UserId)
@@ -923,17 +921,17 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetUserProfile_ByProfileId_Ok
 
 func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProjectsTrue() {
 	ctx := context.TODO()
-	userProfile := &grpc.UserProfile{
+	userProfile := &billingpb.UserProfile{
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,
@@ -944,24 +942,24 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProje
 	err := suite.service.userProfileRepository.Add(ctx, userProfile)
 	assert.NoError(suite.T(), err)
 
-	merchant := &billing.Merchant{
+	merchant := &billingpb.Merchant{
 		Id:      primitive.NewObjectID().Hex(),
-		Company: &billing.MerchantCompanyInfo{Name: "name"},
-		Banking: &billing.MerchantBanking{Currency: "currency"},
+		Company: &billingpb.MerchantCompanyInfo{Name: "name"},
+		Banking: &billingpb.MerchantBanking{Currency: "currency"},
 	}
 	err = suite.service.merchant.Insert(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		UserId:     userProfile.UserId,
 		MerchantId: merchant.Id,
-		Role:       pkg.RoleMerchantOwner,
+		Role:       billingpb.RoleMerchantOwner,
 	}
 	err = suite.service.userRoleRepository.AddMerchantUser(ctx, role)
 	assert.NoError(suite.T(), err)
 
-	project := &billing.Project{
+	project := &billingpb.Project{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: merchant.Id,
 	}
@@ -974,11 +972,11 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProje
 		Return(&casbinpb.Array2DReply{D2: nil}, nil)
 	suite.service.casbinService = casbin
 
-	req := &grpc.CommonUserProfileRequest{UserId: userProfile.UserId, MerchantId: merchant.Id}
-	rsp := &grpc.CommonUserProfileResponse{}
+	req := &billingpb.CommonUserProfileRequest{UserId: userProfile.UserId, MerchantId: merchant.Id}
+	rsp := &billingpb.CommonUserProfileResponse{}
 	err = suite.service.GetCommonUserProfile(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.NotNil(suite.T(), rsp.Profile.Merchant)
 	assert.Equal(suite.T(), merchant.Id, rsp.Profile.Merchant.Id)
 	assert.True(suite.T(), rsp.Profile.Merchant.HasProjects)

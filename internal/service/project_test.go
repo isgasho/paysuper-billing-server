@@ -7,10 +7,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,8 +23,8 @@ type ProjectCRUDTestSuite struct {
 	service *Service
 	cache   database.CacheInterface
 
-	merchant *billing.Merchant
-	project  *billing.Project
+	merchant *billingpb.Merchant
+	project  *billingpb.Project
 }
 
 func Test_ProjectCRUD(t *testing.T) {
@@ -41,7 +39,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	assert.NoError(suite.T(), err, "Database connection failed")
 	projectId := primitive.NewObjectID().Hex()
 
-	ps1 := &billing.PaymentSystem{
+	ps1 := &billingpb.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
@@ -50,14 +48,14 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		IsActive:           true,
 		Handler:            "cardpay",
 	}
-	pm1 := &billing.PaymentMethod{
+	pm1 := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 100,
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
-		TestSettings: map[string]*billing.PaymentMethodParams{
+		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				Currency:       "RUB",
 				TerminalId:     "15985",
@@ -71,7 +69,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		PaymentSystemId: ps1.Id,
 	}
 
-	ps2 := &billing.PaymentSystem{
+	ps2 := &billingpb.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
@@ -80,14 +78,14 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		IsActive:           true,
 		Handler:            "cardpay",
 	}
-	pm2 := &billing.PaymentMethod{
+	pm2 := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bitcoin",
 		Group:            "BITCOIN_1",
 		MinPaymentAmount: 0,
 		MaxPaymentAmount: 0,
 		ExternalId:       "BITCOIN",
-		TestSettings: map[string]*billing.PaymentMethodParams{
+		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			"RUB": {
 				Currency:   "RUB",
 				TerminalId: "16007",
@@ -98,58 +96,58 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		PaymentSystemId: ps2.Id,
 	}
 
-	paymentMethods := map[string]*billing.MerchantPaymentMethod{
+	paymentMethods := map[string]*billingpb.MerchantPaymentMethod{
 		pm1.Id: {
-			Commission: &billing.MerchantPaymentMethodCommissions{
+			Commission: &billingpb.MerchantPaymentMethodCommissions{
 				Fee:            1,
-				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{},
+				PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{},
 			},
-			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+			PaymentMethod: &billingpb.MerchantPaymentMethodIdentification{
 				Id: pm1.Id,
 			},
 		},
 		pm2.Id: {
-			Commission: &billing.MerchantPaymentMethodCommissions{
+			Commission: &billingpb.MerchantPaymentMethodCommissions{
 				Fee:            1,
-				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{},
+				PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{},
 			},
-			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+			PaymentMethod: &billingpb.MerchantPaymentMethodIdentification{
 				Id: pm2.Id,
 			},
 		},
 	}
-	merchant := &billing.Merchant{
+	merchant := &billingpb.Merchant{
 		Id: primitive.NewObjectID().Hex(),
-		User: &billing.MerchantUser{
+		User: &billingpb.MerchantUser{
 			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.test",
 		},
-		Company: &billing.MerchantCompanyInfo{
+		Company: &billingpb.MerchantCompanyInfo{
 			Name:    "merchant1",
 			Country: "RU",
 			Zip:     "190000",
 			City:    "St.Petersburg",
 		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{},
-			Technical:  &billing.MerchantContactTechnical{},
+		Contacts: &billingpb.MerchantContact{
+			Authorized: &billingpb.MerchantContactAuthorized{},
+			Technical:  &billingpb.MerchantContactTechnical{},
 		},
-		Banking: &billing.MerchantBanking{
+		Banking: &billingpb.MerchantBanking{
 			Currency: "RUB",
 			Name:     "Bank name",
 		},
 		IsVatEnabled:              true,
 		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusDraft,
+		Status:                    billingpb.MerchantStatusDraft,
 		IsSigned:                  true,
 		PaymentMethods:            paymentMethods,
 		DontChargeVat:             false,
 	}
 
-	project := &billing.Project{
+	project := &billingpb.Project{
 		Id:                       projectId,
 		CallbackCurrency:         "RUB",
-		CallbackProtocol:         pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:         billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:           "RUB",
 		MaxPaymentAmount:         15000,
 		MinPaymentAmount:         1,
@@ -157,13 +155,13 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		IsProductsCheckout:       false,
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
-		Status:                   pkg.ProjectStatusInProduction,
+		Status:                   billingpb.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
-		VatPayer:                 pkg.VatPayerBuyer,
+		VatPayer:                 billingpb.VatPayerBuyer,
 	}
 
 	products := []interface{}{
-		&grpc.Product{
+		&billingpb.Product{
 			Object:          "product",
 			Type:            "simple_product",
 			Sku:             "ru_double_yeti",
@@ -179,9 +177,9 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Metadata: map[string]string{
 				"SomeKey": "SomeValue",
 			},
-			Prices: []*billing.ProductPrice{{Currency: "USD", Amount: 1005.00}},
+			Prices: []*billingpb.ProductPrice{{Currency: "USD", Amount: 1005.00}},
 		},
-		&grpc.Product{
+		&billingpb.Product{
 			Object:          "product1",
 			Type:            "simple_product",
 			Sku:             "ru_double_yeti1",
@@ -197,9 +195,9 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Metadata: map[string]string{
 				"SomeKey": "SomeValue",
 			},
-			Prices: []*billing.ProductPrice{{Currency: "USD", Amount: 1005.00}},
+			Prices: []*billingpb.ProductPrice{{Currency: "USD", Amount: 1005.00}},
 		},
-		&grpc.Product{
+		&billingpb.Product{
 			Object:          "product2",
 			Type:            "simple_product",
 			Sku:             "ru_double_yeti2",
@@ -215,7 +213,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 			Metadata: map[string]string{
 				"SomeKey": "SomeValue",
 			},
-			Prices: []*billing.ProductPrice{{Currency: "USD", Amount: 1005.00}},
+			Prices: []*billingpb.ProductPrice{{Currency: "USD", Amount: 1005.00}},
 		},
 	}
 
@@ -244,7 +242,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	pms := []*billing.PaymentMethod{pm1, pm2}
+	pms := []*billingpb.PaymentMethod{pm1, pm2}
 	if err := suite.service.paymentMethod.MultipleInsert(context.TODO(), pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
@@ -276,11 +274,11 @@ func (suite *ProjectCRUDTestSuite) TearDownTest() {
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -294,18 +292,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -315,20 +313,20 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerSeller,
+		VatPayer: billingpb.VatPayerSeller,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -341,7 +339,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), req.MinPaymentAmount, rsp.Item.MinPaymentAmount)
 	assert.Equal(suite.T(), req.MaxPaymentAmount, rsp.Item.MaxPaymentAmount)
 	assert.Equal(suite.T(), req.IsProductsCheckout, rsp.Item.IsProductsCheckout)
-	assert.Equal(suite.T(), pkg.ProjectStatusDraft, rsp.Item.Status)
+	assert.Equal(suite.T(), billingpb.ProjectStatusDraft, rsp.Item.Status)
 	assert.EqualValues(suite.T(), int32(0), rsp.Item.ProductsCount)
 	assert.Equal(suite.T(), req.Localizations, rsp.Item.Localizations)
 	assert.Equal(suite.T(), req.FullDescription, rsp.Item.FullDescription)
@@ -349,7 +347,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), req.Currencies, rsp.Item.Currencies)
 	assert.Equal(suite.T(), req.Cover, rsp.Item.Cover)
 	assert.Equal(suite.T(), req.VirtualCurrency, rsp.Item.VirtualCurrency)
-	assert.Equal(suite.T(), pkg.VatPayerSeller, rsp.Item.VatPayer)
+	assert.Equal(suite.T(), billingpb.VatPayerSeller, rsp.Item.VatPayer)
 
 	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -400,16 +398,16 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok() {
 	req := suite.project
-	assert.Equal(suite.T(), pkg.VatPayerBuyer, suite.project.VatPayer)
+	assert.Equal(suite.T(), billingpb.VatPayerBuyer, suite.project.VatPayer)
 	req.Name["ua"] = "модульний тест"
-	req.CallbackProtocol = pkg.ProjectCallbackProtocolDefault
+	req.CallbackProtocol = billingpb.ProjectCallbackProtocolDefault
 	req.SecretKey = "qwerty"
-	req.VatPayer = pkg.VatPayerSeller
+	req.VatPayer = billingpb.VatPayerSeller
 
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 
 	assert.Equal(suite.T(), req.Id, rsp.Item.Id)
@@ -417,7 +415,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.Equal(suite.T(), req.Name, rsp.Item.Name)
 	assert.Equal(suite.T(), req.CallbackProtocol, rsp.Item.CallbackProtocol)
 	assert.NotEqual(suite.T(), req.Status, rsp.Item.Status)
-	assert.Equal(suite.T(), pkg.ProjectStatusDraft, rsp.Item.Status)
+	assert.Equal(suite.T(), billingpb.ProjectStatusDraft, rsp.Item.Status)
 
 	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -438,7 +436,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.Equal(suite.T(), project.IsProductsCheckout, rsp.Item.IsProductsCheckout)
 	assert.Equal(suite.T(), project.Status, rsp.Item.Status)
 	assert.Equal(suite.T(), project.VatPayer, rsp.Item.VatPayer)
-	assert.Equal(suite.T(), pkg.VatPayerSeller, rsp.Item.VatPayer)
+	assert.Equal(suite.T(), billingpb.VatPayerSeller, rsp.Item.VatPayer)
 
 	cProject, err := suite.service.project.GetById(context.TODO(), project.Id)
 	assert.NoError(suite.T(), err)
@@ -456,82 +454,82 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_MerchantNotFound_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         primitive.NewObjectID().Hex(),
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), merchantErrorNotFound, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProjectIdNotFound_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), projectErrorNotFound, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NameInDefaultLanguageNotSet_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorNameDefaultLangRequired, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_CallbackCurrencyNotFound_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "USD",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 
 	suite.service.curService = mocks.NewCurrencyServiceMockError()
 	suite.service.supportedCurrencies = []string{}
@@ -539,24 +537,24 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_CallbackCurrenc
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorCallbackCurrencyIncorrect, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNotFound_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "USD",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 
 	suite.service.supportedCurrencies = []string{"RUB"}
 	suite.service.curService = mocks.NewCurrencyServiceMockError()
@@ -564,20 +562,20 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitCurrencyNo
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorLimitCurrencyIncorrect, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_Ok() {
-	req := &grpc.GetProjectRequest{
+	req := &billingpb.GetProjectRequest{
 		ProjectId:  suite.project.Id,
 		MerchantId: suite.merchant.Id,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.GetProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 	assert.Empty(suite.T(), rsp.Message)
 	assert.NotNil(suite.T(), rsp.Item)
 
@@ -595,55 +593,55 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_Ok() {
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_GetProject_NotFound_Error() {
-	req := &grpc.GetProjectRequest{
+	req := &billingpb.GetProjectRequest{
 		ProjectId:  suite.project.Id,
 		MerchantId: primitive.NewObjectID().Hex(),
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.GetProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), projectErrorNotFound, rsp.Message)
 	assert.Nil(suite.T(), rsp.Item)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit1 test", "ru": "Юнит1 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit11 test", "ru": "Юнит11 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit2 test", "ru": "Юнит2 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	req1 := &grpc.ListProjectsRequest{
+	req1 := &billingpb.ListProjectsRequest{
 		MerchantId: suite.merchant.Id,
 		Limit:      100,
 	}
-	rsp1 := &grpc.ListProjectsResponse{}
+	rsp1 := &billingpb.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), int32(5), rsp1.Count)
@@ -652,43 +650,43 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_Ok() {
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit1 test", "ru": "Юнит1 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit11 test", "ru": "Юнит11 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit2 test", "ru": "Юнит2 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	req1 := &grpc.ListProjectsRequest{
+	req1 := &billingpb.ListProjectsRequest{
 		MerchantId:  suite.merchant.Id,
 		QuickSearch: "nit1",
 		Limit:       100,
 	}
-	rsp1 := &grpc.ListProjectsResponse{}
+	rsp1 := &billingpb.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), int32(2), rsp1.Count)
@@ -696,70 +694,70 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_StatusQuery_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	rsp.Item.Status = pkg.ProjectStatusTestCompleted
+	rsp.Item.Status = billingpb.ProjectStatusTestCompleted
 	err = suite.service.ChangeProject(context.TODO(), rsp.Item, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit1 test", "ru": "Юнит1 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	rsp.Item.Status = pkg.ProjectStatusTestCompleted
+	rsp.Item.Status = billingpb.ProjectStatusTestCompleted
 	err = suite.service.ChangeProject(context.TODO(), rsp.Item, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit11 test", "ru": "Юнит11 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	rsp.Item.Status = pkg.ProjectStatusInProduction
+	rsp.Item.Status = billingpb.ProjectStatusInProduction
 	err = suite.service.ChangeProject(context.TODO(), rsp.Item, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "Unit2 test", "ru": "Юнит2 тест"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	req1 := &grpc.ListProjectsRequest{
+	req1 := &billingpb.ListProjectsRequest{
 		MerchantId: suite.merchant.Id,
-		Statuses:   []int32{pkg.ProjectStatusInProduction},
+		Statuses:   []int32{billingpb.ProjectStatusInProduction},
 		Limit:      100,
 	}
-	rsp1 := &grpc.ListProjectsResponse{}
+	rsp1 := &billingpb.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), int32(2), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 2)
 
-	req1.Statuses = []int32{pkg.ProjectStatusTestCompleted}
+	req1.Statuses = []int32{billingpb.ProjectStatusTestCompleted}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), int32(2), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 2)
 
-	req1.Statuses = []int32{pkg.ProjectStatusDraft, pkg.ProjectStatusTestCompleted}
+	req1.Statuses = []int32{billingpb.ProjectStatusDraft, billingpb.ProjectStatusTestCompleted}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), int32(3), rsp1.Count)
@@ -767,43 +765,43 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_StatusQuery_Ok()
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_SortQuery_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "A", "ru": "А"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "B", "ru": "Б"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "C", "ru": "В"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
 	req.Name = map[string]string{"en": "D", "ru": "Г"}
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	req1 := &grpc.ListProjectsRequest{
+	req1 := &billingpb.ListProjectsRequest{
 		MerchantId: suite.merchant.Id,
 		Sort:       []string{"name"},
 		Limit:      100,
 	}
-	rsp1 := &grpc.ListProjectsResponse{}
+	rsp1 := &billingpb.ListProjectsResponse{}
 	err = suite.service.ListProjects(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), int32(5), rsp1.Count)
@@ -813,31 +811,31 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_SortQuery_Ok() {
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "A", "ru": "А"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Equal(suite.T(), pkg.ProjectStatusDraft, rsp.Item.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ProjectStatusDraft, rsp.Item.Status)
 
-	req1 := &grpc.GetProjectRequest{
+	req1 := &billingpb.GetProjectRequest{
 		MerchantId: req.MerchantId,
 		ProjectId:  rsp.Item.Id,
 	}
-	rsp1 := &grpc.ChangeProjectResponse{}
+	rsp1 := &billingpb.ChangeProjectResponse{}
 	err = suite.service.DeleteProject(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 
 	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -845,7 +843,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 
 	project, err := suite.service.getProjectBy(context.TODO(), filter)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ProjectStatusDeleted, project.Status)
+	assert.Equal(suite.T(), billingpb.ProjectStatusDeleted, project.Status)
 
 	project1, err := suite.service.project.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
@@ -853,49 +851,49 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_NotFound_Error() {
-	req := &grpc.GetProjectRequest{
+	req := &billingpb.GetProjectRequest{
 		MerchantId: suite.merchant.Id,
 		ProjectId:  primitive.NewObjectID().Hex(),
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.DeleteProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusNotFound, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusNotFound, rsp.Status)
 	assert.Equal(suite.T(), projectErrorNotFound, rsp.Message)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteDeletedProject_Ok() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "A", "ru": "А"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
-		VatPayer:           pkg.VatPayerBuyer,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Equal(suite.T(), pkg.ProjectStatusDraft, rsp.Item.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ProjectStatusDraft, rsp.Item.Status)
 
-	rsp.Item.Status = pkg.ProjectStatusDeleted
+	rsp.Item.Status = billingpb.ProjectStatusDeleted
 	err = suite.service.ChangeProject(context.TODO(), rsp.Item, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
-	assert.Equal(suite.T(), pkg.ProjectStatusDeleted, rsp.Item.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ProjectStatusDeleted, rsp.Item.Status)
 
-	req1 := &grpc.GetProjectRequest{
+	req1 := &billingpb.GetProjectRequest{
 		MerchantId: req.MerchantId,
 		ProjectId:  rsp.Item.Id,
 	}
-	rsp1 := &grpc.ChangeProjectResponse{}
+	rsp1 := &billingpb.ChangeProjectResponse{}
 	err = suite.service.DeleteProject(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 }
 
 type ProjectTestSuite struct {
@@ -903,7 +901,7 @@ type ProjectTestSuite struct {
 	service *Service
 	cache   database.CacheInterface
 	log     *zap.Logger
-	project *billing.Project
+	project *billingpb.Project
 }
 
 func Test_Project(t *testing.T) {
@@ -921,7 +919,7 @@ func (suite *ProjectTestSuite) SetupTest() {
 		suite.FailNow("Database connection failed", "%v", err)
 	}
 
-	suite.project = &billing.Project{
+	suite.project = &billingpb.Project{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         primitive.NewObjectID().Hex(),
 		CallbackCurrency:   "RUB",
@@ -932,8 +930,8 @@ func (suite *ProjectTestSuite) SetupTest() {
 		Name:               map[string]string{"en": "test project 1"},
 		IsProductsCheckout: true,
 		SecretKey:          "test project 1 secret key",
-		Status:             pkg.ProjectStatusInProduction,
-		VatPayer:           pkg.VatPayerBuyer,
+		Status:             billingpb.ProjectStatusInProduction,
+		VatPayer:           billingpb.VatPayerBuyer,
 	}
 
 	suite.log, err = zap.NewProduction()
@@ -1002,11 +1000,11 @@ func (suite *ProjectTestSuite) TestProject_GetProjectById_NotFound() {
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_IncorrectCurrencies_Error() {
 	suite.service.supportedCurrencies = []string{"RUB"}
 
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1020,18 +1018,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_IncorrectCurren
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1041,30 +1039,30 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_IncorrectCurren
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorCurrencyIsNotSupport.Message, rsp.Message.Message)
 	assert.Equal(suite.T(), projectErrorCurrencyIsNotSupport.Code, rsp.Message.Code)
 	assert.Equal(suite.T(), "USD", rsp.Message.Details)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ShortDescriptionNotHaveDefaultLanguage_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1077,18 +1075,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ShortDescriptio
 		ShortDescription: map[string]string{
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1098,28 +1096,28 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ShortDescriptio
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorShortDescriptionDefaultLangRequired, rsp.Message)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_FullDescriptionNotHaveDefaultLanguage_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1132,18 +1130,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_FullDescription
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1153,28 +1151,28 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_FullDescription
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorFullDescriptionDefaultLangRequired, rsp.Message)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrencyNameNotHaveDefaultLanguage_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1188,18 +1186,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"ru": "Это название виртуальной валюты на русском языке",
@@ -1208,28 +1206,28 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorVirtualCurrencyNameDefaultLangRequired, rsp.Message)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrencySuccessMessageNotHaveDefaultLanguage_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1243,18 +1241,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1263,29 +1261,29 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			SuccessMessage: map[string]string{
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorVirtualCurrencySuccessMessageDefaultLangRequired, rsp.Message)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrencyPriceNotSupportedCurrency_Error() {
 	suite.service.supportedCurrencies = []string{"RUB", "USD"}
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1299,18 +1297,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1320,30 +1318,30 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "KZT", Region: "CIS"},
 			},
 			MaxPurchaseValue: 1000000,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorVirtualCurrencyPriceCurrencyIsNotSupport.Message, rsp.Message.Message)
 	assert.Equal(suite.T(), projectErrorVirtualCurrencyPriceCurrencyIsNotSupport.Code, rsp.Message.Code)
 	assert.Equal(suite.T(), "KZT", rsp.Message.Details)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrencyPurchasesLimit_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		LimitsCurrency:     "RUB",
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
@@ -1357,18 +1355,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1378,7 +1376,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
@@ -1386,21 +1384,21 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_VirtualCurrency
 			MaxPurchaseValue: 100,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorVirtualCurrencyLimitsIncorrect, rsp.Message)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Error() {
-	req := &billing.Project{
+	req := &billingpb.Project{
 		MerchantId:         suite.merchant.Id,
 		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
 		CallbackCurrency:   "RUB",
-		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		CallbackProtocol:   billingpb.ProjectCallbackProtocolEmpty,
 		MinPaymentAmount:   0,
 		MaxPaymentAmount:   15000,
 		IsProductsCheckout: false,
@@ -1413,18 +1411,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Er
 			"en": "It's english short description",
 			"ru": "Это короткое описание на русском языке",
 		},
-		Currencies: []*billing.HasCurrencyItem{
+		Currencies: []*billingpb.HasCurrencyItem{
 			{Currency: "USD", Region: "USD"},
 			{Currency: "RUB", Region: "Russia"},
 		},
-		Cover: &billing.ImageCollection{
-			Images: &billing.LocalizedUrl{
+		Cover: &billingpb.ImageCollection{
+			Images: &billingpb.LocalizedUrl{
 				En: "http://en.localhost",
 				Ru: "http://ru.localhost",
 			},
 			UseOneForAll: true,
 		},
-		VirtualCurrency: &billing.ProjectVirtualCurrency{
+		VirtualCurrency: &billingpb.ProjectVirtualCurrency{
 			Logo: "http://localhost",
 			Name: map[string]string{
 				"en": "It's english virtual currency name",
@@ -1434,18 +1432,18 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Er
 				"en": "It's english success message",
 				"ru": "Это сообщение о успешной покупке на русском языке",
 			},
-			Prices: []*billing.ProductPrice{
+			Prices: []*billingpb.ProductPrice{
 				{Amount: 100, Currency: "USD", Region: "USD"},
 				{Amount: 1000, Currency: "RUB", Region: "Russia"},
 			},
 			MaxPurchaseValue: 100,
 			SellCountType:    "fractional",
 		},
-		VatPayer: pkg.VatPayerBuyer,
+		VatPayer: billingpb.VatPayerBuyer,
 	}
-	rsp := &grpc.ChangeProjectResponse{}
+	rsp := &billingpb.ChangeProjectResponse{}
 	err := suite.service.ChangeProject(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorLimitCurrencyRequired, rsp.Message)
 }

@@ -7,13 +7,11 @@ import (
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	curPkg "github.com/paysuper/paysuper-currencies/pkg"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
-	taxService "github.com/paysuper/paysuper-tax-service/proto"
-	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	"github.com/paysuper/paysuper-proto/go/postmarkpb"
+	"github.com/paysuper/paysuper-proto/go/taxpb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -95,7 +93,7 @@ type vatReportProcessor struct {
 	*Service
 	date               time.Time
 	ts                 *timestamp.Timestamp
-	countries          []*billing.Country
+	countries          []*billingpb.Country
 	orderViewUpdateIds map[string]bool
 }
 
@@ -127,11 +125,11 @@ func NewVatReportProcessor(s *Service, ctx context.Context, date *timestamp.Time
 
 func (s *Service) GetVatReportsDashboard(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *grpc.VatReportsResponse,
+	req *billingpb.EmptyRequest,
+	res *billingpb.VatReportsResponse,
 ) error {
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	query := bson.M{
 		"status": bson.M{"$in": []string{pkg.VatReportStatusThreshold, pkg.VatReportStatusNeedToPay, pkg.VatReportStatusOverdue}},
@@ -143,7 +141,7 @@ func (s *Service) GetVatReportsDashboard(
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorVatReportNotFound
 			return nil
 		}
@@ -155,12 +153,12 @@ func (s *Service) GetVatReportsDashboard(
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
 
-	var reports []*billing.VatReport
+	var reports []*billingpb.VatReport
 	err = cursor.All(ctx, &reports)
 
 	if err != nil {
@@ -170,12 +168,12 @@ func (s *Service) GetVatReportsDashboard(
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionVatReports),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
 
-	res.Data = &grpc.VatReportsPaginate{
+	res.Data = &billingpb.VatReportsPaginate{
 		Count: int32(len(reports)),
 		Items: reports,
 	}
@@ -185,10 +183,10 @@ func (s *Service) GetVatReportsDashboard(
 
 func (s *Service) GetVatReportsForCountry(
 	ctx context.Context,
-	req *grpc.VatReportsRequest,
-	res *grpc.VatReportsResponse,
+	req *billingpb.VatReportsRequest,
+	res *billingpb.VatReportsResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	query := bson.M{
 		"country": req.Country,
@@ -207,7 +205,7 @@ func (s *Service) GetVatReportsForCountry(
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorVatReportNotFound
 			return nil
 		}
@@ -219,12 +217,12 @@ func (s *Service) GetVatReportsForCountry(
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
 
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
 
-	var reports []*billing.VatReport
+	var reports []*billingpb.VatReport
 	err = cursor.All(ctx, &reports)
 
 	if err != nil {
@@ -234,12 +232,12 @@ func (s *Service) GetVatReportsForCountry(
 			zap.String(pkg.ErrorDatabaseFieldCollection, collectionVatReports),
 			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
 		)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
 
-	res.Data = &grpc.VatReportsPaginate{
+	res.Data = &billingpb.VatReportsPaginate{
 		Count: int32(len(reports)),
 		Items: reports,
 	}
@@ -249,21 +247,21 @@ func (s *Service) GetVatReportsForCountry(
 
 func (s *Service) GetVatReport(
 	ctx context.Context,
-	req *grpc.VatReportRequest,
-	res *grpc.VatReportResponse,
+	req *billingpb.VatReportRequest,
+	res *billingpb.VatReportResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	vr, err := s.getVatReportById(ctx, req.Id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorVatReportNotFound
 			return nil
 		}
 
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
@@ -275,34 +273,34 @@ func (s *Service) GetVatReport(
 
 func (s *Service) GetVatReportTransactions(
 	ctx context.Context,
-	req *grpc.VatTransactionsRequest,
-	res *grpc.PrivateTransactionsResponse,
+	req *billingpb.VatTransactionsRequest,
+	res *billingpb.PrivateTransactionsResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	vr, err := s.getVatReportById(ctx, req.VatReportId)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorVatReportNotFound
 			return nil
 		}
 
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
 
 	from, err := ptypes.Timestamp(vr.DateFrom)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportInternal
 		return nil
 	}
 	to, err := ptypes.Timestamp(vr.DateTo)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportInternal
 		return nil
 	}
@@ -324,7 +322,7 @@ func (s *Service) GetVatReportTransactions(
 		return err
 	}
 
-	res.Data = &grpc.PrivateTransactionsPaginate{
+	res.Data = &billingpb.PrivateTransactionsPaginate{
 		Count: int32(n),
 		Items: vts,
 	}
@@ -334,8 +332,8 @@ func (s *Service) GetVatReportTransactions(
 
 func (s *Service) ProcessVatReports(
 	ctx context.Context,
-	req *grpc.ProcessVatReportsRequest,
-	res *grpc.EmptyResponse,
+	req *billingpb.ProcessVatReportsRequest,
+	res *billingpb.EmptyResponse,
 ) error {
 
 	handler, err := NewVatReportProcessor(s, ctx, req.Date)
@@ -356,7 +354,7 @@ func (s *Service) ProcessVatReports(
 	}
 
 	zap.S().Info("calc annual turnovers")
-	err = s.CalcAnnualTurnovers(ctx, &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	err = s.CalcAnnualTurnovers(ctx, &billingpb.EmptyRequest{}, &billingpb.EmptyResponse{})
 	if err != nil {
 		return err
 	}
@@ -380,39 +378,39 @@ func (s *Service) ProcessVatReports(
 
 func (s *Service) UpdateVatReportStatus(
 	ctx context.Context,
-	req *grpc.UpdateVatReportStatusRequest,
-	res *grpc.ResponseError,
+	req *billingpb.UpdateVatReportStatusRequest,
+	res *billingpb.ResponseError,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	vr, err := s.getVatReportById(ctx, req.Id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorVatReportNotFound
 			return nil
 		}
 
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportQueryError
 		return nil
 	}
 
 	if vr.Status == req.Status {
-		res.Status = pkg.ResponseStatusNotModified
+		res.Status = billingpb.ResponseStatusNotModified
 		res.Message = errorVatReportStatusIsTheSame
 		return nil
 	}
 
 	if !helper.Contains(VatReportStatusAllowManualChangeFrom, vr.Status) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
 
 	if !helper.Contains(VatReportStatusAllowManualChangeTo, req.Status) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorVatReportStatusChangeNotAllowed
 		return nil
 	}
@@ -424,7 +422,7 @@ func (s *Service) UpdateVatReportStatus(
 
 	err = s.updateVatReport(ctx, vr)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorVatReportStatusChangeFailed
 		return nil
 	}
@@ -432,12 +430,12 @@ func (s *Service) UpdateVatReportStatus(
 	return nil
 }
 
-func (s *Service) insertVatReport(ctx context.Context, vr *billing.VatReport) error {
+func (s *Service) insertVatReport(ctx context.Context, vr *billingpb.VatReport) error {
 	_, err := s.db.Collection(collectionVatReports).InsertOne(ctx, vr)
 	return err
 }
 
-func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) error {
+func (s *Service) updateVatReport(ctx context.Context, vr *billingpb.VatReport) error {
 	vr.UpdatedAt = ptypes.TimestampNow()
 
 	oid, _ := primitive.ObjectIDFromHex(vr.Id)
@@ -455,7 +453,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 	}
 
 	if helper.Contains(VatReportOnStatusNotifyToEmail, vr.Status) {
-		payload := &postmarkSdrPkg.Payload{
+		payload := &postmarkpb.Payload{
 			TemplateAlias: s.cfg.EmailTemplates.VatReportChanged,
 			TemplateModel: map[string]string{
 				"country": vr.Country,
@@ -464,7 +462,7 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 			To: s.cfg.EmailNotificationFinancierRecipient,
 		}
 
-		err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+		err := s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
 
 		if err != nil {
 			zap.L().Error(
@@ -477,8 +475,8 @@ func (s *Service) updateVatReport(ctx context.Context, vr *billing.VatReport) er
 	return nil
 }
 
-func (s *Service) getVatReportById(ctx context.Context, id string) (*billing.VatReport, error) {
-	var vr *billing.VatReport
+func (s *Service) getVatReportById(ctx context.Context, id string) (*billingpb.VatReport, error) {
+	var vr *billingpb.VatReport
 
 	oid, err := primitive.ObjectIDFromHex(id)
 
@@ -562,7 +560,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error 
 		return err
 	}
 
-	var reports []*billing.VatReport
+	var reports []*billingpb.VatReport
 	err = cursor.All(ctx, &reports)
 
 	if err != nil {
@@ -628,7 +626,7 @@ func (h *vatReportProcessor) ProcessVatReportsStatus(ctx context.Context) error 
 	return nil
 }
 
-func (h *vatReportProcessor) getCountry(countryCode string) *billing.Country {
+func (h *vatReportProcessor) getCountry(countryCode string) *billingpb.Country {
 	for _, c := range h.countries {
 		if c.IsoCodeA2 == countryCode {
 			return c
@@ -644,7 +642,7 @@ func (h *vatReportProcessor) ProcessVatReports(ctx context.Context) error {
 	}
 
 	for _, oc := range operatingCompanies {
-		var countries []*billing.Country
+		var countries []*billingpb.Country
 
 		if len(oc.PaymentCountries) == 0 {
 			countries = h.countries
@@ -696,7 +694,7 @@ func (h *vatReportProcessor) UpdateOrderView(ctx context.Context) error {
 	return nil
 }
 
-func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, country *billing.Country, operatingCompanyId string) error {
+func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, country *billingpb.Country, operatingCompanyId string) error {
 
 	from, to, err := h.Service.getVatReportTimeForDate(country.VatPeriodMonth, h.date)
 	if err != nil {
@@ -710,7 +708,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		"to", to.Format(time.RFC3339),
 	)
 
-	req := &taxService.GeoIdentity{
+	req := &taxpb.GeoIdentity{
 		Country: country.IsoCodeA2,
 	}
 
@@ -722,7 +720,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 
 	rate := rsp.Rate
 
-	report := &billing.VatReport{
+	report := &billingpb.VatReport{
 		Id:                 primitive.NewObjectID().Hex(),
 		Country:            country.IsoCodeA2,
 		VatRate:            rate,
@@ -899,7 +897,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 		"status":    pkg.VatReportStatusThreshold,
 	}
 
-	var vr *billing.VatReport
+	var vr *billingpb.VatReport
 	err = h.Service.db.Collection(collectionVatReports).FindOne(ctx, selector).Decode(&vr)
 
 	if err == mongo.ErrNoDocuments {
@@ -916,7 +914,7 @@ func (h *vatReportProcessor) processVatReportForPeriod(ctx context.Context, coun
 
 }
 
-func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Context, country *billing.Country) error {
+func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Context, country *billingpb.Country) error {
 	if !country.VatEnabled {
 		return errorVatReportNotEnabledForCountry
 	}
@@ -968,7 +966,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Conte
 		return err
 	}
 
-	var aes []*billing.AccountingEntry
+	var aes []*billingpb.AccountingEntry
 	err = cursor.All(ctx, &aes)
 
 	if err != nil {
@@ -985,7 +983,7 @@ func (h *vatReportProcessor) processAccountingEntriesForPeriod(ctx context.Conte
 		return nil
 	}
 
-	var aesRealTaxFee = make(map[string]*billing.AccountingEntry)
+	var aesRealTaxFee = make(map[string]*billingpb.AccountingEntry)
 	for _, ae := range aes {
 		if ae.Type != pkg.AccountingEntryTypeRealTaxFee {
 			continue
@@ -1059,11 +1057,11 @@ func (h *vatReportProcessor) exchangeAmount(
 	amount float64,
 	source string,
 ) (float64, error) {
-	req := &currencies.ExchangeCurrencyByDateCommonRequest{
+	req := &currenciespb.ExchangeCurrencyByDateCommonRequest{
 		From:              from,
 		To:                to,
-		RateType:          curPkg.RateTypeCentralbanks,
-		ExchangeDirection: curPkg.ExchangeDirectionBuy,
+		RateType:          currenciespb.RateTypeCentralbanks,
+		ExchangeDirection: currenciespb.ExchangeDirectionBuy,
 		Source:            source,
 		Amount:            amount,
 		Datetime:          h.ts,

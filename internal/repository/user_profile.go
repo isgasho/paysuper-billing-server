@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,7 +20,7 @@ func NewUserProfileRepository(db mongodb.SourceInterface) UserProfileRepositoryI
 	return s
 }
 
-func (r *userProfileRepository) Add(ctx context.Context, profile *grpc.UserProfile) error {
+func (r *userProfileRepository) Add(ctx context.Context, profile *billingpb.UserProfile) error {
 	_, err := r.db.Collection(collectionUserProfile).InsertOne(ctx, profile)
 
 	if err != nil {
@@ -37,7 +37,7 @@ func (r *userProfileRepository) Add(ctx context.Context, profile *grpc.UserProfi
 	return nil
 }
 
-func (r *userProfileRepository) Update(ctx context.Context, profile *grpc.UserProfile) error {
+func (r *userProfileRepository) Update(ctx context.Context, profile *billingpb.UserProfile) error {
 	oid, err := primitive.ObjectIDFromHex(profile.Id)
 
 	if err != nil {
@@ -66,7 +66,7 @@ func (r *userProfileRepository) Update(ctx context.Context, profile *grpc.UserPr
 	return nil
 }
 
-func (r *userProfileRepository) Upsert(ctx context.Context, profile *grpc.UserProfile) error {
+func (r *userProfileRepository) Upsert(ctx context.Context, profile *billingpb.UserProfile) error {
 	oid, err := primitive.ObjectIDFromHex(profile.Id)
 
 	if err != nil {
@@ -97,8 +97,8 @@ func (r *userProfileRepository) Upsert(ctx context.Context, profile *grpc.UserPr
 	return nil
 }
 
-func (r *userProfileRepository) GetById(ctx context.Context, id string) (*grpc.UserProfile, error) {
-	var c *grpc.UserProfile
+func (r *userProfileRepository) GetById(ctx context.Context, id string) (*billingpb.UserProfile, error) {
+	var c *billingpb.UserProfile
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
@@ -127,8 +127,8 @@ func (r *userProfileRepository) GetById(ctx context.Context, id string) (*grpc.U
 	return c, nil
 }
 
-func (r *userProfileRepository) GetByUserId(ctx context.Context, userId string) (*grpc.UserProfile, error) {
-	var c *grpc.UserProfile
+func (r *userProfileRepository) GetByUserId(ctx context.Context, userId string) (*billingpb.UserProfile, error) {
+	var c *billingpb.UserProfile
 
 	filter := bson.M{"user_id": userId}
 	err := r.db.Collection(collectionUserProfile).FindOne(ctx, filter).Decode(&c)

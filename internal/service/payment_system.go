@@ -6,7 +6,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -48,18 +48,18 @@ var (
 )
 
 type PaymentSystem interface {
-	CreatePayment(order *billing.Order, successUrl, failUrl string, requisites map[string]string) (string, error)
-	ProcessPayment(order *billing.Order, message proto.Message, raw, signature string) error
+	CreatePayment(order *billingpb.Order, successUrl, failUrl string, requisites map[string]string) (string, error)
+	ProcessPayment(order *billingpb.Order, message proto.Message, raw, signature string) error
 	IsRecurringCallback(request proto.Message) bool
 	GetRecurringId(request proto.Message) string
-	CreateRefund(order *billing.Order, refund *billing.Refund) error
-	ProcessRefund(order *billing.Order, refund *billing.Refund, message proto.Message, raw, signature string) error
+	CreateRefund(order *billingpb.Order, refund *billingpb.Refund) error
+	ProcessRefund(order *billingpb.Order, refund *billingpb.Refund, message proto.Message, raw, signature string) error
 }
 
 func (s *Service) NewPaymentSystem(
 	ctx context.Context,
 	cfg *config.PaymentSystemConfig,
-	order *billing.Order,
+	order *billingpb.Order,
 ) (PaymentSystem, error) {
 	ps, err := s.paymentSystem.GetById(ctx, order.PaymentMethod.PaymentSystemId)
 
@@ -77,10 +77,10 @@ func (s *Service) NewPaymentSystem(
 }
 
 type PaymentSystemServiceInterface interface {
-	GetById(context.Context, string) (*billing.PaymentSystem, error)
-	Insert(context.Context, *billing.PaymentSystem) error
-	MultipleInsert(context.Context, []*billing.PaymentSystem) error
-	Update(context.Context, *billing.PaymentSystem) error
+	GetById(context.Context, string) (*billingpb.PaymentSystem, error)
+	Insert(context.Context, *billingpb.PaymentSystem) error
+	MultipleInsert(context.Context, []*billingpb.PaymentSystem) error
+	Update(context.Context, *billingpb.PaymentSystem) error
 }
 
 func newPaymentSystemService(svc *Service) *PaymentSystemService {
@@ -88,8 +88,8 @@ func newPaymentSystemService(svc *Service) *PaymentSystemService {
 	return s
 }
 
-func (h PaymentSystemService) GetById(ctx context.Context, id string) (*billing.PaymentSystem, error) {
-	var c billing.PaymentSystem
+func (h PaymentSystemService) GetById(ctx context.Context, id string) (*billingpb.PaymentSystem, error) {
+	var c billingpb.PaymentSystem
 	key := fmt.Sprintf(cachePaymentSystem, id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
@@ -112,7 +112,7 @@ func (h PaymentSystemService) GetById(ctx context.Context, id string) (*billing.
 	return &c, nil
 }
 
-func (h *PaymentSystemService) Insert(ctx context.Context, ps *billing.PaymentSystem) error {
+func (h *PaymentSystemService) Insert(ctx context.Context, ps *billingpb.PaymentSystem) error {
 	_, err := h.svc.db.Collection(collectionPaymentSystem).InsertOne(ctx, ps)
 
 	if err != nil {
@@ -127,7 +127,7 @@ func (h *PaymentSystemService) Insert(ctx context.Context, ps *billing.PaymentSy
 	return nil
 }
 
-func (h PaymentSystemService) MultipleInsert(ctx context.Context, ps []*billing.PaymentSystem) error {
+func (h PaymentSystemService) MultipleInsert(ctx context.Context, ps []*billingpb.PaymentSystem) error {
 	c := make([]interface{}, len(ps))
 	for i, v := range ps {
 		c[i] = v
@@ -142,7 +142,7 @@ func (h PaymentSystemService) MultipleInsert(ctx context.Context, ps []*billing.
 	return nil
 }
 
-func (h *PaymentSystemService) Update(ctx context.Context, ps *billing.PaymentSystem) error {
+func (h *PaymentSystemService) Update(ctx context.Context, ps *billingpb.PaymentSystem) error {
 	oid, _ := primitive.ObjectIDFromHex(ps.Id)
 	filter := bson.M{"_id": oid}
 	_, err := h.svc.db.Collection(collectionPaymentSystem).ReplaceOne(ctx, filter, ps)

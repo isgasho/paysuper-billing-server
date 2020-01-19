@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 )
 
 const (
@@ -16,20 +16,20 @@ const (
 // PriceGroupRepositoryInterface is abstraction layer for working with price group and representation in database.
 type PriceGroupRepositoryInterface interface {
 	// Insert adds the price group to the collection.
-	Insert(context.Context, *billing.PriceGroup) error
+	Insert(context.Context, *billingpb.PriceGroup) error
 
 	// Insert adds the multiple price groups to the collection.
-	MultipleInsert(context.Context, []*billing.PriceGroup) error
+	MultipleInsert(context.Context, []*billingpb.PriceGroup) error
 
 	// Update updates the price group in the collection.
-	Update(context.Context, *billing.PriceGroup) error
+	Update(context.Context, *billingpb.PriceGroup) error
 
 	// GetById returns the price group by unique identity.
-	GetById(context.Context, string) (*billing.PriceGroup, error)
+	GetById(context.Context, string) (*billingpb.PriceGroup, error)
 
 	// GetByRegion returns the price group by region name.
-	GetByRegion(context.Context, string) (*billing.PriceGroup, error)
+	GetByRegion(context.Context, string) (*billingpb.PriceGroup, error)
 
 	// GetByRegion returns all price groups.
-	GetAll(context.Context) ([]*billing.PriceGroup, error)
+	GetAll(context.Context) ([]*billingpb.PriceGroup, error)
 }

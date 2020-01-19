@@ -21,23 +21,18 @@ import (
 	"github.com/micro/go-plugins/client/selector/static"
 	casbinPkg "github.com/paysuper/casbin-server/pkg"
 	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
-	documentSignerConst "github.com/paysuper/document-signer/pkg/constant"
-	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/service"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	curPkg "github.com/paysuper/paysuper-currencies/pkg"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	paysuperI18n "github.com/paysuper/paysuper-i18n"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
-	reporterServiceConst "github.com/paysuper/paysuper-reporter/pkg"
-	reporterService "github.com/paysuper/paysuper-reporter/pkg/proto"
-	taxPkg "github.com/paysuper/paysuper-tax-service/pkg"
-	"github.com/paysuper/paysuper-tax-service/proto"
-	postmarkPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	"github.com/paysuper/paysuper-proto/go/document_signerpb"
+	"github.com/paysuper/paysuper-proto/go/postmarkpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
+	"github.com/paysuper/paysuper-proto/go/reporterpb"
+	"github.com/paysuper/paysuper-proto/go/taxpb"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -126,11 +121,11 @@ func (app *Application) Init() {
 		app.logger.Fatal("Creating postmark broker failed", zap.Error(err))
 	}
 
-	postmarkBroker.SetExchangeName(postmarkPkg.PostmarkSenderTopicName)
+	postmarkBroker.SetExchangeName(postmarkpb.PostmarkSenderTopicName)
 
 	options := []micro.Option{
-		micro.Name(pkg.ServiceName),
-		micro.Version(pkg.ServiceVersion),
+		micro.Name(billingpb.ServiceName),
+		micro.Version(billingpb.ServiceVersion),
 		micro.WrapHandler(metrics.NewHandlerWrapper()),
 		micro.AfterStop(func() error {
 			app.logger.Info("Micro service stopped")
@@ -177,11 +172,11 @@ func (app *Application) Init() {
 	}
 
 	geoService := proto.NewGeoIpService(geoip.ServiceName, app.service.Client())
-	repService := repository.NewRepositoryService(constant.PayOneRepositoryServiceName, app.service.Client())
-	taxService := tax_service.NewTaxService(taxPkg.ServiceName, app.service.Client())
-	curService := currencies.NewCurrencyratesService(curPkg.ServiceName, app.service.Client())
-	documentSignerService := documentSignerProto.NewDocumentSignerService(documentSignerConst.ServiceName, app.service.Client())
-	reporter := reporterService.NewReporterService(reporterServiceConst.ServiceName, app.service.Client())
+	repService := recurringpb.NewRepositoryService(recurringpb.PayOneRepositoryServiceName, app.service.Client())
+	taxService := taxpb.NewTaxService(taxpb.ServiceName, app.service.Client())
+	curService := currenciespb.NewCurrencyRatesService(currenciespb.ServiceName, app.service.Client())
+	documentSignerService := document_signerpb.NewDocumentSignerService(document_signerpb.ServiceName, app.service.Client())
+	reporter := reporterpb.NewReporterService(reporterpb.ServiceName, app.service.Client())
 	casbin := casbinProto.NewCasbinService(casbinPkg.ServiceName, app.service.Client())
 
 	formatter, err := paysuperI18n.NewFormatter([]string{"i18n/rules"}, []string{"i18n/messages"})
@@ -230,7 +225,7 @@ func (app *Application) Init() {
 		app.logger.Fatal("Create service instance failed", zap.Error(err))
 	}
 
-	err = grpc.RegisterBillingServiceHandler(app.service.Server(), app.svc)
+	err = billingpb.RegisterBillingServiceHandler(app.service.Server(), app.svc)
 
 	if err != nil {
 		app.logger.Fatal("Service init failed", zap.Error(err))
@@ -350,7 +345,7 @@ func (app *Application) Stop() {
 
 func (app *Application) TaskProcessVatReports(date string) error {
 	zap.S().Info("Start to processing vat reports")
-	req := &grpc.ProcessVatReportsRequest{
+	req := &billingpb.ProcessVatReportsRequest{
 		Date: ptypes.TimestampNow(),
 	}
 	if date != "" {
@@ -366,19 +361,19 @@ func (app *Application) TaskProcessVatReports(date string) error {
 			return err
 		}
 	}
-	return app.svc.ProcessVatReports(context.TODO(), req, &grpc.EmptyResponse{})
+	return app.svc.ProcessVatReports(context.TODO(), req, &billingpb.EmptyResponse{})
 }
 
 func (app *Application) TaskCreateRoyaltyReport() error {
-	return app.svc.CreateRoyaltyReport(context.TODO(), &grpc.CreateRoyaltyReportRequest{}, &grpc.CreateRoyaltyReportRequest{})
+	return app.svc.CreateRoyaltyReport(context.TODO(), &billingpb.CreateRoyaltyReportRequest{}, &billingpb.CreateRoyaltyReportRequest{})
 }
 
 func (app *Application) TaskAutoAcceptRoyaltyReports() error {
-	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	return app.svc.AutoAcceptRoyaltyReports(context.TODO(), &billingpb.EmptyRequest{}, &billingpb.EmptyResponse{})
 }
 
 func (app *Application) TaskAutoCreatePayouts() error {
-	return app.svc.AutoCreatePayoutDocuments(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
+	return app.svc.AutoCreatePayoutDocuments(context.TODO(), &billingpb.EmptyRequest{}, &billingpb.EmptyResponse{})
 }
 
 func (app *Application) TaskRebuildOrderView() error {

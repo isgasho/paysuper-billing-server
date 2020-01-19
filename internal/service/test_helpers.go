@@ -12,9 +12,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -26,13 +25,13 @@ import (
 )
 
 func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
-	*billing.Merchant,
-	*billing.Project,
-	*billing.PaymentMethod,
-	*billing.PaymentSystem,
+	*billingpb.Merchant,
+	*billingpb.Project,
+	*billingpb.PaymentMethod,
+	*billingpb.PaymentSystem,
 ) {
 
-	paymentMinLimitsSystem := []*billing.PaymentMinLimitSystem{
+	paymentMinLimitsSystem := []*billingpb.PaymentMinLimitSystem{
 		{
 			Currency: "RUB",
 			Amount:   0.01,
@@ -53,11 +52,11 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	operatingCompany := helperOperatingCompany(suite, service)
 
-	keyRub := pkg.GetPaymentMethodKey("RUB", pkg.MccCodeLowRisk, operatingCompany.Id, "")
-	keyUsd := pkg.GetPaymentMethodKey("USD", pkg.MccCodeLowRisk, operatingCompany.Id, "")
-	keyEur := pkg.GetPaymentMethodKey("EUR", pkg.MccCodeLowRisk, operatingCompany.Id, "")
+	keyRub := billingpb.GetPaymentMethodKey("RUB", billingpb.MccCodeLowRisk, operatingCompany.Id, "")
+	keyUsd := billingpb.GetPaymentMethodKey("USD", billingpb.MccCodeLowRisk, operatingCompany.Id, "")
+	keyEur := billingpb.GetPaymentMethodKey("EUR", billingpb.MccCodeLowRisk, operatingCompany.Id, "")
 
-	paymentSystem := &billing.PaymentSystem{
+	paymentSystem := &billingpb.PaymentSystem{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "CardPay",
 		AccountingCurrency: "RUB",
@@ -67,20 +66,20 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		Handler:            paymentSystemHandlerCardPayMock,
 	}
 
-	pmBankCard := &billing.PaymentMethod{
+	pmBankCard := &billingpb.PaymentMethod{
 		Id:               primitive.NewObjectID().Hex(),
 		Name:             "Bank card",
 		Group:            "BANKCARD",
 		MinPaymentAmount: 10,
 		MaxPaymentAmount: 15000,
 		ExternalId:       "BANKCARD",
-		ProductionSettings: map[string]*billing.PaymentMethodParams{
+		ProductionSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRub: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
-				MccCode:            pkg.MccCodeLowRisk,
+				MccCode:            billingpb.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
 				Brand:              []string{"VISA", "MASTERCARD"},
 			},
@@ -89,7 +88,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "USD",
-				MccCode:            pkg.MccCodeLowRisk,
+				MccCode:            billingpb.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
 				Brand:              []string{"VISA", "MASTERCARD"},
 			},
@@ -98,18 +97,18 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "EUR",
-				MccCode:            pkg.MccCodeLowRisk,
+				MccCode:            billingpb.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
 				Brand:              []string{"VISA", "MASTERCARD"},
 			},
 		},
-		TestSettings: map[string]*billing.PaymentMethodParams{
+		TestSettings: map[string]*billingpb.PaymentMethodParams{
 			keyRub: {
 				TerminalId:         "15985",
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "RUB",
-				MccCode:            pkg.MccCodeLowRisk,
+				MccCode:            billingpb.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
 				Brand:              []string{"VISA", "MASTERCARD"},
 			},
@@ -118,7 +117,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "USD",
-				MccCode:            pkg.MccCodeLowRisk,
+				MccCode:            billingpb.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
 				Brand:              []string{"VISA", "MASTERCARD"},
 			},
@@ -127,7 +126,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 				Secret:             "A1tph4I6BD0f",
 				SecretCallback:     "0V1rJ7t4jCRv",
 				Currency:           "EUR",
-				MccCode:            pkg.MccCodeLowRisk,
+				MccCode:            billingpb.MccCodeLowRisk,
 				OperatingCompanyId: operatingCompany.Id,
 				Brand:              []string{"VISA", "MASTERCARD"},
 			},
@@ -141,7 +140,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 
 	merchant := helperCreateMerchant(suite, service, "USD", "RU", pmBankCard, 0, operatingCompany.Id)
 
-	projectFixedAmount := helperCreateProject(suite, service, merchant.Id, pkg.VatPayerBuyer)
+	projectFixedAmount := helperCreateProject(suite, service, merchant.Id, billingpb.VatPayerBuyer)
 
 	bin := &BinData{
 		Id:                 primitive.NewObjectID(),
@@ -160,194 +159,194 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
 
-	pms := []*billing.PaymentMethod{pmBankCard}
+	pms := []*billingpb.PaymentMethod{pmBankCard}
 	if err := service.paymentMethod.MultipleInsert(context.TODO(), pms); err != nil {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
-	ps := []*billing.PaymentSystem{paymentSystem}
+	ps := []*billingpb.PaymentSystem{paymentSystem}
 	if err := service.paymentSystem.MultipleInsert(context.TODO(), ps); err != nil {
 		suite.FailNow("Insert payment system test data failed", "%v", err)
 	}
 
-	sysCost := &billing.MoneyBackCostSystem{
+	sysCost := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		UndoReason:         "reversal",
-		Region:             pkg.TariffRegionRussiaAndCis,
+		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost2 := &billing.MoneyBackCostSystem{
+	sysCost2 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "RUB",
 		UndoReason:         "reversal",
-		Region:             pkg.TariffRegionRussiaAndCis,
+		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost3 := &billing.MoneyBackCostSystem{
+	sysCost3 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		UndoReason:         "reversal",
-		Region:             pkg.TariffRegionWorldwide,
+		Region:             billingpb.TariffRegionWorldwide,
 		Country:            "US",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost4 := &billing.MoneyBackCostSystem{
+	sysCost4 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		UndoReason:         "reversal",
-		Region:             pkg.TariffRegionEurope,
+		Region:             billingpb.TariffRegionEurope,
 		Country:            "FI",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost5 := &billing.MoneyBackCostSystem{
+	sysCost5 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		UndoReason:         "chargeback",
-		Region:             pkg.TariffRegionRussiaAndCis,
+		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost6 := &billing.MoneyBackCostSystem{
+	sysCost6 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "RUB",
 		UndoReason:         "chargeback",
-		Region:             pkg.TariffRegionRussiaAndCis,
+		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost7 := &billing.MoneyBackCostSystem{
+	sysCost7 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		UndoReason:         "chargeback",
-		Region:             pkg.TariffRegionWorldwide,
+		Region:             billingpb.TariffRegionWorldwide,
 		Country:            "US",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	sysCost8 := &billing.MoneyBackCostSystem{
+	sysCost8 := &billingpb.MoneyBackCostSystem{
 		Name:               "MASTERCARD",
 		PayoutCurrency:     "USD",
 		UndoReason:         "chargeback",
-		Region:             pkg.TariffRegionEurope,
+		Region:             billingpb.TariffRegionEurope,
 		Country:            "FI",
 		DaysFrom:           0,
 		PaymentStage:       1,
 		Percent:            0.10,
 		FixAmount:          0.15,
 		FixAmountCurrency:  "EUR",
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
 
-	err = service.moneyBackCostSystem.MultipleInsert(context.TODO(), []*billing.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
+	err = service.moneyBackCostSystem.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
 	}
 
-	paymentSysCost1 := &billing.PaymentChannelCostSystem{
+	paymentSysCost1 := &billingpb.PaymentChannelCostSystem{
 		Name:               "MASTERCARD",
-		Region:             pkg.TariffRegionRussiaAndCis,
+		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		Percent:            0.015,
 		FixAmount:          0.01,
 		FixAmountCurrency:  "USD",
 		IsActive:           true,
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	paymentSysCost2 := &billing.PaymentChannelCostSystem{
+	paymentSysCost2 := &billingpb.PaymentChannelCostSystem{
 		Name:               "MASTERCARD",
-		Region:             pkg.TariffRegionWorldwide,
+		Region:             billingpb.TariffRegionWorldwide,
 		Country:            "US",
 		Percent:            0.015,
 		FixAmount:          0.01,
 		FixAmountCurrency:  "USD",
 		IsActive:           true,
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	paymentSysCost3 := &billing.PaymentChannelCostSystem{
+	paymentSysCost3 := &billingpb.PaymentChannelCostSystem{
 		Name:               "MASTERCARD",
-		Region:             pkg.TariffRegionEurope,
+		Region:             billingpb.TariffRegionEurope,
 		Country:            "FI",
 		Percent:            0.015,
 		FixAmount:          0.01,
 		FixAmountCurrency:  "USD",
 		IsActive:           true,
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	paymentSysCost4 := &billing.PaymentChannelCostSystem{
+	paymentSysCost4 := &billingpb.PaymentChannelCostSystem{
 		Name:               "VISA",
-		Region:             pkg.TariffRegionRussiaAndCis,
+		Region:             billingpb.TariffRegionRussiaAndCis,
 		Country:            "RU",
 		Percent:            0.015,
 		FixAmount:          0.01,
 		FixAmountCurrency:  "USD",
 		IsActive:           true,
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
-	paymentSysCost5 := &billing.PaymentChannelCostSystem{
+	paymentSysCost5 := &billingpb.PaymentChannelCostSystem{
 		Name:               "MASTERCARD",
-		Region:             pkg.TariffRegionWorldwide,
+		Region:             billingpb.TariffRegionWorldwide,
 		Country:            "AO",
 		Percent:            0.015,
 		FixAmount:          0.01,
 		FixAmountCurrency:  "USD",
 		IsActive:           true,
-		MccCode:            pkg.MccCodeLowRisk,
+		MccCode:            billingpb.MccCodeLowRisk,
 		OperatingCompanyId: operatingCompany.Id,
 	}
 
 	err = service.paymentChannelCostSystem.MultipleInsert(
 		context.TODO(),
-		[]*billing.PaymentChannelCostSystem{
+		[]*billingpb.PaymentChannelCostSystem{
 			paymentSysCost1,
 			paymentSysCost2,
 			paymentSysCost3,
@@ -366,9 +365,9 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 func helperOperatingCompany(
 	suite suite.Suite,
 	service *Service,
-) *billing.OperatingCompany {
+) *billingpb.OperatingCompany {
 
-	operatingCompany := &billing.OperatingCompany{
+	operatingCompany := &billingpb.OperatingCompany{
 		Id:                 primitive.NewObjectID().Hex(),
 		Name:               "Legal name",
 		Country:            "RU",
@@ -394,10 +393,10 @@ func helperCreateMerchant(
 	service *Service,
 	currency string,
 	country string,
-	paymentMethod *billing.PaymentMethod,
+	paymentMethod *billingpb.PaymentMethod,
 	minPayoutAmount float64,
 	operatingCompanyId string,
-) *billing.Merchant {
+) *billingpb.Merchant {
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -360))
 
 	if err != nil {
@@ -406,12 +405,12 @@ func helperCreateMerchant(
 
 	id := primitive.NewObjectID().Hex()
 
-	merchant := &billing.Merchant{
+	merchant := &billingpb.Merchant{
 		Id: id,
-		User: &billing.MerchantUser{
+		User: &billingpb.MerchantUser{
 			Id: primitive.NewObjectID().Hex(),
 		},
-		Company: &billing.MerchantCompanyInfo{
+		Company: &billingpb.MerchantCompanyInfo{
 			Name:               "Unit test",
 			AlternativeName:    "merchant1",
 			Website:            "http://localhost",
@@ -422,20 +421,20 @@ func helperCreateMerchant(
 			AddressAdditional:  "address_additional",
 			RegistrationNumber: "registration_number",
 		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{
+		Contacts: &billingpb.MerchantContact{
+			Authorized: &billingpb.MerchantContactAuthorized{
 				Name:     "Unit Test",
 				Email:    "test@unit.test",
 				Phone:    "123456789",
 				Position: "Unit Test",
 			},
-			Technical: &billing.MerchantContactTechnical{
+			Technical: &billingpb.MerchantContactTechnical{
 				Name:  "Unit Test",
 				Email: "test@unit.test",
 				Phone: "123456789",
 			},
 		},
-		Banking: &billing.MerchantBanking{
+		Banking: &billingpb.MerchantBanking{
 			Currency:             currency,
 			Name:                 "Bank name",
 			Address:              "address",
@@ -444,7 +443,7 @@ func helperCreateMerchant(
 			CorrespondentAccount: "correspondent_account",
 			Details:              "details",
 		},
-		Status:                    pkg.MerchantStatusDraft,
+		Status:                    billingpb.MerchantStatusDraft,
 		CreatedAt:                 nil,
 		UpdatedAt:                 nil,
 		FirstPaymentAt:            nil,
@@ -452,12 +451,12 @@ func helperCreateMerchant(
 		IsCommissionToUserEnabled: true,
 		HasMerchantSignature:      false,
 		HasPspSignature:           false,
-		LastPayout: &billing.MerchantLastPayout{
+		LastPayout: &billingpb.MerchantLastPayout{
 			Date:   date,
 			Amount: 999999,
 		},
 		IsSigned:                true,
-		PaymentMethods:          map[string]*billing.MerchantPaymentMethod{},
+		PaymentMethods:          map[string]*billingpb.MerchantPaymentMethod{},
 		AgreementType:           0,
 		AgreementSentViaMail:    false,
 		MailTrackingLink:        "",
@@ -479,8 +478,8 @@ func helperCreateMerchant(
 		HasProjects:            false,
 		AgreementNumber:        service.getMerchantAgreementNumber(id),
 		MinimalPayoutLimit:     0,
-		Tariff: &billing.MerchantTariff{
-			Payment: []*billing.MerchantTariffRatesPayment{
+		Tariff: &billingpb.MerchantTariff{
+			Payment: []*billingpb.MerchantTariffRatesPayment{
 				{
 					MinAmount:              0,
 					MaxAmount:              4.99,
@@ -508,7 +507,7 @@ func helperCreateMerchant(
 					PayerRegion:            "europe",
 				},
 			},
-			Payout: &billing.MerchantTariffRatesSettingsItem{
+			Payout: &billingpb.MerchantTariffRatesSettingsItem{
 				MethodPercentFee:       0,
 				MethodFixedFee:         25.0,
 				MethodFixedFeeCurrency: "EUR",
@@ -517,26 +516,26 @@ func helperCreateMerchant(
 			HomeRegion: "russia_and_cis",
 		},
 		ManualPayoutsEnabled:   false,
-		MccCode:                pkg.MccCodeLowRisk,
+		MccCode:                billingpb.MccCodeLowRisk,
 		OperatingCompanyId:     operatingCompanyId,
 		MerchantOperationsType: pkg.MerchantOperationTypeLowRisk,
 		DontChargeVat:          false,
 	}
 
 	if paymentMethod != nil {
-		merchant.PaymentMethods[paymentMethod.Id] = &billing.MerchantPaymentMethod{
-			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
+		merchant.PaymentMethods[paymentMethod.Id] = &billingpb.MerchantPaymentMethod{
+			PaymentMethod: &billingpb.MerchantPaymentMethodIdentification{
 				Id:   paymentMethod.Id,
 				Name: paymentMethod.Name,
 			},
-			Commission: &billing.MerchantPaymentMethodCommissions{
+			Commission: &billingpb.MerchantPaymentMethodCommissions{
 				Fee: 2.5,
-				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+				PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{
 					Fee:      30,
 					Currency: "RUB",
 				},
 			},
-			Integration: &billing.MerchantPaymentMethodIntegration{
+			Integration: &billingpb.MerchantPaymentMethodIntegration{
 				TerminalId:               "15985",
 				TerminalPassword:         "A1tph4I6BD0f",
 				TerminalCallbackPassword: "0V1rJ7t4jCRv",
@@ -546,18 +545,18 @@ func helperCreateMerchant(
 		}
 	}
 
-	merchants := []*billing.Merchant{merchant}
+	merchants := []*billingpb.Merchant{merchant}
 	if err := service.merchant.MultipleInsert(context.TODO(), merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
-	merCost1 := &billing.MoneyBackCostMerchant{
+	merCost1 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
 		UndoReason:        "reversal",
-		Region:            pkg.TariffRegionRussiaAndCis,
+		Region:            billingpb.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -565,16 +564,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost2 := &billing.MoneyBackCostMerchant{
+	merCost2 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "reversal",
-		Region:            pkg.TariffRegionRussiaAndCis,
+		Region:            billingpb.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -582,16 +581,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost3 := &billing.MoneyBackCostMerchant{
+	merCost3 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
 		UndoReason:        "reversal",
-		Region:            pkg.TariffRegionWorldwide,
+		Region:            billingpb.TariffRegionWorldwide,
 		Country:           "US",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -599,16 +598,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost4 := &billing.MoneyBackCostMerchant{
+	merCost4 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
 		UndoReason:        "reversal",
-		Region:            pkg.TariffRegionEurope,
+		Region:            billingpb.TariffRegionEurope,
 		Country:           "FI",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -616,16 +615,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  false,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost5 := &billing.MoneyBackCostMerchant{
+	merCost5 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            pkg.TariffRegionRussiaAndCis,
+		Region:            billingpb.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -633,16 +632,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost6 := &billing.MoneyBackCostMerchant{
+	merCost6 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "RUB",
 		UndoReason:        "chargeback",
-		Region:            pkg.TariffRegionRussiaAndCis,
+		Region:            billingpb.TariffRegionRussiaAndCis,
 		Country:           "RU",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -650,16 +649,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost7 := &billing.MoneyBackCostMerchant{
+	merCost7 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            pkg.TariffRegionWorldwide,
+		Region:            billingpb.TariffRegionWorldwide,
 		Country:           "US",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -667,16 +666,16 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	merCost8 := &billing.MoneyBackCostMerchant{
+	merCost8 := &billingpb.MoneyBackCostMerchant{
 		Id:                primitive.NewObjectID().Hex(),
 		MerchantId:        merchant.Id,
 		Name:              "MASTERCARD",
 		PayoutCurrency:    "USD",
 		UndoReason:        "chargeback",
-		Region:            pkg.TariffRegionEurope,
+		Region:            billingpb.TariffRegionEurope,
 		Country:           "FI",
 		DaysFrom:          0,
 		PaymentStage:      1,
@@ -684,21 +683,21 @@ func helperCreateMerchant(
 		FixAmount:         0.15,
 		FixAmountCurrency: "EUR",
 		IsPaidByMerchant:  true,
-		MccCode:           pkg.MccCodeLowRisk,
+		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	err = service.moneyBackCostMerchant.MultipleInsert(context.TODO(), []*billing.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
+	err = service.moneyBackCostMerchant.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
 	}
 
-	paymentMerCost1 := &billing.PaymentChannelCostMerchant{
+	paymentMerCost1 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0,
-		Region:                  pkg.TariffRegionRussiaAndCis,
+		Region:                  billingpb.TariffRegionRussiaAndCis,
 		Country:                 "RU",
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.02,
@@ -706,14 +705,14 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
-		MccCode:                 pkg.MccCodeLowRisk,
+		MccCode:                 billingpb.MccCodeLowRisk,
 	}
-	paymentMerCost2 := &billing.PaymentChannelCostMerchant{
+	paymentMerCost2 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "RUB",
 		MinAmount:               0,
-		Region:                  pkg.TariffRegionRussiaAndCis,
+		Region:                  billingpb.TariffRegionRussiaAndCis,
 		Country:                 "RU",
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.02,
@@ -721,14 +720,14 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
-		MccCode:                 pkg.MccCodeLowRisk,
+		MccCode:                 billingpb.MccCodeLowRisk,
 	}
-	paymentMerCost3 := &billing.PaymentChannelCostMerchant{
+	paymentMerCost3 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0,
-		Region:                  pkg.TariffRegionWorldwide,
+		Region:                  billingpb.TariffRegionWorldwide,
 		Country:                 "US",
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.02,
@@ -736,14 +735,14 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
-		MccCode:                 pkg.MccCodeLowRisk,
+		MccCode:                 billingpb.MccCodeLowRisk,
 	}
-	paymentMerCost4 := &billing.PaymentChannelCostMerchant{
+	paymentMerCost4 := &billingpb.PaymentChannelCostMerchant{
 		MerchantId:              merchant.Id,
 		Name:                    "MASTERCARD",
 		PayoutCurrency:          "USD",
 		MinAmount:               0,
-		Region:                  pkg.TariffRegionEurope,
+		Region:                  billingpb.TariffRegionEurope,
 		Country:                 "FI",
 		MethodPercent:           0.025,
 		MethodFixAmount:         0.02,
@@ -751,10 +750,10 @@ func helperCreateMerchant(
 		PsPercent:               0.05,
 		PsFixedFee:              0.05,
 		PsFixedFeeCurrency:      "EUR",
-		MccCode:                 pkg.MccCodeLowRisk,
+		MccCode:                 billingpb.MccCodeLowRisk,
 	}
 
-	err = service.paymentChannelCostMerchant.MultipleInsert(context.TODO(), []*billing.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2, paymentMerCost3, paymentMerCost4})
+	err = service.paymentChannelCostMerchant.MultipleInsert(context.TODO(), []*billingpb.PaymentChannelCostMerchant{paymentMerCost1, paymentMerCost2, paymentMerCost3, paymentMerCost4})
 
 	if err != nil {
 		suite.FailNow("Insert PaymentChannelCostMerchant test data failed", "%v", err)
@@ -768,8 +767,8 @@ func helperCreateProject(
 	service *Service,
 	merchantId string,
 	vatPayer string,
-) *billing.Project {
-	project := &billing.Project{
+) *billingpb.Project {
+	project := &billingpb.Project{
 		Id:                       primitive.NewObjectID().Hex(),
 		CallbackCurrency:         "RUB",
 		CallbackProtocol:         "default",
@@ -780,7 +779,7 @@ func helperCreateProject(
 		IsProductsCheckout:       false,
 		AllowDynamicRedirectUrls: true,
 		SecretKey:                "test project 1 secret key",
-		Status:                   pkg.ProjectStatusDraft,
+		Status:                   billingpb.ProjectStatusDraft,
 		MerchantId:               merchantId,
 		VatPayer:                 vatPayer,
 	}
@@ -796,16 +795,16 @@ func helperCreateAndPayPaylinkOrder(
 	suite suite.Suite,
 	service *Service,
 	paylinkId, country string,
-	paymentMethod *billing.PaymentMethod,
-	issuer *billing.OrderIssuer,
-) *billing.Order {
+	paymentMethod *billingpb.PaymentMethod,
+	issuer *billingpb.OrderIssuer,
+) *billingpb.Order {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugoDashboard = centrifugoMock
 	service.centrifugoPaymentForm = centrifugoMock
 
-	req := &billing.OrderCreateByPaylink{
+	req := &billingpb.OrderCreateByPaylink{
 		PaylinkId: paylinkId,
 		PayerIp:   "127.0.0.1",
 	}
@@ -818,25 +817,25 @@ func helperCreateAndPayPaylinkOrder(
 		req.UtmCampaign = issuer.UtmCampaign
 	}
 
-	rsp := &grpc.OrderCreateProcessResponse{}
+	rsp := &billingpb.OrderCreateProcessResponse{}
 	err := service.OrderCreateByPaylink(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
-	req1 := &grpc.ProcessBillingAddressRequest{
+	req1 := &billingpb.ProcessBillingAddressRequest{
 		OrderId: rsp.Item.Uuid,
 		Country: country,
 		Zip:     "123345",
 	}
-	rsp1 := &grpc.ProcessBillingAddressResponse{}
+	rsp1 := &billingpb.ProcessBillingAddressResponse{}
 	err = service.ProcessBillingAddress(context.TODO(), req1, rsp1)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp1.Status, billingpb.ResponseStatusOk)
 
 	order, err := service.orderRepository.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.IsType(suite.T(), &billing.Order{}, order)
+	assert.IsType(suite.T(), &billingpb.Order{}, order)
 
 	return helperPayOrder(suite, service, order, paymentMethod, country)
 }
@@ -846,9 +845,9 @@ func helperCreateAndPayOrder(
 	service *Service,
 	amount float64,
 	currency, country string,
-	project *billing.Project,
-	paymentMethod *billing.PaymentMethod,
-) *billing.Order {
+	project *billingpb.Project,
+	paymentMethod *billingpb.PaymentMethod,
+) *billingpb.Order {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -860,29 +859,29 @@ func helperCreateAndPayOrder(
 		zip = "98001"
 	}
 
-	req := &billing.OrderCreateRequest{
-		Type:        billing.OrderType_simple,
+	req := &billingpb.OrderCreateRequest{
+		Type:        pkg.OrderType_simple,
 		ProjectId:   project.Id,
 		Amount:      amount,
 		Currency:    currency,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
+		User: &billingpb.OrderUser{
 			Id:    primitive.NewObjectID().Hex(),
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
-			Address: &billing.OrderBillingAddress{
+			Address: &billingpb.OrderBillingAddress{
 				Country:    country,
 				PostalCode: zip,
 			},
 		},
 	}
 
-	rsp := &grpc.OrderCreateProcessResponse{}
+	rsp := &billingpb.OrderCreateProcessResponse{}
 	err := service.OrderCreateProcess(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
 	return helperPayOrder(suite, service, rsp.Item, paymentMethod, country)
 }
@@ -890,67 +889,67 @@ func helperCreateAndPayOrder(
 func helperPayOrder(
 	suite suite.Suite,
 	service *Service,
-	order *billing.Order,
-	paymentMethod *billing.PaymentMethod,
+	order *billingpb.Order,
+	paymentMethod *billingpb.PaymentMethod,
 	country string,
-) *billing.Order {
+) *billingpb.Order {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugoDashboard = centrifugoMock
 	service.centrifugoPaymentForm = centrifugoMock
 
-	req1 := &grpc.PaymentCreateRequest{
+	req1 := &billingpb.PaymentCreateRequest{
 		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         order.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: paymentMethod.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            time.Now().AddDate(1, 0, 0).Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
+			billingpb.PaymentCreateFieldOrderId:         order.Uuid,
+			billingpb.PaymentCreateFieldPaymentMethodId: paymentMethod.Id,
+			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
+			billingpb.PaymentCreateFieldPan:             "4000000000000002",
+			billingpb.PaymentCreateFieldCvv:             "123",
+			billingpb.PaymentCreateFieldMonth:           "02",
+			billingpb.PaymentCreateFieldYear:            time.Now().AddDate(1, 0, 0).Format("2006"),
+			billingpb.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
 		},
 		Ip: "127.0.0.1",
 	}
 
-	rsp1 := &grpc.PaymentCreateResponse{}
+	rsp1 := &billingpb.PaymentCreateResponse{}
 	err := service.PaymentCreateProcess(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equalf(suite.T(), pkg.ResponseStatusOk, rsp1.Status, "%v", rsp1.Message)
+	assert.Equalf(suite.T(), billingpb.ResponseStatusOk, rsp1.Status, "%v", rsp1.Message)
 
 	order, err = service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.IsType(suite.T(), &billing.Order{}, order)
+	assert.IsType(suite.T(), &billingpb.Order{}, order)
 
-	callbackRequest := &billing.CardPayPaymentCallback{
+	callbackRequest := &billingpb.CardPayPaymentCallback{
 		PaymentMethod: paymentMethod.ExternalId,
 		CallbackTime:  time.Now().Format("2006-01-02T15:04:05Z"),
-		MerchantOrder: &billing.CardPayMerchantOrder{
+		MerchantOrder: &billingpb.CardPayMerchantOrder{
 			Id:          order.Id,
 			Description: order.Description,
 		},
-		CardAccount: &billing.CallbackCardPayBankCardAccount{
-			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+		CardAccount: &billingpb.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[billingpb.PaymentCreateFieldHolder],
 			IssuingCountryCode: country,
-			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			MaskedPan:          order.PaymentRequisites[billingpb.PaymentCreateFieldPan],
 			Token:              primitive.NewObjectID().Hex(),
 		},
-		Customer: &billing.CardPayCustomer{
+		Customer: &billingpb.CardPayCustomer{
 			Email:  order.User.Email,
 			Ip:     order.User.Ip,
 			Id:     order.ProjectAccount,
 			Locale: "Europe/Moscow",
 		},
-		PaymentData: &billing.CallbackCardPayPaymentData{
+		PaymentData: &billingpb.CallbackCardPayPaymentData{
 			Id:          primitive.NewObjectID().Hex(),
 			Amount:      order.ChargeAmount,
 			Currency:    order.ChargeCurrency,
 			Description: order.Description,
 			Is_3D:       true,
 			Rrn:         primitive.NewObjectID().Hex(),
-			Status:      pkg.CardPayPaymentResponseStatusCompleted,
+			Status:      billingpb.CardPayPaymentResponseStatusCompleted,
 		},
 	}
 
@@ -960,13 +959,13 @@ func helperPayOrder(
 	hash := sha512.New()
 	hash.Write([]byte(string(buf) + order.PaymentMethod.Params.SecretCallback))
 
-	callbackData := &grpc.PaymentNotifyRequest{
+	callbackData := &billingpb.PaymentNotifyRequest{
 		OrderId:   order.Id,
 		Request:   buf,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
 
-	callbackResponse := &grpc.PaymentNotifyResponse{}
+	callbackResponse := &billingpb.PaymentNotifyResponse{}
 	err = service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
@@ -974,14 +973,14 @@ func helperPayOrder(
 	order, err = service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.IsType(suite.T(), &billing.Order{}, order)
-	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
+	assert.IsType(suite.T(), &billingpb.Order{}, order)
+	assert.Equal(suite.T(), int32(recurringpb.OrderStatusPaymentSystemComplete), order.PrivateStatus)
 
 	return order
 }
 
-func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order, amount float64, isChargeback bool) *billing.Refund {
-	req2 := &grpc.CreateRefundRequest{
+func helperMakeRefund(suite suite.Suite, service *Service, order *billingpb.Order, amount float64, isChargeback bool) *billingpb.Refund {
+	req2 := &billingpb.CreateRefundRequest{
 		OrderId:      order.Uuid,
 		Amount:       amount,
 		CreatorId:    primitive.NewObjectID().Hex(),
@@ -989,36 +988,36 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 		IsChargeback: isChargeback,
 		MerchantId:   order.GetMerchantId(),
 	}
-	rsp2 := &grpc.CreateRefundResponse{}
+	rsp2 := &billingpb.CreateRefundResponse{}
 	err := service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
 	err = service.updateOrder(context.TODO(), order)
 	assert.NoError(suite.T(), err)
 
-	refundReq := &billing.CardPayRefundCallback{
-		MerchantOrder: &billing.CardPayMerchantOrder{
+	refundReq := &billingpb.CardPayRefundCallback{
+		MerchantOrder: &billingpb.CardPayMerchantOrder{
 			Id: rsp2.Item.Id,
 		},
 		PaymentMethod: order.PaymentMethod.Group,
-		PaymentData: &billing.CardPayRefundCallbackPaymentData{
+		PaymentData: &billingpb.CardPayRefundCallbackPaymentData{
 			Id:              rsp2.Item.Id,
 			RemainingAmount: 90,
 		},
-		RefundData: &billing.CardPayRefundCallbackRefundData{
+		RefundData: &billingpb.CardPayRefundCallbackRefundData{
 			Amount:   10,
 			Created:  time.Now().Format(cardPayDateFormat),
 			Id:       primitive.NewObjectID().Hex(),
 			Currency: rsp2.Item.Currency,
-			Status:   pkg.CardPayPaymentResponseStatusCompleted,
+			Status:   billingpb.CardPayPaymentResponseStatusCompleted,
 			AuthCode: primitive.NewObjectID().Hex(),
 			Is_3D:    true,
 			Rrn:      primitive.NewObjectID().Hex(),
 		},
 		CallbackTime: time.Now().Format(cardPayDateFormat),
-		Customer: &billing.CardPayCustomer{
+		Customer: &billingpb.CardPayCustomer{
 			Email: order.User.Email,
 			Id:    order.User.Email,
 		},
@@ -1030,18 +1029,18 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 	hash := sha512.New()
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
-	req3 := &grpc.CallbackRequest{
+	req3 := &billingpb.CallbackRequest{
 		Handler:   pkg.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
-	rsp3 := &grpc.PaymentNotifyResponse{}
+	rsp3 := &billingpb.PaymentNotifyResponse{}
 	err = service.ProcessRefundCallback(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Error)
 
-	var refund *billing.Refund
+	var refund *billingpb.Refund
 	oid, _ := primitive.ObjectIDFromHex(rsp2.Item.Id)
 	filter := bson.M{"_id": oid}
 	err = service.db.Collection(repository.CollectionRefund).FindOne(context.TODO(), filter).Decode(&refund)
@@ -1054,14 +1053,14 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billing.Order,
 func createProductsForProject(
 	suite suite.Suite,
 	service *Service,
-	project *billing.Project,
+	project *billingpb.Project,
 	productsCount int,
-) []*grpc.Product {
-	products := make([]*grpc.Product, productsCount)
+) []*billingpb.Product {
+	products := make([]*billingpb.Product, productsCount)
 
 	for i := 0; i < productsCount; i++ {
 		name := "ru_test_product_" + strconv.Itoa(i)
-		req := &grpc.Product{
+		req := &billingpb.Product{
 			Object:          "product",
 			Type:            "simple_product",
 			Sku:             name,
@@ -1075,23 +1074,23 @@ func createProductsForProject(
 
 		baseAmount := 37.00 * float64(i+1)
 
-		req.Prices = append(req.Prices, &billing.ProductPrice{
+		req.Prices = append(req.Prices, &billingpb.ProductPrice{
 			Currency: "USD",
 			Region:   "USD",
 			Amount:   baseAmount,
 		})
-		req.Prices = append(req.Prices, &billing.ProductPrice{
+		req.Prices = append(req.Prices, &billingpb.ProductPrice{
 			Currency: "EUR",
 			Region:   "EUR",
 			Amount:   baseAmount * 0.9,
 		})
-		req.Prices = append(req.Prices, &billing.ProductPrice{
+		req.Prices = append(req.Prices, &billingpb.ProductPrice{
 			Currency: "RUB",
 			Region:   "RUB",
 			Amount:   baseAmount * 65.13,
 		})
 
-		prod := &grpc.Product{}
+		prod := &billingpb.Product{}
 		err := service.CreateOrUpdateProduct(context.TODO(), req, prod)
 
 		if err != nil {
@@ -1107,16 +1106,16 @@ func createProductsForProject(
 func createKeyProductsForProject(
 	suite suite.Suite,
 	service *Service,
-	project *billing.Project,
+	project *billingpb.Project,
 	productsCount int,
-) []*grpc.KeyProduct {
-	products := make([]*grpc.KeyProduct, 0)
+) []*billingpb.KeyProduct {
+	products := make([]*billingpb.KeyProduct, 0)
 
 	for i := 0; i < productsCount; i++ {
 		baseAmount := 37.00 * float64(i+1)
 
 		name := "ru_test_key_product_" + strconv.Itoa(i)
-		req := &grpc.CreateOrUpdateKeyProductRequest{
+		req := &billingpb.CreateOrUpdateKeyProductRequest{
 			Object:          "key_product",
 			Sku:             name,
 			Name:            map[string]string{"en": name},
@@ -1124,10 +1123,10 @@ func createKeyProductsForProject(
 			Description:     map[string]string{"en": name + " description"},
 			MerchantId:      project.MerchantId,
 			ProjectId:       project.Id,
-			Platforms: []*grpc.PlatformPrice{
+			Platforms: []*billingpb.PlatformPrice{
 				{
 					Id: "steam",
-					Prices: []*billing.ProductPrice{
+					Prices: []*billingpb.ProductPrice{
 						{
 							Currency: "USD",
 							Region:   "USD",
@@ -1142,18 +1141,18 @@ func createKeyProductsForProject(
 				},
 			},
 		}
-		rsp := &grpc.KeyProductResponse{}
+		rsp := &billingpb.KeyProductResponse{}
 		err := service.CreateOrUpdateKeyProduct(context.TODO(), req, rsp)
 
 		if err != nil {
 			suite.FailNow("Add key products for project failed", "%v", err)
 		}
 
-		req2 := &grpc.PublishKeyProductRequest{
+		req2 := &billingpb.PublishKeyProductRequest{
 			MerchantId:   project.MerchantId,
 			KeyProductId: rsp.Product.Id,
 		}
-		rsp2 := &grpc.KeyProductResponse{}
+		rsp2 := &billingpb.KeyProductResponse{}
 		err = service.PublishKeyProduct(context.TODO(), req2, rsp2)
 
 		if err != nil {
@@ -1163,13 +1162,13 @@ func createKeyProductsForProject(
 		fileContent := fmt.Sprintf("%s-%s-%s-%s", RandomString(4), RandomString(4), RandomString(4), RandomString(4))
 		file := []byte(fileContent)
 
-		req3 := &grpc.PlatformKeysFileRequest{
+		req3 := &billingpb.PlatformKeysFileRequest{
 			KeyProductId: rsp.Product.Id,
 			PlatformId:   "steam",
 			MerchantId:   project.MerchantId,
 			File:         file,
 		}
-		rsp3 := &grpc.PlatformKeysFileResponse{}
+		rsp3 := &billingpb.PlatformKeysFileResponse{}
 		err = service.UploadKeysFile(context.TODO(), req3, rsp3)
 
 		if err != nil {
@@ -1187,28 +1186,28 @@ func helperCreateAndPayOrder2(
 	service *Service,
 	amount float64,
 	currency, country string,
-	project *billing.Project,
-	paymentMethod *billing.PaymentMethod,
+	project *billingpb.Project,
+	paymentMethod *billingpb.PaymentMethod,
 	paymentMethodClosedAt time.Time,
-	product *grpc.Product,
-	keyProduct *grpc.KeyProduct,
+	product *billingpb.Product,
+	keyProduct *billingpb.KeyProduct,
 	issuerUrl string,
-) *billing.Order {
+) *billingpb.Order {
 	centrifugoMock := &mocks.CentrifugoInterface{}
 	centrifugoMock.On("GetChannelToken", mock.Anything, mock.Anything).Return("token")
 	centrifugoMock.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	service.centrifugoDashboard = centrifugoMock
 	service.centrifugoPaymentForm = centrifugoMock
 
-	req := &billing.OrderCreateRequest{
+	req := &billingpb.OrderCreateRequest{
 		ProjectId:   project.Id,
 		Account:     "unit test",
 		Description: "unit test",
 		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billing.OrderUser{
+		User: &billingpb.OrderUser{
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
-			Address: &billing.OrderBillingAddress{
+			Address: &billingpb.OrderBillingAddress{
 				Country: country,
 			},
 		},
@@ -1216,77 +1215,77 @@ func helperCreateAndPayOrder2(
 	}
 
 	if product != nil {
-		req.Type = billing.OrderType_product
+		req.Type = pkg.OrderType_product
 		req.Products = []string{product.Id}
 	} else if keyProduct != nil {
-		req.Type = billing.OrderType_key
+		req.Type = pkg.OrderType_key
 		req.Products = []string{keyProduct.Id}
 	} else {
 		if amount <= 0 || currency == "" {
 			suite.FailNow("Order creation failed because request hasn't required fields", "%v")
 		}
 
-		req.Type = billing.OrderType_simple
+		req.Type = pkg.OrderType_simple
 		req.Amount = amount
 		req.Currency = currency
 	}
 
-	rsp := &grpc.OrderCreateProcessResponse{}
+	rsp := &billingpb.OrderCreateProcessResponse{}
 	err := service.OrderCreateProcess(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
-	req1 := &grpc.PaymentCreateRequest{
+	req1 := &billingpb.PaymentCreateRequest{
 		Data: map[string]string{
-			pkg.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
-			pkg.PaymentCreateFieldPaymentMethodId: paymentMethod.Id,
-			pkg.PaymentCreateFieldEmail:           "test@unit.unit",
-			pkg.PaymentCreateFieldPan:             "4000000000000002",
-			pkg.PaymentCreateFieldCvv:             "123",
-			pkg.PaymentCreateFieldMonth:           "02",
-			pkg.PaymentCreateFieldYear:            time.Now().AddDate(1, 0, 0).Format("2006"),
-			pkg.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
+			billingpb.PaymentCreateFieldOrderId:         rsp.Item.Uuid,
+			billingpb.PaymentCreateFieldPaymentMethodId: paymentMethod.Id,
+			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
+			billingpb.PaymentCreateFieldPan:             "4000000000000002",
+			billingpb.PaymentCreateFieldCvv:             "123",
+			billingpb.PaymentCreateFieldMonth:           "02",
+			billingpb.PaymentCreateFieldYear:            time.Now().AddDate(1, 0, 0).Format("2006"),
+			billingpb.PaymentCreateFieldHolder:          "MR. CARD HOLDER",
 		},
 		Ip: "127.0.0.1",
 	}
 
-	rsp1 := &grpc.PaymentCreateResponse{}
+	rsp1 := &billingpb.PaymentCreateResponse{}
 	err = service.PaymentCreateProcess(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 
 	order, err := service.orderRepository.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.IsType(suite.T(), &billing.Order{}, order)
+	assert.IsType(suite.T(), &billingpb.Order{}, order)
 
-	callbackRequest := &billing.CardPayPaymentCallback{
+	callbackRequest := &billingpb.CardPayPaymentCallback{
 		PaymentMethod: paymentMethod.ExternalId,
 		CallbackTime:  paymentMethodClosedAt.Format("2006-01-02T15:04:05Z"),
-		MerchantOrder: &billing.CardPayMerchantOrder{
+		MerchantOrder: &billingpb.CardPayMerchantOrder{
 			Id:          rsp.Item.Id,
 			Description: rsp.Item.Description,
 		},
-		CardAccount: &billing.CallbackCardPayBankCardAccount{
-			Holder:             order.PaymentRequisites[pkg.PaymentCreateFieldHolder],
+		CardAccount: &billingpb.CallbackCardPayBankCardAccount{
+			Holder:             order.PaymentRequisites[billingpb.PaymentCreateFieldHolder],
 			IssuingCountryCode: country,
-			MaskedPan:          order.PaymentRequisites[pkg.PaymentCreateFieldPan],
+			MaskedPan:          order.PaymentRequisites[billingpb.PaymentCreateFieldPan],
 			Token:              primitive.NewObjectID().Hex(),
 		},
-		Customer: &billing.CardPayCustomer{
+		Customer: &billingpb.CardPayCustomer{
 			Email:  rsp.Item.User.Email,
 			Ip:     rsp.Item.User.Ip,
 			Id:     rsp.Item.ProjectAccount,
 			Locale: "Europe/Moscow",
 		},
-		PaymentData: &billing.CallbackCardPayPaymentData{
+		PaymentData: &billingpb.CallbackCardPayPaymentData{
 			Id:          primitive.NewObjectID().Hex(),
 			Amount:      order.ChargeAmount,
 			Currency:    order.ChargeCurrency,
 			Description: order.Description,
 			Is_3D:       true,
 			Rrn:         primitive.NewObjectID().Hex(),
-			Status:      pkg.CardPayPaymentResponseStatusCompleted,
+			Status:      billingpb.CardPayPaymentResponseStatusCompleted,
 		},
 	}
 
@@ -1296,13 +1295,13 @@ func helperCreateAndPayOrder2(
 	hash := sha512.New()
 	hash.Write([]byte(string(buf) + order.PaymentMethod.Params.SecretCallback))
 
-	callbackData := &grpc.PaymentNotifyRequest{
+	callbackData := &billingpb.PaymentNotifyRequest{
 		OrderId:   order.Id,
 		Request:   buf,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
 
-	callbackResponse := &grpc.PaymentNotifyResponse{}
+	callbackResponse := &billingpb.PaymentNotifyResponse{}
 	err = service.PaymentCallbackProcess(context.TODO(), callbackData, callbackResponse)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.StatusOK, callbackResponse.Status)
@@ -1310,8 +1309,8 @@ func helperCreateAndPayOrder2(
 	order, err = service.orderRepository.GetById(context.TODO(), order.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order)
-	assert.IsType(suite.T(), &billing.Order{}, order)
-	assert.Equal(suite.T(), int32(constant.OrderStatusPaymentSystemComplete), order.PrivateStatus)
+	assert.IsType(suite.T(), &billingpb.Order{}, order)
+	assert.Equal(suite.T(), int32(recurringpb.OrderStatusPaymentSystemComplete), order.PrivateStatus)
 
 	return order
 }

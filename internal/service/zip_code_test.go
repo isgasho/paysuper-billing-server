@@ -7,9 +7,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -79,12 +78,12 @@ func (suite *ZipCodeTestSuite) TearDownTest() {
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_NoneUs() {
-	req := &grpc.FindByZipCodeRequest{
+	req := &billingpb.FindByZipCodeRequest{
 		Zip:     "98",
 		Country: "UA",
 	}
 
-	rsp := &grpc.FindByZipCodeResponse{}
+	rsp := &billingpb.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
@@ -92,7 +91,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_NoneUs() {
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_ErrorByCount() {
-	req := &grpc.FindByZipCodeRequest{
+	req := &billingpb.FindByZipCodeRequest{
 		Zip:     "98",
 		Country: "US",
 	}
@@ -101,7 +100,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_ErrorByCount() {
 	rep.On("CountByZip", mock.Anything, req.Zip, req.Country).Return(int64(0), errors.New("error"))
 	suite.service.zipCodeRepository = rep
 
-	rsp := &grpc.FindByZipCodeResponse{}
+	rsp := &billingpb.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
 	assert.Equal(suite.T(), orderErrorUnknown, err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
@@ -109,7 +108,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_ErrorByCount() {
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_EmptyCount() {
-	req := &grpc.FindByZipCodeRequest{
+	req := &billingpb.FindByZipCodeRequest{
 		Zip:     "98",
 		Country: "US",
 	}
@@ -118,7 +117,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_EmptyCount() {
 	rep.On("CountByZip", mock.Anything, req.Zip, req.Country).Return(int64(0), nil)
 	suite.service.zipCodeRepository = rep
 
-	rsp := &grpc.FindByZipCodeResponse{}
+	rsp := &billingpb.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
@@ -126,7 +125,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_EmptyCount() {
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_ErrorByFind() {
-	req := &grpc.FindByZipCodeRequest{
+	req := &billingpb.FindByZipCodeRequest{
 		Zip:     "98",
 		Country: "US",
 		Limit:   1,
@@ -138,7 +137,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_ErrorByFind() {
 	rep.On("FindByZipAndCountry", mock.Anything, req.Zip, req.Country, req.Offset, req.Limit).Return(nil, errors.New("error"))
 	suite.service.zipCodeRepository = rep
 
-	rsp := &grpc.FindByZipCodeResponse{}
+	rsp := &billingpb.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
 	assert.Equal(suite.T(), orderErrorUnknown, err)
 	assert.Equal(suite.T(), int32(0), rsp.Count)
@@ -146,7 +145,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_ErrorByFind() {
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_Ok() {
-	req := &grpc.FindByZipCodeRequest{
+	req := &billingpb.FindByZipCodeRequest{
 		Zip:     "98",
 		Country: "US",
 		Limit:   1,
@@ -156,10 +155,10 @@ func (suite *ZipCodeTestSuite) TestZipCode_FindByZipCode_Ok() {
 	rep := &mocks.ZipCodeRepositoryInterface{}
 	rep.On("CountByZip", mock.Anything, req.Zip, req.Country).Return(int64(1), nil)
 	rep.On("FindByZipAndCountry", mock.Anything, req.Zip, req.Country, req.Offset, req.Limit).
-		Return([]*billing.ZipCode{{Zip: "123"}}, nil)
+		Return([]*billingpb.ZipCode{{Zip: "123"}}, nil)
 	suite.service.zipCodeRepository = rep
 
-	rsp := &grpc.FindByZipCodeResponse{}
+	rsp := &billingpb.FindByZipCodeResponse{}
 	err := suite.service.FindByZipCode(context.Background(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), int32(1), rsp.Count)
