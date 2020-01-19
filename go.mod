@@ -27,7 +27,7 @@ require (
 	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200119171242-a5509c703c1a
-	github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119004420-095f33cbe4b8 // indirect
+	github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119171242-a5509c703c1a
 	github.com/paysuper/paysuper-proto/go/currenciespb v0.0.0-20200119003232-91615911efec
 	github.com/paysuper/paysuper-proto/go/document_signerpb v0.0.0-20200117170849-2e388108ebcc
 	github.com/paysuper/paysuper-proto/go/postmarkpb v0.0.0-20200117180736-12adca1f8860

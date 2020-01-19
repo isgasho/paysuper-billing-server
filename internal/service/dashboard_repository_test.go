@@ -70,6 +70,7 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -87,12 +88,12 @@ type DashboardRepositoryTestSuite struct {
 	cache   database.CacheInterface
 	log     *zap.Logger
 
-	project       *billing.Project
-	merchant      *billing.Merchant
-	paymentMethod *billing.PaymentMethod
+	project       *billingpb.Project
+	merchant      *billingpb.Merchant
+	paymentMethod *billingpb.PaymentMethod
 
-	products    []*grpc.Product
-	keyProducts []*grpc.KeyProduct
+	products    []*billingpb.Product
+	keyProducts []*billingpb.KeyProduct
 }
 
 func Test_DashboardRepository(t *testing.T) {

@@ -2149,7 +2149,7 @@ func (suite *OrderTestSuite) TearDownTest() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessProject_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: suite.project.Id,
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2168,7 +2168,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProject_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessProject_NotFound() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: "5bf67ebd46452d00062c7cc1",
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2187,7 +2187,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProject_NotFound() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessProject_InactiveProject() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: suite.inactiveProject.Id,
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2206,7 +2206,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProject_InactiveProject() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:     billingpb.OrderType_simple,
+		Type:     pkg.OrderType_simple,
 		Currency: "RUB",
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2225,7 +2225,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:     billingpb.OrderType_simple,
+		Type:     pkg.OrderType_simple,
 		Currency: "EUR",
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2247,7 +2247,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessCurrency_Error() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptyEmailAndPhone_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 		User: &billingpb.OrderUser{
 			Ip: "127.0.0.1",
 		},
@@ -2274,7 +2274,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptySubdivision_Ok() {
 	suite.service.geo = mocks.NewGeoIpServiceTestOkWithoutSubdivision()
 
 	req := &billingpb.OrderCreateRequest{
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 		User: &billingpb.OrderUser{Ip: "127.0.0.1"},
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2299,7 +2299,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_EmptySubdivision_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessPayerData_NotEmptyEmailAndPhone_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: suite.project.Id,
 		User: &billingpb.OrderUser{
 			Ip:    "127.0.0.1",
@@ -2332,7 +2332,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPayerData_Error() {
 	suite.service.geo = mocks.NewGeoIpServiceTestError()
 
 	req := &billingpb.OrderCreateRequest{
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 		User: &billingpb.OrderUser{Ip: "127.0.0.1"},
 	}
 	processor := &OrderCreateRequestProcessor{
@@ -2686,7 +2686,7 @@ func (suite *OrderTestSuite) TestOrder_GetOrderProductsItems_ProductHasNoDescInS
 
 func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Amount:    100,
 	}
@@ -2705,7 +2705,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Amount:    100,
 		OrderId:   "1234567890",
@@ -2771,7 +2771,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessProjectOrderId_Duplicate_Error() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -2803,7 +2803,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactive_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		PaymentMethod: suite.inactivePaymentMethod.Group,
 		Currency:      "RUB",
 	}
@@ -2829,7 +2829,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentMethodInactiv
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactive_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		PaymentMethod: suite.paymentMethodWithInactivePaymentSystem.Group,
 		Currency:      "RUB",
 	}
@@ -2855,7 +2855,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethod_PaymentSystemInactiv
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -2892,7 +2892,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -2929,7 +2929,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ConvertAmount_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -2967,7 +2967,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMinAmount_Erro
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3005,7 +3005,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_ProjectMaxAmount_Erro
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmount_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3043,7 +3043,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMinAmoun
 
 func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmount_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3081,7 +3081,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessLimitAmounts_PaymentMethodMaxAmoun
 
 func (suite *OrderTestSuite) TestOrder_ProcessSignature_Form_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3140,7 +3140,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Form_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessSignature_Json_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3155,7 +3155,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Json_Ok() {
 	req.RawBody = `{"project":"` + suite.project.Id + `","amount":` + fmt.Sprintf("%f", req.Amount) +
 		`,"currency":"` + req.Currency + `","account":"` + req.Account + `","order_id":"` + req.OrderId +
 		`","description":"` + req.Description + `","payment_method":"` + req.PaymentMethod + `","payer_email":"` + req.PayerEmail +
-		`","type":"` + billingpb.OrderType_simple + `"}`
+		`","type":"` + pkg.OrderType_simple + `"}`
 
 	hashString := req.RawBody + suite.project.SecretKey
 
@@ -3180,7 +3180,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessSignature_Json_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessSignature_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3236,7 +3236,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_Ok() {
 		UrlSuccess: "https://unit.test",
 		UrlFail:    "https://unit.test",
 		Products:   suite.productIds,
-		Type:       billingpb.OrderType_product,
+		Type:       pkg.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -3290,7 +3290,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_PaymentMethod_Ok() {
 			Ip:    "127.0.0.1",
 		},
 		Products: suite.productIds,
-		Type:     billingpb.OrderType_product,
+		Type:     pkg.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -3356,7 +3356,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlVerify_Error() {
 		UrlNotify: "https://unit.test",
 		UrlVerify: "https://unit.test",
 		Products:  suite.productIds,
-		Type:      billingpb.OrderType_product,
+		Type:      pkg.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -3407,7 +3407,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 		UrlFail:    "https://unit.test",
 		UrlSuccess: "https://unit.test",
 		Products:   suite.productIds,
-		Type:       billingpb.OrderType_product,
+		Type:       pkg.OrderType_product,
 	}
 
 	processor := &OrderCreateRequestProcessor{
@@ -3447,7 +3447,7 @@ func (suite *OrderTestSuite) TestOrder_PrepareOrder_UrlRedirect_Error() {
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3474,7 +3474,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProjectInactive_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.inactiveProject.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3500,7 +3500,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_ProjectInactive_Error(
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_SignatureInvalid_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3555,7 +3555,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutA
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_product,
+		Type: pkg.OrderType_product,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -3580,7 +3580,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutA
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_key,
+		Type: pkg.OrderType_key,
 	}
 
 	rsp = &billingpb.OrderCreateProcessResponse{}
@@ -3606,7 +3606,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_Error_CheckoutWithoutP
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -3630,7 +3630,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error(
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -3643,7 +3643,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyInvalid_Error(
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_CurrencyEmpty_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.projectEmptyPaymentMethodTerminal.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Amount:        100,
@@ -3670,7 +3670,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderI
 	orderId := primitive.NewObjectID().Hex()
 
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3724,7 +3724,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_DuplicateProjectOrderI
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_PaymentMethodInvalid_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.inactivePaymentMethod.Group,
 		Currency:      "RUB",
@@ -3748,7 +3748,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_PaymentMethodInvalid_E
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_AmountInvalid_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3773,7 +3773,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateProcess_AmountInvalid_Error() 
 
 func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_DevEnvironment_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3813,7 +3813,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_DevEnviro
 
 func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProdEnvironment_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3852,7 +3852,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessRenderFormPaymentMethods_ProdEnvir
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_SavedCards_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3893,7 +3893,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_SavedCards_Ok()
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_EmptySavedCards_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3936,7 +3936,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_EmptySavedCards
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_NotBankCard_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -3979,7 +3979,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_NotBankCard_Ok(
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_GetSavedCards_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -4020,7 +4020,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentMethodsData_GetSavedCards_E
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessAlreadyProcessed_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -4065,14 +4065,14 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessAlreadyProcesse
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp2)
 	assert.Nil(suite.T(), err)
 	assert.EqualValues(suite.T(), 200, rsp2.Status)
-	assert.Equal(suite.T(), billingpb.OrderType_simple, rsp2.Item.Type)
+	assert.Equal(suite.T(), pkg.OrderType_simple, rsp2.Item.Type)
 	assert.True(suite.T(), rsp2.Item.IsAlreadyProcessed)
 	assert.EqualValues(suite.T(), order.ReceiptUrl, rsp2.Item.ReceiptUrl)
 }
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -4110,7 +4110,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_Ok() {
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.OrderType_simple, rsp.Item.Type)
+	assert.Equal(suite.T(), pkg.OrderType_simple, rsp.Item.Type)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Item.Items), 0)
@@ -4150,7 +4150,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 			Ip:    "127.0.0.1",
 		},
 		Products: suite.productIds,
-		Type:     billingpb.OrderType_product,
+		Type:     pkg.OrderType_product,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -4165,7 +4165,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp)
 
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.OrderType_product, rsp.Item.Type)
+	assert.Equal(suite.T(), pkg.OrderType_product, rsp.Item.Type)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods) > 0)
 	assert.True(suite.T(), len(rsp.Item.PaymentMethods[0].Id) > 0)
 	assert.Equal(suite.T(), len(rsp.Item.Items), 2)
@@ -4173,7 +4173,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcessWithProducts_Ok
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCard_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4220,7 +4220,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCard_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_Bitcoin_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4258,7 +4258,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_Bitcoin_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderIdEmpty_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4295,7 +4295,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderIdEmpty_Error
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodEmpty_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4333,7 +4333,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodEmpty
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_EmailEmpty_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4371,7 +4371,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_EmailEmpty_Error()
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4409,7 +4409,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderNotFound_Erro
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatus_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4451,7 +4451,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_OrderHasEndedStatu
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4493,7 +4493,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ProjectProcess_Err
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4532,7 +4532,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodNotFo
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodProcess_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4571,7 +4571,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_PaymentMethodProce
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4613,7 +4613,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AmountLimitProcess
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCardNumberInvalid_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4656,7 +4656,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_BankCardNumberInva
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4707,7 +4707,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_GetBinData_Error()
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4746,7 +4746,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_AccountEmpty_Error
 
 func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangeProjectAccount_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4789,7 +4789,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_ChangeProjectAccou
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4841,7 +4841,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4885,7 +4885,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ProcessValidation_Er
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4933,7 +4933,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_ChangeTerminalData_O
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CreatePaymentSystemHandler_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -4974,7 +4974,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CreatePaymentSystemH
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_FormInputTimeExpired_Error() {
 	req1 := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5037,7 +5037,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_product,
+		Type: pkg.OrderType_product,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -5162,7 +5162,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 			Ip:    "127.0.0.1",
 		},
 		Products: suite.productIds,
-		Type:     billingpb.OrderType_product,
+		Type:     pkg.OrderType_product,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -5270,7 +5270,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Recurring_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5309,7 +5309,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_OrderNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5343,7 +5343,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_OrderNotFound_
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_NoChanges_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5391,7 +5391,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormLanguageChanged_NoChanges_Ok()
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BankCard_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5470,7 +5470,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 	assert.NoError(suite.T(), err)
 
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5511,7 +5511,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Ok(
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_SystemCostNotFound() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5546,7 +5546,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Qiwi_Sys
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_OrderNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5581,7 +5581,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_OrderNot
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_PaymentMethodNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5616,7 +5616,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_PaymentM
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_AccountIncorrect_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5651,7 +5651,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_AccountI
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BinDataNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5686,7 +5686,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_BinDataN
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAccountIncorrect_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5721,7 +5721,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAcco
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAccountCountryNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5756,7 +5756,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_QiwiAcco
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Bitcoin_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5793,7 +5793,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_Bitcoin_
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChanges_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5829,7 +5829,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormPaymentAccountChanged_NoChange
 
 func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5885,7 +5885,7 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_OrderNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5920,7 +5920,7 @@ func (suite *OrderTestSuite) TestOrder_OrderReCalculateAmounts_OrderNotFound_Err
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -5990,7 +5990,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequired_CountryFieldNotFound_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6082,7 +6082,7 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByToken_Ok() {
 			Currency:    "RUB",
 			Amount:      100,
 			Description: "test payment",
-			Type:        billingpb.OrderType_simple,
+			Type:        pkg.OrderType_simple,
 		},
 	}
 	rsp := &billingpb.TokenResponse{}
@@ -6122,7 +6122,7 @@ func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeys_Ok() {
 			Ip:    "127.0.0.1",
 		},
 		Products:   suite.keyProductIds,
-		Type:       billingpb.OrderType_key,
+		Type:       pkg.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -6152,7 +6152,7 @@ func (suite *OrderTestSuite) TestOrder_updateOrder_NotifyKeysRejected_Ok() {
 			Ip:    "127.0.0.1",
 		},
 		Products:   suite.keyProductIds,
-		Type:       billingpb.OrderType_key,
+		Type:       pkg.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -6179,7 +6179,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_UuidNotFound_E
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6216,7 +6216,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NewCookie_Ok()
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6299,7 +6299,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_ExistCookie_Ok
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_NotOwnBankCard_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6343,7 +6343,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_NotOwnBankCard_Error
 
 func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6378,7 +6378,7 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_IncorrectProject_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6411,7 +6411,7 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_IncorrectProject_Error
 
 func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_HasEndedStatus_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6448,7 +6448,7 @@ func (suite *OrderTestSuite) TestOrder_IsOrderCanBePaying_HasEndedStatus_Error()
 
 func (suite *OrderTestSuite) TestOrder_CreatePayment_ChangeCustomerData_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:      billingpb.OrderType_simple,
+		Type:      pkg.OrderType_simple,
 		ProjectId: suite.project.Id,
 		Currency:  "RUB",
 		Amount:    100,
@@ -6709,7 +6709,7 @@ func (suite *OrderTestSuite) TestOrder_GetNotificationStatus() {
 
 func (suite *OrderTestSuite) TestOrder_orderNotifyMerchant_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6754,7 +6754,7 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCrypto() {
 	)
 
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -6807,7 +6807,7 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataEwallet() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp0 := &billingpb.OrderCreateProcessResponse{}
@@ -6851,7 +6851,7 @@ func (suite *OrderTestSuite) TestCardpay_fillPaymentDataCard() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp0 := &billingpb.OrderCreateProcessResponse{}
@@ -6903,7 +6903,7 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifySales_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp0 := &billingpb.OrderCreateProcessResponse{}
@@ -6964,7 +6964,7 @@ func (suite *OrderTestSuite) TestBillingService_SetUserNotifyNewRegion_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp0 := &billingpb.OrderCreateProcessResponse{}
@@ -7029,7 +7029,7 @@ func (suite *OrderTestSuite) TestBillingService_OrderCreateProcess_CountryRestri
 			Ip:      "127.0.0.1",
 			Address: &billingpb.OrderBillingAddress{},
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	// payments allowed
@@ -7080,7 +7080,7 @@ func (suite *OrderTestSuite) TestBillingService_processPaymentFormData_CountryRe
 			Ip:      "127.0.0.1",
 			Address: &billingpb.OrderBillingAddress{},
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 	order := &billingpb.Order{}
 
@@ -7142,7 +7142,7 @@ func (suite *OrderTestSuite) TestBillingService_PaymentCreateProcess_CountryRest
 			Ip:      "127.0.0.1",
 			Address: &billingpb.OrderBillingAddress{},
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 	order := &billingpb.Order{}
 
@@ -7197,7 +7197,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_UserAddressDataRequi
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp0 := &billingpb.OrderCreateProcessResponse{}
@@ -7252,7 +7252,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_AccountingEntries_
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_product,
+		Type: pkg.OrderType_product,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -7368,7 +7368,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentCallbackProcess_Error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -7479,7 +7479,7 @@ func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type:       billingpb.OrderType_key,
+		Type:       pkg.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -7499,7 +7499,7 @@ func (suite *OrderTestSuite) Test_processPaylinkKeyProducts_error() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type:       billingpb.OrderType_product,
+		Type:       pkg.OrderType_product,
 		PlatformId: "steam",
 	}
 
@@ -7523,7 +7523,7 @@ func (suite *OrderTestSuite) Test_ProcessOrderKeyProducts() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type:       billingpb.OrderType_key,
+		Type:       pkg.OrderType_key,
 		PlatformId: "steam",
 	}
 
@@ -7556,7 +7556,7 @@ func (suite *OrderTestSuite) Test_ChangeCodeInOrder() {
 		},
 		Products:   suite.keyProductIds,
 		PlatformId: "steam",
-		Type:       billingpb.OrderType_key,
+		Type:       pkg.OrderType_key,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -7591,7 +7591,7 @@ func (suite *OrderTestSuite) Test_ChangePlatformInForm() {
 		},
 		Products:   suite.keyProductIds,
 		PlatformId: "steam",
-		Type:       billingpb.OrderType_key,
+		Type:       pkg.OrderType_key,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -7615,7 +7615,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservat
 	shouldBe := require.New(suite.T())
 
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_key,
+		Type:        pkg.OrderType_key,
 		ProjectId:   suite.projectWithKeyProducts.Id,
 		Currency:    "RUB",
 		Account:     "unit test",
@@ -7661,7 +7661,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservat
 	shouldBe := require.New(suite.T())
 
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_key,
+		Type:        pkg.OrderType_key,
 		ProjectId:   suite.projectWithKeyProducts.Id,
 		Currency:    "RUB",
 		Account:     "unit test",
@@ -7702,7 +7702,7 @@ func (suite *OrderTestSuite) TestOrder_ProcessPaymentFormData_KeyProductReservat
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_AllPaymentMethods() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",
@@ -7749,7 +7749,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_AllPaymentMeth
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_OnePaymentMethods() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "UAH",
@@ -7797,7 +7797,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_OnePaymentMeth
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_NoPaymentMethods() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "KZT",
 		Amount:      100,
@@ -7934,7 +7934,7 @@ func (suite *OrderTestSuite) TestOrder_OrderCreateByPaylink_Fail_NotFound() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentCreateProcess_CostsNotFound_Error() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -8060,7 +8060,7 @@ func (suite *OrderTestSuite) TestOrder_DeclineOrder_Ok() {
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -8190,7 +8190,7 @@ func (suite *OrderTestSuite) TestOrder_SuccessOrderCentrifugoPaymentSystemError_
 			Email: "test@unit.unit",
 			Ip:    "127.0.0.1",
 		},
-		Type: billingpb.OrderType_simple,
+		Type: pkg.OrderType_simple,
 	}
 
 	rsp := &billingpb.OrderCreateProcessResponse{}
@@ -8318,7 +8318,7 @@ func (suite *OrderTestSuite) TestOrder_KeyProductWithoutPriceDifferentRegion_Ok(
 			Ip:    "127.0.0.2",
 		},
 		Products: suite.keyProductIds,
-		Type:     billingpb.OrderType_key,
+		Type:     pkg.OrderType_key,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -8355,7 +8355,7 @@ func (suite *OrderTestSuite) TestOrder_ProductWithoutPriceDifferentRegion_Ok() {
 			Ip:    "127.0.0.2",
 		},
 		Products: suite.productIds,
-		Type:     billingpb.OrderType_product,
+		Type:     pkg.OrderType_product,
 	}
 
 	rsp1 := &billingpb.OrderCreateProcessResponse{}
@@ -8380,7 +8380,7 @@ func (suite *OrderTestSuite) TestOrder_ProductWithoutPriceDifferentRegion_Ok() {
 
 func (suite *OrderTestSuite) TestOrder_OrderCreateProcessVirtualCurrency_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_product,
+		Type:          pkg.OrderType_product,
 		ProjectId:     suite.projectWithProductsInVirtualCurrency.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Account:       "unit test",
@@ -8434,7 +8434,7 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok(
 		Settings: &billingpb.TokenSettings{
 			ProjectId:               suite.projectWithProductsInVirtualCurrency.Id,
 			Description:             "test payment",
-			Type:                    billingpb.OrderType_product,
+			Type:                    pkg.OrderType_product,
 			ProductsIds:             suite.productIdsWithVirtualCurrency,
 			IsBuyForVirtualCurrency: true,
 		},
@@ -8464,7 +8464,7 @@ func (suite *OrderTestSuite) TestOrder_CreateOrderByTokenWithVirtualCurrency_Ok(
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimitOk() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "EUR",
 		Amount:      100,
@@ -8490,7 +8490,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimit
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_LowerThanMinSystemLimit() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "EUR",
 		Amount:      10,
@@ -8517,7 +8517,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_LowerThanMinSy
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimitNotSet() {
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "DKK",
 		Amount:      10,
@@ -8545,7 +8545,7 @@ func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_MinSystemLimit
 func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 	shouldBe := require.New(suite.T())
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -8593,7 +8593,7 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 		err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req1, rsp2)
 		assert.Nil(suite.T(), err)
 		assert.EqualValues(suite.T(), 200, rsp2.Status, rsp2.Message)
-		assert.Equal(suite.T(), billingpb.OrderType_simple, rsp2.Item.Type)
+		assert.Equal(suite.T(), pkg.OrderType_simple, rsp2.Item.Type)
 		assert.NotNil(suite.T(), rsp2.Item.UserIpData)
 	}
 
@@ -8602,7 +8602,7 @@ func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Ok() {
 func (suite *OrderTestSuite) TestOrder_ReCreateOrder_Error() {
 	shouldBe := require.New(suite.T())
 	req := &billingpb.OrderCreateRequest{
-		Type:        billingpb.OrderType_simple,
+		Type:        pkg.OrderType_simple,
 		ProjectId:   suite.project.Id,
 		Currency:    "RUB",
 		Amount:      100,
@@ -8707,7 +8707,7 @@ func (suite *OrderTestSuite) TestOrder_processOrderVat_Ok_VatPayer_Buyer() {
 
 func (suite *OrderTestSuite) TestOrder_PaymentFormJsonDataProcess_WithUnknownCountryByIp_Ok() {
 	req := &billingpb.OrderCreateRequest{
-		Type:          billingpb.OrderType_simple,
+		Type:          pkg.OrderType_simple,
 		ProjectId:     suite.project.Id,
 		PaymentMethod: suite.paymentMethod.Group,
 		Currency:      "RUB",

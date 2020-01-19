@@ -730,9 +730,12 @@ github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec h1:lwjofa1E
 github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec/go.mod h1:2Jdkjg2fQ2echfcyS4xZDM04uBxfr3bfk8bAT+iJSGA=
 github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b h1:X4JLXz47Uzl2jM0jegSGv/SVKzWZ491lTRA9mIgiMyU=
 github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b/go.mod h1:ylOwG4lTgHfMviuc16JFhbchWF8aBAGEuoGEX6HSOTE=
+github.com/paysuper/paysuper-proto v0.0.0-20200119171242-a5509c703c1a h1:OZSGEvyyjJDdGuCMeJ0E98+CVRT94THm2S2DSkPHqBQ=
 github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200119171242-a5509c703c1a h1:NqwsZQ+MfMd1VwDJTVg6xNusW5qdpnNfMDDp2BqvFr4=
 github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200119171242-a5509c703c1a/go.mod h1:JCQ+rKE4d/cIXV+k2l1qz+Gb0FDUvtUimC4NR0hR29g=
 github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119004420-095f33cbe4b8/go.mod h1:d1xg3ZKJ4dnjvYU/wzfDGeUqYUS8y2mZJCi7p9Nr2yU=
+github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119171242-a5509c703c1a h1:wuYuKzJoHVbGQ2Pe61OpXkSY3l7cVQlRAJtpv6cSVGA=
+github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119171242-a5509c703c1a/go.mod h1:d1xg3ZKJ4dnjvYU/wzfDGeUqYUS8y2mZJCi7p9Nr2yU=
 github.com/paysuper/paysuper-proto/go/currenciespb v0.0.0-20200119003232-91615911efec h1:mXKI+grvd3ta9ZnbryyrBF0RuJ4yNnBYHpTUmZUMuE4=
 github.com/paysuper/paysuper-proto/go/currenciespb v0.0.0-20200119003232-91615911efec/go.mod h1:wIR2JxL/9AwhWKNC3PR2hdfdQttpSXjt7yw9D+5ySGQ=
 github.com/paysuper/paysuper-proto/go/document_signerpb v0.0.0-20200117170849-2e388108ebcc h1:XWt1kdxN0NNkMM5e83c7IsLrDkCI0kllgb7Hk91NcTw=
