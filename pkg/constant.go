@@ -365,19 +365,10 @@ const (
 	VatPayerSeller = "seller"
 	VatPayerNobody = "nobody"
 
-	ProjectRedirectModeDisable    = "disable"
 	ProjectRedirectModeSuccessful = "successful"
 	ProjectRedirectModeFail       = "fail"
 	ProjectRedirectModeAny        = "any"
-
-	ProjectRedirectUsageStandalone = "standalone"
-	ProjectRedirectUsageIframe     = "iframe"
-	ProjectRedirectUsageEmbed      = "embed"
-	ProjectRedirectUsageAny        = "any"
-
-	ProjectDefaultRedirectMode          = ProjectRedirectModeAny
-	ProjectDefaultRedirectUsage         = ProjectRedirectUsageAny
-	ProjectDefaultRedirectButtonCaption = "OK"
+	ProjectRedirectUsageAny       = "any"
 )
 
 var (

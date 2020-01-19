@@ -2281,6 +2281,10 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 	v.checked.project = project
 	v.checked.merchant = merchant
 
+	if v.request.ButtonCaption != "" {
+		v.checked.setRedirectButtonCaption(v.request.ButtonCaption)
+	}
+
 	return nil
 }
 
@@ -2682,6 +2686,8 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 	if token.User.Locale != nil {
 		v.checked.user.Locale = token.User.Locale.Value
 	}
+
+	v.request.ButtonCaption = token.Settings.ButtonCaption
 
 	v.checked.user.Id = customer.Id
 	v.checked.user.Object = pkg.ObjectTypeUser
@@ -4237,7 +4243,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 	for i, item := range order.Items {
 		price, err := s.formatter.FormatCurrency(DefaultLanguage, item.Amount, currency)
 
-		// Virtual currency always returns error but formatting with Name  
+		// Virtual currency always returns error but formatting with Name
 		if err != nil && order.IsBuyForVirtualCurrency == false {
 			zap.L().Error(
 				orderErrorDuringFormattingCurrency.Message,
@@ -4760,4 +4766,9 @@ func (s *Service) processKeyProducts(
 	items, err = s.GetOrderKeyProductsItems(orderProducts, locale, usedPriceGroup, platformId)
 
 	return
+}
+
+// Set caption for redirect button in payment form
+func (m *orderCreateRequestProcessorChecked) setRedirectButtonCaption(caption string) {
+	m.project.RedirectSettings.ButtonCaption = caption
 }

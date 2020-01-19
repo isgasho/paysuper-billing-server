@@ -667,6 +667,11 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_Ok() {
 	assert.EqualValues(suite.T(), int32(5), rsp1.Count)
 	assert.Len(suite.T(), rsp1.Items, 5)
 	assert.EqualValues(suite.T(), int32(3), rsp1.Items[0].ProductsCount)
+	assert.NotNil(suite.T(), rsp1.Items[0].RedirectSettings)
+	assert.NotZero(suite.T(), rsp1.Items[0].RedirectSettings.Mode)
+	assert.NotZero(suite.T(), rsp1.Items[0].RedirectSettings.Usage)
+	assert.Zero(suite.T(), rsp1.Items[0].RedirectSettings.Delay)
+	assert.Zero(suite.T(), rsp1.Items[0].RedirectSettings.ButtonCaption)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ListProjects_NameQuery_Ok() {
