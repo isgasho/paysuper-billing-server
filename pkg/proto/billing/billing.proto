@@ -107,7 +107,7 @@ message ProjectRedirectSettings {
     //
     //Delay after which the user will be redirected to the return URL. Default values is 0.
     int32 delay = 2;
-    //@inject_tag: json:"mode" bson:"usage" validate:"required,oneof=standalone iframe embed any"
+    //@inject_tag: json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"
     //
     //Redirect feature could be used in different representations of payment form. Default value is "any". Available values: standalone, iframe, embed, any.
     string usage = 3;

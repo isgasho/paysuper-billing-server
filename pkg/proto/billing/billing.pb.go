@@ -467,10 +467,10 @@ type ProjectRedirectSettings struct {
 	//
 	//Delay after which the user will be redirected to the return URL. Default values is 0.
 	Delay int32 `protobuf:"varint,2,opt,name=delay,proto3" json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"`
-	//@inject_tag: json:"mode" bson:"usage" validate:"required,oneof=standalone iframe embed any"
+	//@inject_tag: json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"
 	//
 	//Redirect feature could be used in different representations of payment form. Default value is "any". Available values: standalone, iframe, embed, any.
-	Usage string `protobuf:"bytes,3,opt,name=usage,proto3" json:"mode" bson:"usage" validate:"required,oneof=standalone iframe embed any"`
+	Usage string `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"`
 	//@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
 	//
 	//Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
