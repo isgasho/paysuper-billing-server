@@ -1659,20 +1659,30 @@ message PriceGroupByCountryRequest {
 
 message PriceGroupCurrenciesResponse {
     //@inject_tag: json:"regions"
+    //
+    // A list of regions.
     repeated PriceGroupRegions region = 1;
 }
 
 message PriceGroupRegions {
     //@inject_tag: json:"currency"
+    //
+    // The region's currency.
     string currency = 1;
     //@inject_tag: json:"regions"
+    //
+    // The region data.
     repeated PriceGroupRegion regions = 2;
 }
 
 message PriceGroupRegion {
     //@inject_tag: json:"region"
+    //
+    // The region's name.
     string region = 1;
     //@inject_tag: json:"country"
+    //
+    // The country's name.
     repeated string country = 2;
 }
 
@@ -1690,16 +1700,22 @@ message RecommendedPriceRequest {
 
 message RecommendedPriceResponse {
     // @inject_tag: json:"recommended_price"
+    //
+    // A list of recommended currency conversion prices.
     repeated billing.RecommendedPrice recommended_price = 1;
 }
 
 message RecommendedPriceTableRequest {
     // @inject_tag: validate:"required,alpha,len=3"
+    //
+    // Three-letter currency code by ISO 4217, in uppercase.
     string currency = 1;
 }
 
 message RecommendedPriceTableResponse {
     // @inject_tag: json:"ranges"
+    //
+    // A table of the price ranges.
     repeated billing.PriceTableRange ranges = 1;
 }
 

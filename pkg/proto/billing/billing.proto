@@ -1407,11 +1407,17 @@ message GetPriceGroupRequest {
 }
 
 message PriceGroup {
-    //@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24" required:"true"
+    //
+    // The unique identifier for the price group.
     string id = 1;
-    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3" required:"true"
+    //
+    // Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 2;
     //@inject_tag: json:"region" bson:"region" validate:"omitempty,alpha"
+    //
+    // The region's name.
     string region = 3;
     //@inject_tag: validate:"required,numeric,gte=0" bson:"inflation_rate" json:"-"
     double inflation_rate = 4;
@@ -1422,6 +1428,8 @@ message PriceGroup {
     //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
     // @inject_tag: json:"is_active" bson:"is_active"
+    //
+    // Has a true value if the price group is active.
     bool is_active = 8;
 }
 
@@ -2254,10 +2262,16 @@ message OrderViewPrivate {
 
 message RecommendedPrice {
     // @inject_tag: json:"region"
+    //
+    // The region's name.
     string region = 1;
     // @inject_tag: json:"currency"
+    //
+    // Three-letter currency code by ISO 4217, in uppercase.
     string currency = 2;
     // @inject_tag: json:"amount"
+    //
+    // The recommended currency conversion price.
     double amount = 3;
 }
 
@@ -2272,10 +2286,16 @@ message PriceTable {
 
 message PriceTableRange {
     //@inject_tag: json:"position" bson:"position"
+    //
+    // The order number in a pricing table.
     int32 position = 1;
     // @inject_tag: json:"from"
+    //
+    // The lower boundary value of the range.
     double from = 3;
     // @inject_tag: json:"to"
+    //
+    // The upper boundary value of the range.
     double to = 4;
 }
 

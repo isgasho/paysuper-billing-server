@@ -8894,6 +8894,8 @@ func (m *PriceGroupByCountryRequest) GetCountry() string {
 
 type PriceGroupCurrenciesResponse struct {
 	//@inject_tag: json:"regions"
+	//
+	// A list of regions.
 	Region               []*PriceGroupRegions `protobuf:"bytes,1,rep,name=region,proto3" json:"regions"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -8934,8 +8936,12 @@ func (m *PriceGroupCurrenciesResponse) GetRegion() []*PriceGroupRegions {
 
 type PriceGroupRegions struct {
 	//@inject_tag: json:"currency"
+	//
+	// The region's currency.
 	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency"`
 	//@inject_tag: json:"regions"
+	//
+	// The region data.
 	Regions              []*PriceGroupRegion `protobuf:"bytes,2,rep,name=regions,proto3" json:"regions"`
 	XXX_NoUnkeyedLiteral struct{}            `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte              `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -8983,8 +8989,12 @@ func (m *PriceGroupRegions) GetRegions() []*PriceGroupRegion {
 
 type PriceGroupRegion struct {
 	//@inject_tag: json:"region"
+	//
+	// The region's name.
 	Region string `protobuf:"bytes,1,opt,name=region,proto3" json:"region"`
 	//@inject_tag: json:"country"
+	//
+	// The country's name.
 	Country              []string `protobuf:"bytes,2,rep,name=country,proto3" json:"country"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -9121,6 +9131,8 @@ func (m *RecommendedPriceRequest) GetCurrency() string {
 
 type RecommendedPriceResponse struct {
 	// @inject_tag: json:"recommended_price"
+	//
+	// A list of recommended currency conversion prices.
 	RecommendedPrice     []*billing.RecommendedPrice `protobuf:"bytes,1,rep,name=recommended_price,json=recommendedPrice,proto3" json:"recommended_price"`
 	XXX_NoUnkeyedLiteral struct{}                    `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                      `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -9161,6 +9173,8 @@ func (m *RecommendedPriceResponse) GetRecommendedPrice() []*billing.RecommendedP
 
 type RecommendedPriceTableRequest struct {
 	// @inject_tag: validate:"required,alpha,len=3"
+	//
+	// Three-letter currency code by ISO 4217, in uppercase.
 	Currency             string   `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty" validate:"required,alpha,len=3"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -9201,6 +9215,8 @@ func (m *RecommendedPriceTableRequest) GetCurrency() string {
 
 type RecommendedPriceTableResponse struct {
 	// @inject_tag: json:"ranges"
+	//
+	// A table of the price ranges.
 	Ranges               []*billing.PriceTableRange `protobuf:"bytes,1,rep,name=ranges,proto3" json:"ranges"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                     `json:"-" bson:"-" structure:"-" validate:"-"`

@@ -7328,11 +7328,17 @@ func (m *GetPriceGroupRequest) GetId() string {
 }
 
 type PriceGroup struct {
-	//@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
-	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" bson:"currency" validate:"required,alpha,len=3"`
+	//@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24" required:"true"
+	//
+	// The unique identifier for the price group.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id" validate:"required,hexadecimal,len=24" required:"true"`
+	//@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3" required:"true"
+	//
+	// Three-letter Currency Code ISO 4217, in uppercase.
+	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" bson:"currency" validate:"required,alpha,len=3" required:"true"`
 	//@inject_tag: json:"region" bson:"region" validate:"omitempty,alpha"
+	//
+	// The region's name.
 	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" bson:"region" validate:"omitempty,alpha"`
 	//@inject_tag: validate:"required,numeric,gte=0" bson:"inflation_rate" json:"-"
 	InflationRate float64 `protobuf:"fixed64,4,opt,name=inflation_rate,json=inflationRate,proto3" json:"-" validate:"required,numeric,gte=0" bson:"inflation_rate"`
@@ -7343,6 +7349,8 @@ type PriceGroup struct {
 	//@inject_tag: json:"-" bson:"updated_at"
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"-" bson:"updated_at"`
 	// @inject_tag: json:"is_active" bson:"is_active"
+	//
+	// Has a true value if the price group is active.
 	IsActive             bool     `protobuf:"varint,8,opt,name=is_active,json=isActive,proto3" json:"is_active" bson:"is_active"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -11808,10 +11816,16 @@ func (m *OrderViewPrivate) GetTaxRate() float64 {
 
 type RecommendedPrice struct {
 	// @inject_tag: json:"region"
+	//
+	// The region's name.
 	Region string `protobuf:"bytes,1,opt,name=region,proto3" json:"region"`
 	// @inject_tag: json:"currency"
+	//
+	// Three-letter currency code by ISO 4217, in uppercase.
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency"`
 	// @inject_tag: json:"amount"
+	//
+	// The recommended currency conversion price.
 	Amount               float64  `protobuf:"fixed64,3,opt,name=amount,proto3" json:"amount"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -11924,10 +11938,16 @@ func (m *PriceTable) GetRanges() []*PriceTableRange {
 
 type PriceTableRange struct {
 	//@inject_tag: json:"position" bson:"position"
+	//
+	// The order number in a pricing table.
 	Position int32 `protobuf:"varint,1,opt,name=position,proto3" json:"position" bson:"position"`
 	// @inject_tag: json:"from"
+	//
+	// The lower boundary value of the range.
 	From float64 `protobuf:"fixed64,3,opt,name=from,proto3" json:"from"`
 	// @inject_tag: json:"to"
+	//
+	// The upper boundary value of the range.
 	To                   float64  `protobuf:"fixed64,4,opt,name=to,proto3" json:"to"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
