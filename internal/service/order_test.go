@@ -1335,19 +1335,6 @@ func (suite *OrderTestSuite) SetupTest() {
 		suite.FailNow("Insert BIN test data failed", "%v", err)
 	}
 
-	zipCode := &billing.ZipCode{
-		Zip:     "98001",
-		Country: "US",
-		City:    "Washington",
-		State: &billing.ZipCodeState{
-			Code: "NJ",
-			Name: "New Jersey",
-		},
-		CreatedAt: ptypes.TimestampNow(),
-	}
-
-	_, err = db.Collection(collectionZipCode).InsertOne(context.TODO(), zipCode)
-
 	if err != nil {
 		suite.FailNow("Insert zip codes test data failed", "%v", err)
 	}
@@ -1433,7 +1420,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	pgs := []*billing.PriceGroup{pgRub, pgUsd, pgCis, pgUah}
-	if err := suite.service.priceGroup.MultipleInsert(context.TODO(), pgs); err != nil {
+	if err := suite.service.priceGroupRepository.MultipleInsert(context.TODO(), pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
@@ -2134,6 +2121,18 @@ func (suite *OrderTestSuite) SetupTest() {
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
 	}
+
+	zipCode := &billing.ZipCode{
+		Zip:     "98001",
+		Country: "US",
+		City:    "Washington",
+		State: &billing.ZipCodeState{
+			Code: "NJ",
+			Name: "New Jersey",
+		},
+		CreatedAt: ptypes.TimestampNow(),
+	}
+	err = suite.service.zipCodeRepository.Insert(context.TODO(), zipCode)
 }
 
 func (suite *OrderTestSuite) TearDownTest() {
@@ -8766,4 +8765,20 @@ func (suite *OrderTestSuite) TestOrder_BankCardAccountRegexp() {
 			assert.Regexp(suite.T(), suite.paymentMethod.AccountRegexp, v1, fmt.Sprintf("bank card %s with number %d is incorrect by regexp", k, k1))
 		}
 	}
+}
+
+func (suite *OrderTestSuite) TestOrder_OrderReceipt_Ok() {
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.paymentMethod)
+
+	req := &grpc.OrderReceiptRequest{
+		OrderId:   order.Uuid,
+		ReceiptId: order.ReceiptId,
+	}
+	rsp := &grpc.OrderReceiptResponse{}
+	err := suite.service.OrderReceipt(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Status, pkg.ResponseStatusOk)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Receipt)
+	assert.Equal(suite.T(), rsp.Receipt.CustomerEmail, "test@unit.unit")
 }

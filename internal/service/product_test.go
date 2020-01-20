@@ -96,7 +96,7 @@ func (suite *ProductTestSuite) SetupTest() {
 	}
 
 	pgs := []*billing.PriceGroup{pgRub, pgUsd}
-	if err := suite.service.priceGroup.MultipleInsert(context.TODO(), pgs); err != nil {
+	if err := suite.service.priceGroupRepository.MultipleInsert(context.TODO(), pgs); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 

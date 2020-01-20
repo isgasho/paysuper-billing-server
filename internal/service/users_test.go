@@ -85,7 +85,7 @@ func (suite *UsersTestSuite) TearDownTest() {
 func (suite *UsersTestSuite) Test_GetUsers_Error() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
@@ -98,7 +98,7 @@ func (suite *UsersTestSuite) Test_GetUsers_Error() {
 func (suite *UsersTestSuite) Test_GetUsers_Ok() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
@@ -111,7 +111,7 @@ func (suite *UsersTestSuite) Test_GetUsers_Ok() {
 func (suite *UsersTestSuite) Test_GetAdminUsers_Error() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
@@ -124,7 +124,7 @@ func (suite *UsersTestSuite) Test_GetAdminUsers_Error() {
 func (suite *UsersTestSuite) Test_GetAdminUsers_Ok() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
@@ -137,7 +137,7 @@ func (suite *UsersTestSuite) Test_GetAdminUsers_Ok() {
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetMerchantsForUser() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
@@ -152,7 +152,7 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetMerchantsForUser(
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetById() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
 	suite.service.userRoleRepository = repository
 
@@ -173,7 +173,7 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetById() {
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_Empty() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
@@ -189,7 +189,7 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_Empty() {
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_NotEmpty() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
 	suite.service.userRoleRepository = repository
 
@@ -211,7 +211,7 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_NotEmpty() {
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_GetUser() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
@@ -227,7 +227,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_GetUser() {
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_Update() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetAdminUserByUserId", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleSystemAdmin}, nil)
 	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
 	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(errors.New("error"))
@@ -245,7 +245,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_Update() {
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
@@ -268,7 +268,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_DeleteFromCasbin() {
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_AddRoleForUserCasbin() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
@@ -292,7 +292,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_AddRoleForUserCasbin
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Ok() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
@@ -329,7 +329,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_SetRoleOwner()
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_GetUser() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
@@ -345,7 +345,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_GetUser() {
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_Update() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.On("GetMerchantUserByUserId", mock.Anything, mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleMerchantOwner}, nil)
 	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(errors.New("error"))
@@ -363,7 +363,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_Update() {
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetMerchantUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
@@ -386,7 +386,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_DeleteFromCasb
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_AddRoleForUserCasbin() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetMerchantUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
@@ -410,7 +410,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_AddRoleForUser
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Ok() {
 	shouldBe := require.New(suite.T())
 
-	repository := &mocks.UserRoleServiceInterface{}
+	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetMerchantUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
@@ -490,7 +490,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_OwnerNotFound() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
@@ -514,7 +514,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_UserAlreadyExists() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -541,7 +541,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_AddMerchantUser() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(nil, nil)
@@ -571,7 +571,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_SendEmail() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
@@ -607,7 +607,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Ok() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
@@ -636,7 +636,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Ok() {
 func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_GetAdmin() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
@@ -652,7 +652,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_GetAdmin() {
 func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_UserExists() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -671,7 +671,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_UserExists() {
 func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_AddAdminUser() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -693,7 +693,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_AddAdminUser() {
 func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_SendEmail() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -721,7 +721,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_SendEmail() {
 func (suite *UsersTestSuite) Test_InviteUserAdmin_Ok() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -772,7 +772,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_OwnerNotFound() {
 		Return(&billing.Merchant{}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
@@ -796,7 +796,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_UserNotFound() {
 		Return(&billing.Merchant{}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -823,7 +823,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_UnableToResend() {
 		Return(&billing.Merchant{}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -850,7 +850,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_SendEmail() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
@@ -883,7 +883,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Ok() {
 		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
@@ -909,7 +909,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Ok() {
 func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdmin() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
@@ -925,7 +925,7 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdmin() {
 func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdminUserByEmail() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{}, nil)
@@ -944,7 +944,7 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdminUserByEmail() 
 func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_SendEmail() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
@@ -969,7 +969,7 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_SendEmail() {
 func (suite *UsersTestSuite) Test_ResendInviteAdmin_Ok() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
@@ -1061,7 +1061,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_GetAdminUserById() {
 		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
@@ -1086,7 +1086,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_AlreadyAccept() {
 		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Status: pkg.UserRoleStatusAccepted}, nil)
@@ -1111,7 +1111,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_UpdateAdminUser() {
 		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
@@ -1139,7 +1139,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_AddToCasbin() {
 		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
@@ -1178,7 +1178,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_ConfirmEmail() {
 		Return(errors.New("error"))
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
@@ -1217,7 +1217,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_CentrifugoPublish() {
 		Return(nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
@@ -1260,7 +1260,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Ok() {
 		Return(nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
 		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
@@ -1335,7 +1335,7 @@ func (suite *UsersTestSuite) Test_GetRoleList_Ok_UnknownType() {
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_GetMerchantUserById() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1349,7 +1349,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_GetMerchantUserById()
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_AnotherMerchantUser() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{MerchantId: "1"}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1363,7 +1363,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_AnotherMerchantUser()
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteUser() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
@@ -1378,7 +1378,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteUser() {
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{UserId: "1"}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1397,7 +1397,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteFromCasbin() {
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_TruncateEmailConfirmation() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1421,7 +1421,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_TruncateEmailConfirma
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_CentrifugoPublish() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1449,7 +1449,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_CentrifugoPublish() {
 func (suite *UsersTestSuite) Test_DeleteMerchantUser_Ok() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1476,7 +1476,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Ok() {
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_GetMerchantUserById() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1490,7 +1490,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_GetMerchantUserById() {
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteUser() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
@@ -1505,7 +1505,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteUser() {
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{UserId: "1"}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1524,7 +1524,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteFromCasbin() {
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_TruncateEmailConfirmation() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1548,7 +1548,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_TruncateEmailConfirmatio
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_CentrifugoPublish() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1576,7 +1576,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_CentrifugoPublish() {
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Ok() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
@@ -1603,7 +1603,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Ok() {
 func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_UserNotFound() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1617,7 +1617,7 @@ func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_UserNotFound() {
 func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_AnotherMerchant() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{MerchantId: "1"}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1631,7 +1631,7 @@ func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_AnotherMerchant() {
 func (suite *UsersTestSuite) Test_GetMerchantUserRole_Ok() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1644,7 +1644,7 @@ func (suite *UsersTestSuite) Test_GetMerchantUserRole_Ok() {
 func (suite *UsersTestSuite) Test_GetAdminUserRole_Error_UserNotFound() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1658,7 +1658,7 @@ func (suite *UsersTestSuite) Test_GetAdminUserRole_Error_UserNotFound() {
 func (suite *UsersTestSuite) Test_GetAdminUserRole_Ok() {
 	shouldBe := require.New(suite.T())
 
-	userRoleRep := &mocks.UserRoleServiceInterface{}
+	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 

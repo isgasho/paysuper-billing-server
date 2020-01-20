@@ -16,18 +16,17 @@ type Entity struct {
 
 type Currency Entity
 type Commission Entity
-type Country Entity
 type Project Entity
 type PaymentMethod Entity
 type Merchant Entity
+
+
 type PayoutDocument Entity
 type OrderView Entity
 type Accounting Entity
 type MerchantBalance Entity
 type RoyaltyReport Entity
-type PriceGroup Entity
 type PaymentSystemService Entity
-type ZipCode Entity
 type PaymentChannelCostSystem Entity
 type PaymentChannelCostMerchant Entity
 type MoneyBackCostSystem Entity
@@ -38,7 +37,6 @@ type PaymentMinLimitSystem Entity
 type PayoutCostSystem Entity
 type PriceTable Entity
 type Product Entity
-type Turnover Entity
 type Key Entity
 
 type Repository struct {
@@ -47,8 +45,6 @@ type Repository struct {
 
 type MerchantsTariffRatesRepository Repository
 type DashboardRepository Repository
-type UserRoleRepository Repository
-type UserProfileRepository Repository
 type KeyProductRepository Repository
 
 type kvIntFloat struct {

@@ -89,7 +89,7 @@ func (suite *TurnoversTestSuite) SetupTest() {
 		Region:   "",
 		IsActive: true,
 	}
-	if err := suite.service.priceGroup.Insert(context.TODO(), pg); err != nil {
+	if err := suite.service.priceGroupRepository.Insert(context.TODO(), pg); err != nil {
 		suite.FailNow("Insert price group test data failed", "%v", err)
 	}
 
@@ -227,7 +227,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_calcAnnualTurnover() {
 	err = suite.service.calcAnnualTurnover(context.TODO(), countryCode, suite.operatingCompany.Id)
 	assert.NoError(suite.T(), err)
 
-	at, err := suite.service.turnover.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
+	at, err := suite.service.turnoverRepository.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), at.Year, int32(time.Now().Year()))
 	assert.Equal(suite.T(), at.Country, countryCode)
@@ -247,7 +247,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	err = suite.service.CalcAnnualTurnovers(context.TODO(), &grpc.EmptyRequest{}, &grpc.EmptyResponse{})
 	assert.NoError(suite.T(), err)
 
-	at, err := suite.service.turnover.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
+	at, err := suite.service.turnoverRepository.Get(context.TODO(), suite.operatingCompany.Id, countryCode, time.Now().Year())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), at.Year, int32(time.Now().Year()))
 	assert.Equal(suite.T(), at.Country, countryCode)
@@ -255,7 +255,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	ref2 := suite.getTurnoverReference(now.BeginningOfYear(), time.Now(), suite.operatingCompany.Id, "RU", "RUB", "on-day")
 	assert.Equal(suite.T(), at.Amount, ref2)
 
-	at, err = suite.service.turnover.Get(context.TODO(), suite.operatingCompany.Id, "", time.Now().Year())
+	at, err = suite.service.turnoverRepository.Get(context.TODO(), suite.operatingCompany.Id, "", time.Now().Year())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), at.Year, int32(time.Now().Year()))
 	assert.Equal(suite.T(), at.Country, "")
@@ -267,7 +267,7 @@ func (suite *TurnoversTestSuite) TestTurnovers_CalcAnnualTurnovers() {
 	countries, err := suite.service.country.FindByVatEnabled(context.TODO())
 	assert.NoError(suite.T(), err)
 
-	n, err := suite.service.db.Collection(collectionAnnualTurnovers).CountDocuments(context.TODO(), bson.M{})
+	n, err := suite.service.turnoverRepository.CountAll(context.TODO())
 	assert.NoError(suite.T(), err)
 	assert.EqualValues(suite.T(), len(countries.Countries)+1, n)
 }

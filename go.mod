@@ -26,14 +26,13 @@ require (
 	github.com/paysuper/casbin-server v0.0.0-20191128090724-930a08d68cec
 	github.com/paysuper/document-signer v0.0.0-20191205124524-761027640a4f
 	github.com/paysuper/paysuper-currencies v0.0.0-20191209131235-52121b09aab0
-	github.com/paysuper/paysuper-database-mongo v0.1.3
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
 	github.com/paysuper/paysuper-recurring-repository v1.0.128
 	github.com/paysuper/paysuper-reporter v0.0.0-20191113111020-e3a5369c6d6a
 	github.com/paysuper/paysuper-tax-service v1.0.0
 	github.com/paysuper/postmark-sender v0.0.0-20190926173213-1b6244122c49
 	github.com/prometheus/client_golang v1.2.1
-	github.com/stoewer/go-strcase v1.0.2
+	github.com/stoewer/go-strcase v1.1.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
 	github.com/ttacon/libphonenumber v1.0.1
@@ -43,7 +42,7 @@ require (
 	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
 	gopkg.in/ProtocolONE/rabbitmq.v1 v1.0.0-20190719062839-9858d727f3ef
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
-	gopkg.in/paysuper/paysuper-database-mongo.v2 v2.0.0-20191225152512-d3a7cace0401
+	gopkg.in/paysuper/paysuper-database-mongo.v2 v2.0.0-20200116095540-a477bfd0ce4c
 )
 
 replace (

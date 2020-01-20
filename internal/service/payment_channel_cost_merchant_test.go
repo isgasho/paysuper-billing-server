@@ -112,6 +112,40 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 	}
 	merchant := &billing.Merchant{
 		Id: suite.merchantId,
+		Tariff: &billing.MerchantTariff{
+			Payment: []*billing.MerchantTariffRatesPayment{
+				{
+					MinAmount:              0,
+					MaxAmount:              100,
+					MethodName:             "VISA",
+					MethodPercentFee:       0,
+					MethodFixedFee:         0,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           0,
+					PsFixedFee:             0,
+					PsFixedFeeCurrency:     "EUR",
+					MerchantHomeRegion:     "",
+					PayerRegion:            pkg.TariffRegionRussiaAndCis,
+					MccCode:                pkg.MccCodeLowRisk,
+					IsActive:               false,
+				},
+				{
+					MinAmount:              0,
+					MaxAmount:              100,
+					MethodName:             "MASTERCARD",
+					MethodPercentFee:       0,
+					MethodFixedFee:         0,
+					MethodFixedFeeCurrency: "USD",
+					PsPercentFee:           0,
+					PsFixedFee:             0,
+					PsFixedFeeCurrency:     "EUR",
+					MerchantHomeRegion:     "",
+					PayerRegion:            pkg.TariffRegionRussiaAndCis,
+					MccCode:                pkg.MccCodeLowRisk,
+					IsActive:               false,
+				},
+			},
+		},
 		PaymentMethods: map[string]*billing.MerchantPaymentMethod{
 			pmBankCard.Id: {
 				PaymentMethod: &billing.MerchantPaymentMethodIdentification{
@@ -251,6 +285,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 		PsFixedFee:              0.01,
 		PsFixedFeeCurrency:      "EUR",
 		MccCode:                 pkg.MccCodeLowRisk,
+		IsActive:                true,
 	}
 
 	res := grpc.PaymentChannelCostMerchantResponse{}
@@ -261,6 +296,35 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	assert.Equal(suite.T(), res.Item.Country, "AZ")
 	assert.EqualValues(suite.T(), res.Item.MethodFixAmount, 1.01)
 	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostMerchantId)
+
+	merchant, err := suite.service.merchant.GetById(context.TODO(), suite.merchantId)
+	assert.NoError(suite.T(), err)
+
+	payment := merchant.Tariff.Payment[0]
+
+	assert.EqualValues(suite.T(), req.MinAmount, payment.MinAmount)
+	assert.EqualValues(suite.T(), req.MethodFixAmountCurrency, payment.MethodFixedFeeCurrency)
+	assert.EqualValues(suite.T(), req.PsFixedFeeCurrency, payment.PsFixedFeeCurrency)
+	assert.EqualValues(suite.T(), req.IsActive, payment.IsActive)
+	assert.EqualValues(suite.T(), req.Name, payment.MethodName)
+	assert.EqualValues(suite.T(), req.MccCode, payment.MccCode)
+	assert.EqualValues(suite.T(), req.PsPercent, payment.PsPercentFee)
+	assert.EqualValues(suite.T(), req.MethodFixAmount, payment.MethodFixedFee)
+	assert.EqualValues(suite.T(), req.MethodPercent, payment.MethodPercentFee)
+	assert.EqualValues(suite.T(), req.Region, payment.PayerRegion)
+	assert.EqualValues(suite.T(), 100, payment.MaxAmount)
+
+	payment = merchant.Tariff.Payment[1]
+
+	assert.EqualValues(suite.T(), 0, payment.MinAmount)
+	assert.EqualValues(suite.T(), "USD", payment.MethodFixedFeeCurrency)
+	assert.EqualValues(suite.T(),"EUR", payment.PsFixedFeeCurrency)
+	assert.EqualValues(suite.T(), false, payment.IsActive)
+	assert.EqualValues(suite.T(), "MASTERCARD", payment.MethodName)
+	assert.EqualValues(suite.T(), 0, payment.PsPercentFee)
+	assert.EqualValues(suite.T(), 0, payment.MethodFixedFee)
+	assert.EqualValues(suite.T(), 0, payment.MethodPercentFee)
+	assert.EqualValues(suite.T(), 100, payment.MaxAmount)
 }
 
 func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant_Insert_Ok() {
