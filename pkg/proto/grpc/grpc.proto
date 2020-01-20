@@ -473,11 +473,11 @@ message PaymentFormJsonDataProject {
     string name = 1;
     // @inject_tag: json:"url_success"
     //
-    // The redirect URL for a successful payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
+    // The redirect URL for a successful payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
     string url_success = 2;
     // @inject_tag: json:"url_fail"
     //
-    // The redirect URL for a failed payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
+    // The redirect URL for a failed payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
     string url_fail = 3;
     // @inject_tag: json:"id"
     //
@@ -486,15 +486,15 @@ message PaymentFormJsonDataProject {
 }
 
 message PaymentFormJsonData {
-    // The unique identifier for an order.
+    // The unique identifier for the order.
     string id = 1;
     // @inject_tag: json:"account,omitempty"
     //
-    // The customer's unique account in the merchant project. Can be null.
+    // The customer account in the merchant project. Can be null.
     string account = 2;
     // @inject_tag: json:"has_vat"
     //
-    // Has a true value in case of displaying VAT commission in a payment form.
+    // Has a true value if displaying the VAT commission in a payment form.
     bool has_vat = 3;
     // @inject_tag: json:"vat"
     //
@@ -518,7 +518,7 @@ message PaymentFormJsonData {
     bool user_address_data_required = 12;
     // @inject_tag: json:"user_ip_data"
     //
-    // A customer's IP address data.
+    // The customer's IP address data.
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     //
@@ -526,7 +526,7 @@ message PaymentFormJsonData {
     repeated billing.OrderItem items = 14;
     // @inject_tag: json:"email"
     //
-    // A customer's email.
+    // The customer's email.
     string email = 16;
     // @inject_tag: json:"description"
     //
@@ -538,7 +538,7 @@ message PaymentFormJsonData {
     bool country_payments_allowed = 18;
     //@inject_tag: json:"country_change_allowed"
     //
-    // Has a true value if a customer can select another country in case of the payments are disallowed for his country.
+    // Has a true value if the customer can select another country while payments are disallowed for his country.
     bool country_change_allowed = 19;
     //@inject_tag: json:"platforms"
     //
@@ -546,7 +546,7 @@ message PaymentFormJsonData {
     repeated Platform platforms = 20;
     //@inject_tag: json:"lang"
     //
-    // A language predefined by a merchant project for a payment form.
+    // The language predefined in the merchant project for a payment form.
     string lang = 21;
     //@inject_tag: json:"is_already_processed"
     //
@@ -562,15 +562,15 @@ message PaymentFormJsonData {
     string type = 24;
     // @inject_tag: json:"charge_currency"
     //
-    // A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+    // The currency of the order charge. It can differ from the order currency because it also depends on the customer's card currency.
     string charge_currency = 25;
     // @inject_tag: json:"charge_amount"
     //
-    // A total amount of the order charge.
+    // The total amount of the order charge.
     double charge_amount = 26;
     // @inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+    // The VAT currency of the order charge. It can differ from the order currency because it depends on the customer's card currency.
     double vat_in_charge_currency = 27;
     // @inject_tag: json:"vat_rate"
     //
@@ -852,11 +852,11 @@ message PaymentFormUserChangePaymentAccountRequest {
     string order_id = 1;
     // @inject_tag: validate:"required,hexadecimal,len=24" required:"true"
     //
-    // The unique identifier for a payment method.
+    // The unique identifier for the payment method.
     string method_id = 2;
     // @inject_tag: validate:"required" required:"true"
     //
-    // The customer's unique account in the merchant project.
+    // The customer account in the merchant project.
     string account = 3;
     // @inject_tag: json:"-"
     string ip = 4;
@@ -879,7 +879,7 @@ message ProcessBillingAddressRequest {
     string order_id = 1;
     // @inject_tag: validate:"required,len=2" required:"true"
     //
-    // The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+    // The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance "US").
     string country = 2;
     // @inject_tag: validate:"omitempty,zip_usa"
     //
@@ -894,7 +894,7 @@ message ProcessBillingAddressRequest {
 message ProcessBillingAddressResponseItem {
     // @inject_tag: json:"has_vat"
     //
-    // Has a true value in case of displaying VAT commission in a payment form.
+    // Has a true value if displaying the VAT commission in a payment form.
     bool has_vat = 2;
     // @inject_tag: json:"vat"
     //
@@ -918,19 +918,19 @@ message ProcessBillingAddressResponseItem {
     repeated billing.OrderItem items = 7;
     // @inject_tag: json:"charge_currency"
     //
-    // A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+    // The currency of the order charge. It can differ from the order currency because it also depends on the customer's card currency.
     string charge_currency = 8;
     // @inject_tag: json:"charge_amount"
     //
-    // A total amount of the order charge.
+    // The total amount of the order charge.
     double charge_amount = 9;
     // @inject_tag: json:"vat_in_charge_currency"
     //
-    // VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+    // The VAT currency of the order charge. It can differ from the order currency because it depends on the customer's card currency.
     double vat_in_charge_currency = 10;
     // @inject_tag: json:"country_change_allowed"
     //
-    // Has a true value if a customer can select another country in case of the payments are disallowed for his country.
+    // Has a true value if the customer can select another country while payments are disallowed for his country.
     bool country_change_allowed = 11;
     // @inject_tag: json:"vat_rate"
     //
@@ -1345,7 +1345,7 @@ message SetUserNotifyRequest {
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     //
-    // Has a true value if a customer has confirmed to receive notifications.
+    // Has a true value if the customer has confirmed to receive notifications.
     bool enable_notification = 2;
     // @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
     //
@@ -1708,7 +1708,7 @@ message RecommendedPriceResponse {
 message RecommendedPriceTableRequest {
     // @inject_tag: validate:"required,alpha,len=3"
     //
-    // Three-letter currency code by ISO 4217, in uppercase.
+    // Three-letter currency code in ISO 4217, in uppercase.
     string currency = 1;
 }
 

@@ -88,7 +88,7 @@ type OrderCreateRequest struct {
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" query:"PO_CURRENCY" form:"PO_CURRENCY" validate:"omitempty,alpha,len=3"`
 	// @inject_tag: "PO_ACCOUNT" form:"PO_ACCOUNT" json:"account"`
 	//
-	// The customer's unique account in the merchant project.
+	// The customer in the merchant project.
 	Account string `protobuf:"bytes,5,opt,name=account,proto3" json:"account" form:"PO_ACCOUNT"`
 	// @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
 	//
@@ -144,7 +144,7 @@ type OrderCreateRequest struct {
 	IssuerUrl string `protobuf:"bytes,27,opt,name=issuer_url,json=issuerUrl,proto3" json:"-"`
 	// @inject_tag: json:"-"
 	IsEmbedded bool `protobuf:"varint,28,opt,name=is_embedded,json=isEmbedded,proto3" json:"-"`
-	// An encrypted string that represents certain details of your customer (such as the customer ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters in an order object even the required parameters.
+	// An encrypted string that represents certain details of your customer (such as the user ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters (including required parameters) in an order object.
 	Token string `protobuf:"bytes,29,opt,name=token,proto3" json:"token,omitempty"`
 	// The customer data.
 	User *OrderUser `protobuf:"bytes,30,opt,name=user,proto3" json:"user,omitempty"`
@@ -154,7 +154,7 @@ type OrderCreateRequest struct {
 	//
 	// The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, for a simple checkout - the simple type. Enum values: key, product, simple.
 	Type string `protobuf:"bytes,32,opt,name=type,proto3" json:"type" required:"true"`
-	// The default platform's name for which a customer buys a key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
+	// The default platform's name for which the customer buys a key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
 	PlatformId string `protobuf:"bytes,33,opt,name=platform_id,json=platformId,proto3" json:"platform_id,omitempty"`
 	//@inject_tag: bson:"issuer_reference" json:"-"
 	IssuerReference string `protobuf:"bytes,34,opt,name=issuer_reference,json=issuerReference,proto3" json:"-" bson:"issuer_reference"`
@@ -2562,7 +2562,7 @@ func (m *OrderTax) GetCurrency() string {
 type OrderBillingAddress struct {
 	// @inject_tag: validate:"omitempty,alpha,len=2"
 	//
-	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance US).
+	// The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country,omitempty" validate:"omitempty,alpha,len=2"`
 	// The customer’s city.
 	City string `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
@@ -2570,7 +2570,7 @@ type OrderBillingAddress struct {
 	//
 	// The customer's postal code.
 	PostalCode string `protobuf:"bytes,3,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty" bson:"postal_code"`
-	// The customer's state code by ISO 3166-2.
+	// The customer's state code in ISO 3166-2.
 	State                string   `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -2665,7 +2665,7 @@ type OrderUser struct {
 	Ip string `protobuf:"bytes,9,opt,name=ip,proto3" json:"ip" validate:"omitempty,ip"`
 	// @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
 	//
-	// The customer's locale name. The language code by ISO 639-1 (for instance "en-US").
+	// The customer's locale name. The language code in ISO 639-1 (for instance "en-US").
 	Locale string `protobuf:"bytes,10,opt,name=locale,proto3" json:"locale" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"address"
 	//
@@ -3691,11 +3691,11 @@ type OrderItem struct {
 	Currency string `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3" bson:"currency" required:"true"`
 	//@inject_tag: validate:"dive,omitempty,uri" json:"images" bson:"images"
 	//
-	// A list of the item's images URLs.
+	// The item's images URL list.
 	Images []string `protobuf:"bytes,8,rep,name=images,proto3" json:"images" validate:"dive,omitempty,uri" bson:"images"`
 	//@inject_tag: validate:"omitempty,url" json:"url" bson:"url"
 	//
-	// The item's URL in a merchant project.
+	// The item's URL in the merchant project.
 	Url string `protobuf:"bytes,9,opt,name=url,proto3" json:"url" validate:"omitempty,url" bson:"url"`
 	//@inject_tag: json:"metadata" bson:"metadata"
 	//
@@ -4923,7 +4923,7 @@ func (m *SavedCard) GetExpire() *CardExpire {
 }
 
 type PaymentFormPaymentMethod struct {
-	// The unique identifier for a payment method.
+	// The unique identifier for the payment method.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// The payment method's name.
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
@@ -6604,7 +6604,7 @@ type TokenSettings struct {
 	Metadata map[string]string `protobuf:"bytes,10,rep,name=metadata,proto3" json:"metadata" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	//@inject_tag: json:"platform_id"
 	//
-	// The default platform's name for which a customer buys a key. This field is used only for the key type. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
+	// The default platform's name for which the customer buys a key. This field is used only for the key type. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
 	PlatformId string `protobuf:"bytes,11,opt,name=platform_id,json=platformId,proto3" json:"platform_id"`
 	//@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"
 	//
@@ -7007,7 +7007,7 @@ type Country struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"-" bson:"_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
 	//
-	// Two-letter country code by ISO 3166, in uppercase (for instance US).
+	// Two-letter country code in ISO 3166, in uppercase (for instance US).
 	IsoCodeA2 string `protobuf:"bytes,2,opt,name=iso_code_a2,json=isoCodeA2,proto3" json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"`
 	//@inject_tag: json:"region" bson:"region" validate:"required"
 	//
@@ -7023,7 +7023,7 @@ type Country struct {
 	PaymentsAllowed bool `protobuf:"varint,5,opt,name=payments_allowed,json=paymentsAllowed,proto3" json:"payments_allowed" bson:"payments_allowed"`
 	//@inject_tag: json:"change_allowed" bson:"change_allowed"
 	//
-	// Has a true value if a customer can select another country in case of the payments are disallowed for this country.
+	// Has a true value if the customer can select another country in case of the payments are disallowed for this country.
 	ChangeAllowed bool `protobuf:"varint,6,opt,name=change_allowed,json=changeAllowed,proto3" json:"change_allowed" bson:"change_allowed"`
 	//@inject_tag: json:"vat_enabled" bson:"vat_enabled"
 	//
@@ -7035,7 +7035,7 @@ type Country struct {
 	VatCurrency string `protobuf:"bytes,8,opt,name=vat_currency,json=vatCurrency,proto3" json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"`
 	//@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
 	//
-	// The unique identifier for a price group this country belongs to.
+	// The unique identifier for the price group this country belongs to.
 	PriceGroupId string `protobuf:"bytes,9,opt,name=price_group_id,json=priceGroupId,proto3" json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"`
 	// @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
 	//
@@ -7043,11 +7043,11 @@ type Country struct {
 	VatThreshold *CountryVatThreshold `protobuf:"bytes,10,opt,name=vat_threshold,json=vatThreshold,proto3" json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"`
 	// @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
 	//
-	// The length of a tax period in months.
+	// The length of the taxation period in months.
 	VatPeriodMonth int32 `protobuf:"varint,11,opt,name=vat_period_month,json=vatPeriodMonth,proto3" json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"`
 	// @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
 	//
-	// The number of days after a tax period end to pay VAT.
+	// The number of days after the taxation period end to pay VAT.
 	VatDeadlineDays int32 `protobuf:"varint,12,opt,name=vat_deadline_days,json=vatDeadlineDays,proto3" json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"`
 	// @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
 	//
@@ -7055,11 +7055,11 @@ type Country struct {
 	VatStoreYears int32 `protobuf:"varint,13,opt,name=vat_store_years,json=vatStoreYears,proto3" json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"`
 	// @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
 	//
-	// A calculation policy of VAT with a currency that differs from this country VAT currency. Available values: on-day (a conversion rate on the day of payment), last-day (a conversion rate on the last day of a tax period), mid-month (the system reserved option of a conversion rate calculation. This option is disabled.).
+	// The VAT calculation policy with a currency that differs from this country's VAT currency. Available values: on-day (the conversion rate on the day of payment), last-day (the conversion rate on the last day of a tax period), mid-month (the system reserved option of a conversion rate calculation. This option is disabled.).
 	VatCurrencyRatesPolicy string `protobuf:"bytes,14,opt,name=vat_currency_rates_policy,json=vatCurrencyRatesPolicy,proto3" json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"`
 	// @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
 	//
-	// The source of currency rates to calculate a tax amount.
+	// The source of currency rates to calculate the tax amount.
 	VatCurrencyRatesSource string `protobuf:"bytes,15,opt,name=vat_currency_rates_source,json=vatCurrencyRatesSource,proto3" json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"`
 	//@inject_tag: json:"-" bson:"created_at"
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,16,opt,name=created_at,json=createdAt,proto3" json:"-" bson:"created_at"`
@@ -7071,11 +7071,11 @@ type Country struct {
 	PayerTariffRegion string `protobuf:"bytes,18,opt,name=payer_tariff_region,json=payerTariffRegion,proto3" json:"payer_tariff_region" bson:"payer_tariff_region"`
 	//@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
 	//
-	// Has a true value if payments from this country is allowed. Has a false value for a high-risk merchant.
+	// Has a true value if payments from this country are allowed. Has a false value for a high-risk merchant.
 	HighRiskPaymentsAllowed bool `protobuf:"varint,19,opt,name=high_risk_payments_allowed,json=highRiskPaymentsAllowed,proto3" json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"`
 	//@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
 	//
-	// Has a true value if a customer can select another country in case of the payments are disallowed for a country determined by a customer's IP address.
+	// Has a true value if the customer can select another country while the payments are disallowed for a country determined by their IP address.
 	HighRiskChangeAllowed bool     `protobuf:"varint,20,opt,name=high_risk_change_allowed,json=highRiskChangeAllowed,proto3" json:"high_risk_change_allowed" bson:"high_risk_change_allowed"`
 	XXX_NoUnkeyedLiteral  struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized      []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -11821,7 +11821,7 @@ type RecommendedPrice struct {
 	Region string `protobuf:"bytes,1,opt,name=region,proto3" json:"region"`
 	// @inject_tag: json:"currency"
 	//
-	// Three-letter currency code by ISO 4217, in uppercase.
+	// Three-letter currency code in ISO 4217, in uppercase.
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency"`
 	// @inject_tag: json:"amount"
 	//
@@ -12920,7 +12920,7 @@ type OrderReceipt struct {
 	TransactionId string `protobuf:"bytes,2,opt,name=transaction_id,json=transactionId,proto3" json:"transaction_id"`
 	//@inject_tag: json:"transaction_date"
 	//
-	// A transaction date.
+	// The transaction date.
 	TransactionDate string `protobuf:"bytes,3,opt,name=transaction_date,json=transactionDate,proto3" json:"transaction_date"`
 	//@inject_tag: json:"project_name"
 	//
@@ -13771,7 +13771,7 @@ func (m *OrderCreateByPaylink) GetCookie() string {
 type UserIpData struct {
 	// @inject_tag: json:"country"
 	//
-	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance US).
+	// The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country"`
 	// @inject_tag: json:"city"
 	//
@@ -13849,11 +13849,11 @@ type PaymentFormDataChangeResponseItem struct {
 	CountryPaymentsAllowed bool `protobuf:"varint,4,opt,name=country_payments_allowed,json=countryPaymentsAllowed,proto3" json:"country_payments_allowed"`
 	//@inject_tag: json:"country_change_allowed"
 	//
-	// Has a true value if a customer can select another country in case of the payments are disallowed for his country.
+	// Has a true value if the customer can select another country while payments are disallowed for his country.
 	CountryChangeAllowed bool `protobuf:"varint,5,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	// @inject_tag: json:"has_vat"
 	//
-	// Has a true value in case of displaying VAT commission in a payment form.
+	// Has a true value if displaying the VAT commission in a payment form.
 	HasVat bool `protobuf:"varint,6,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
 	//
@@ -13877,15 +13877,15 @@ type PaymentFormDataChangeResponseItem struct {
 	Items []*OrderItem `protobuf:"bytes,11,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"charge_currency"
 	//
-	// A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+	// The currency of the order charge. It can differ from the order currency because it also depends on the customer's card currency.
 	ChargeCurrency string `protobuf:"bytes,12,opt,name=charge_currency,json=chargeCurrency,proto3" json:"charge_currency"`
 	// @inject_tag: json:"charge_amount"
 	//
-	// A total amount of the order charge.
+	// The total amount of the order charge.
 	ChargeAmount float64 `protobuf:"fixed64,13,opt,name=charge_amount,json=chargeAmount,proto3" json:"charge_amount"`
 	// @inject_tag: json:"vat_in_charge_currency"
 	//
-	// VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+	// The VAT currency of the order charge. It can differ from the order currency because it depends on the user's card currency.
 	VatInChargeCurrency float64 `protobuf:"fixed64,14,opt,name=vat_in_charge_currency,json=vatInChargeCurrency,proto3" json:"vat_in_charge_currency"`
 	// @inject_tag: json:"vat_rate"
 	//

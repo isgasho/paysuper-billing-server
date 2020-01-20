@@ -1717,11 +1717,11 @@ type PaymentFormJsonDataProject struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name"`
 	// @inject_tag: json:"url_success"
 	//
-	// The redirect URL for a successful payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
+	// The redirect URL for a successful payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
 	UrlSuccess string `protobuf:"bytes,2,opt,name=url_success,json=urlSuccess,proto3" json:"url_success"`
 	// @inject_tag: json:"url_fail"
 	//
-	// The redirect URL for a failed payment. Has the null value if the dynamic notify URLs option is not set in the Project Settings.
+	// The redirect URL for a failed payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
 	UrlFail string `protobuf:"bytes,3,opt,name=url_fail,json=urlFail,proto3" json:"url_fail"`
 	// @inject_tag: json:"id"
 	//
@@ -1786,15 +1786,15 @@ func (m *PaymentFormJsonDataProject) GetId() string {
 }
 
 type PaymentFormJsonData struct {
-	// The unique identifier for an order.
+	// The unique identifier for the order.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// @inject_tag: json:"account,omitempty"
 	//
-	// The customer's unique account in the merchant project. Can be null.
+	// The customer in the merchant project. Can be null.
 	Account string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
 	// @inject_tag: json:"has_vat"
 	//
-	// Has a true value in case of displaying VAT commission in a payment form.
+	// Has a true value if displaying the VAT commission in a payment form.
 	HasVat bool `protobuf:"varint,3,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
 	//
@@ -1818,7 +1818,7 @@ type PaymentFormJsonData struct {
 	UserAddressDataRequired bool `protobuf:"varint,12,opt,name=user_address_data_required,json=userAddressDataRequired,proto3" json:"user_address_data_required"`
 	// @inject_tag: json:"user_ip_data"
 	//
-	// A customer's IP address data.
+	// The customer's IP address data.
 	UserIpData *billing.UserIpData `protobuf:"bytes,13,opt,name=user_ip_data,json=userIpData,proto3" json:"user_ip_data"`
 	// @inject_tag: json:"items" validate="omitempty,gte=1,dive"
 	//
@@ -1826,7 +1826,7 @@ type PaymentFormJsonData struct {
 	Items []*billing.OrderItem `protobuf:"bytes,14,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"email"
 	//
-	// A customer's email.
+	// The customer's email.
 	Email string `protobuf:"bytes,16,opt,name=email,proto3" json:"email"`
 	// @inject_tag: json:"description"
 	//
@@ -1838,7 +1838,7 @@ type PaymentFormJsonData struct {
 	CountryPaymentsAllowed bool `protobuf:"varint,18,opt,name=country_payments_allowed,json=countryPaymentsAllowed,proto3" json:"country_payments_allowed"`
 	//@inject_tag: json:"country_change_allowed"
 	//
-	// Has a true value if a customer can select another country in case of the payments are disallowed for his country.
+	// Has a true value if the customer can select another country while payments are disallowed for his country.
 	CountryChangeAllowed bool `protobuf:"varint,19,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	//@inject_tag: json:"platforms"
 	//
@@ -1846,7 +1846,7 @@ type PaymentFormJsonData struct {
 	Platforms []*Platform `protobuf:"bytes,20,rep,name=platforms,proto3" json:"platforms"`
 	//@inject_tag: json:"lang"
 	//
-	// A language predefined by a merchant project for a payment form.
+	// The language predefined in the merchant project for a payment form.
 	Lang string `protobuf:"bytes,21,opt,name=lang,proto3" json:"lang"`
 	//@inject_tag: json:"is_already_processed"
 	//
@@ -1862,15 +1862,15 @@ type PaymentFormJsonData struct {
 	Type string `protobuf:"bytes,24,opt,name=type,proto3" json:"type"`
 	// @inject_tag: json:"charge_currency"
 	//
-	// A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+	// The currency of the order charge. It can differ from the order currency because it also depends on the customer's card currency.
 	ChargeCurrency string `protobuf:"bytes,25,opt,name=charge_currency,json=chargeCurrency,proto3" json:"charge_currency"`
 	// @inject_tag: json:"charge_amount"
 	//
-	// A total amount of the order charge.
+	// The total amount of the order charge.
 	ChargeAmount float64 `protobuf:"fixed64,26,opt,name=charge_amount,json=chargeAmount,proto3" json:"charge_amount"`
 	// @inject_tag: json:"vat_in_charge_currency"
 	//
-	// VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+	// The VAT currency of the order charge. It can differ from the order currency because it depends on the customer's card currency.
 	VatInChargeCurrency float64 `protobuf:"fixed64,27,opt,name=vat_in_charge_currency,json=vatInChargeCurrency,proto3" json:"vat_in_charge_currency"`
 	// @inject_tag: json:"vat_rate"
 	//
@@ -3867,11 +3867,11 @@ type PaymentFormUserChangePaymentAccountRequest struct {
 	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id" required:"true"`
 	// @inject_tag: validate:"required,hexadecimal,len=24" required:"true"
 	//
-	// The unique identifier for a payment method.
+	// The unique identifier for the payment method.
 	MethodId string `protobuf:"bytes,2,opt,name=method_id,json=methodId,proto3" json:"method_id,omitempty" validate:"required,hexadecimal,len=24" required:"true"`
 	// @inject_tag: validate:"required" required:"true"
 	//
-	// The customer's unique account in the merchant project.
+	// The customer account in the merchant project.
 	Account string `protobuf:"bytes,3,opt,name=account,proto3" json:"account,omitempty" validate:"required" required:"true"`
 	// @inject_tag: json:"-"
 	Ip string `protobuf:"bytes,4,opt,name=ip,proto3" json:"-"`
@@ -4017,7 +4017,7 @@ type ProcessBillingAddressRequest struct {
 	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id" required:"true"`
 	// @inject_tag: validate:"required,len=2" required:"true"
 	//
-	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+	// The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance "US").
 	Country string `protobuf:"bytes,2,opt,name=country,proto3" json:"country,omitempty" validate:"required,len=2" required:"true"`
 	// @inject_tag: validate:"omitempty,zip_usa"
 	//
@@ -4095,7 +4095,7 @@ func (m *ProcessBillingAddressRequest) GetCookie() string {
 type ProcessBillingAddressResponseItem struct {
 	// @inject_tag: json:"has_vat"
 	//
-	// Has a true value in case of displaying VAT commission in a payment form.
+	// Has a true value if displaying the VAT commission in a payment form.
 	HasVat bool `protobuf:"varint,2,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
 	//
@@ -4119,19 +4119,19 @@ type ProcessBillingAddressResponseItem struct {
 	Items []*billing.OrderItem `protobuf:"bytes,7,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"charge_currency"
 	//
-	// A currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+	// The currency of the order charge. It can differ from the order currency because it also depends on the customer's card currency.
 	ChargeCurrency string `protobuf:"bytes,8,opt,name=charge_currency,json=chargeCurrency,proto3" json:"charge_currency"`
 	// @inject_tag: json:"charge_amount"
 	//
-	// A total amount of the order charge.
+	// The total amount of the order charge.
 	ChargeAmount float64 `protobuf:"fixed64,9,opt,name=charge_amount,json=chargeAmount,proto3" json:"charge_amount"`
 	// @inject_tag: json:"vat_in_charge_currency"
 	//
-	// VAT currency of the order charge. It can differ from the order currency because it also depends on a customer's card currency.
+	// The VAT currency of the order charge. It can differ from the order currency because it depends on the customer's card currency.
 	VatInChargeCurrency float64 `protobuf:"fixed64,10,opt,name=vat_in_charge_currency,json=vatInChargeCurrency,proto3" json:"vat_in_charge_currency"`
 	// @inject_tag: json:"country_change_allowed"
 	//
-	// Has a true value if a customer can select another country in case of the payments are disallowed for his country.
+	// Has a true value if the customer can select another country while payments are disallowed for his country.
 	CountryChangeAllowed bool `protobuf:"varint,11,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	// @inject_tag: json:"vat_rate"
 	//
@@ -6877,7 +6877,7 @@ type SetUserNotifyRequest struct {
 	OrderUuid string `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty" validate:"required,uuid" param:"order_id" required:"true"`
 	// @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
 	//
-	// Has a true value if a customer has confirmed to receive notifications.
+	// Has a true value if the customer has confirmed to receive notifications.
 	EnableNotification bool `protobuf:"varint,2,opt,name=enable_notification,json=enableNotification,proto3" json:"enable_notification" query:"enable_notification" form:"enable_notification"`
 	// @inject_tag: query:"email" form:"email" json:"email" validate:"omitempty,email"
 	//
@@ -9174,7 +9174,7 @@ func (m *RecommendedPriceResponse) GetRecommendedPrice() []*billing.RecommendedP
 type RecommendedPriceTableRequest struct {
 	// @inject_tag: validate:"required,alpha,len=3"
 	//
-	// Three-letter currency code by ISO 4217, in uppercase.
+	// Three-letter currency code in ISO 4217, in uppercase.
 	Currency             string   `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency,omitempty" validate:"required,alpha,len=3"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
