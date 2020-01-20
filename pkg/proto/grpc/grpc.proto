@@ -431,7 +431,7 @@ message ListKeyProductsRequest {
 
 message PaymentCreateRequest {
     // required:"true"
-    // The payment data.
+    // The customer payment requisites.
     map<string, string> data = 1;
     // @inject_tag: json:"-"
     string ip = 3;
@@ -508,7 +508,7 @@ message PaymentFormJsonData {
     string currency = 7;
     // The PaySuper Project data.
     PaymentFormJsonDataProject project = 8;
-    // Payment methods data.
+    // The available payment methods list.
     repeated billing.PaymentFormPaymentMethod payment_methods = 9;
     // An access token to subscribe a WebSocket private channel.
     string token = 11;
@@ -522,7 +522,7 @@ message PaymentFormJsonData {
     billing.UserIpData user_ip_data = 13;
     // @inject_tag: json:"items" validate="omitempty,gte=1,dive"
     //
-    // A list of purchased items in this order.
+    // The list of purchased items in this order. Can be null for a payment order with the simple or virtual_currency types.
     repeated billing.OrderItem items = 14;
     // @inject_tag: json:"email"
     //
@@ -542,7 +542,7 @@ message PaymentFormJsonData {
     bool country_change_allowed = 19;
     //@inject_tag: json:"platforms"
     //
-    // A list of supported platforms if this payment is for a key type. For another type, this field can be empty.
+    // The list of supported platforms if this payment is for the key type. For another types, this field can be null.
     repeated Platform platforms = 20;
     //@inject_tag: json:"lang"
     //
@@ -558,7 +558,7 @@ message PaymentFormJsonData {
     string receipt_url = 23;
     //@inject_tag: json:"type"
     //
-    // The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). Available values: key, product, simple.
+    // The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency, the simple checkout). Available values: key, product, virtual_currency, simple.
     string type = 24;
     // @inject_tag: json:"charge_currency"
     //
@@ -914,7 +914,7 @@ message ProcessBillingAddressResponseItem {
     string currency = 6;
     // @inject_tag: json:"items"
     //
-    // The list of purchased items in this order.
+    // The list of purchased items in this order. Can be null for a payment order with the simple or virtual_currency types.
     repeated billing.OrderItem items = 7;
     // @inject_tag: json:"charge_currency"
     //
@@ -1341,7 +1341,7 @@ message IsOrderCanBePayingResponse {
 message SetUserNotifyRequest {
     // @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
     //
-    // The order UUID.
+    // The unique identifier for the order.
     string order_uuid = 1;
     // @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
     //

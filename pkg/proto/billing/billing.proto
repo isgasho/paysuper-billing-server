@@ -94,7 +94,7 @@ message OrderCreateRequest {
     string psp_order_uuid = 31;
     // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
     //
-    // The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, for a simple checkout - the simple type. Enum values: key, product, simple.
+    // The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, as Virtual Currency - the virtual_currency type, for a simple checkout - the simple type. Enum values: key, product, virtual_currency, simple.
     string type = 32;
     // The default platform's name for which the customer buys a key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform_id = 33;
@@ -1261,7 +1261,7 @@ message TokenSettings {
     string platform_id = 11;
     //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"
     //
-    // The order type. It depends on your sales option: Game Keys, Virtual Items, Simple Checkout. Available values: key, product, simple.
+    // The order type. It depends on your sales option: Game Keys, Virtual Items, Virtual Currency, Simple Checkout. Available values: key, product, virtual_currency, simple.
     string type = 12;
     //@inject_tag: json:"is_buy_for_virtual_currency"
     //

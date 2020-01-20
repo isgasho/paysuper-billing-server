@@ -1437,7 +1437,7 @@ func (m *ListKeyProductsRequest) GetEnabled() string {
 
 type PaymentCreateRequest struct {
 	// required:"true"
-	// The payment data.
+	// The customer payment requisites.
 	Data map[string]string `protobuf:"bytes,1,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// @inject_tag: json:"-"
 	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"-"`
@@ -1790,7 +1790,7 @@ type PaymentFormJsonData struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// @inject_tag: json:"account,omitempty"
 	//
-	// The customer in the merchant project. Can be null.
+	// The customer account in the merchant project. Can be null.
 	Account string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
 	// @inject_tag: json:"has_vat"
 	//
@@ -1808,7 +1808,7 @@ type PaymentFormJsonData struct {
 	Currency string `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency,omitempty"`
 	// The PaySuper Project data.
 	Project *PaymentFormJsonDataProject `protobuf:"bytes,8,opt,name=project,proto3" json:"project,omitempty"`
-	// Payment methods data.
+	// The available payment methods list.
 	PaymentMethods []*billing.PaymentFormPaymentMethod `protobuf:"bytes,9,rep,name=payment_methods,json=paymentMethods,proto3" json:"payment_methods,omitempty"`
 	// An access token to subscribe a WebSocket private channel.
 	Token string `protobuf:"bytes,11,opt,name=token,proto3" json:"token,omitempty"`
@@ -1822,7 +1822,7 @@ type PaymentFormJsonData struct {
 	UserIpData *billing.UserIpData `protobuf:"bytes,13,opt,name=user_ip_data,json=userIpData,proto3" json:"user_ip_data"`
 	// @inject_tag: json:"items" validate="omitempty,gte=1,dive"
 	//
-	// A list of purchased items in this order.
+	// The list of purchased items in this order. Can be null for a payment order with the simple or virtual_currency types.
 	Items []*billing.OrderItem `protobuf:"bytes,14,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"email"
 	//
@@ -1842,7 +1842,7 @@ type PaymentFormJsonData struct {
 	CountryChangeAllowed bool `protobuf:"varint,19,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	//@inject_tag: json:"platforms"
 	//
-	// A list of supported platforms if this payment is for a key type. For another type, this field can be empty.
+	// The list of supported platforms if this payment is for the key type. For another types, this field can be null.
 	Platforms []*Platform `protobuf:"bytes,20,rep,name=platforms,proto3" json:"platforms"`
 	//@inject_tag: json:"lang"
 	//
@@ -1858,7 +1858,7 @@ type PaymentFormJsonData struct {
 	ReceiptUrl string `protobuf:"bytes,23,opt,name=receipt_url,json=receiptUrl,proto3" json:"receipt_url"`
 	//@inject_tag: json:"type"
 	//
-	// The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). Available values: key, product, simple.
+	// The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency, the simple checkout). Available values: key, product, virtual_currency, simple.
 	Type string `protobuf:"bytes,24,opt,name=type,proto3" json:"type"`
 	// @inject_tag: json:"charge_currency"
 	//
@@ -4115,7 +4115,7 @@ type ProcessBillingAddressResponseItem struct {
 	Currency string `protobuf:"bytes,6,opt,name=currency,proto3" json:"currency"`
 	// @inject_tag: json:"items"
 	//
-	// The list of purchased items in this order.
+	// The list of purchased items in this order. Can be null for a payment order with the simple or virtual_currency types.
 	Items []*billing.OrderItem `protobuf:"bytes,7,rep,name=items,proto3" json:"items"`
 	// @inject_tag: json:"charge_currency"
 	//
@@ -6873,7 +6873,7 @@ func (m *IsOrderCanBePayingResponse) GetItem() *billing.Order {
 type SetUserNotifyRequest struct {
 	// @inject_tag: validate:"required,uuid" param:"order_id" required:"true"
 	//
-	// The order UUID.
+	// The unique identifier for the order.
 	OrderUuid string `protobuf:"bytes,1,opt,name=order_uuid,json=orderUuid,proto3" json:"order_uuid,omitempty" validate:"required,uuid" param:"order_id" required:"true"`
 	// @inject_tag: query:"enable_notification" form:"enable_notification" json:"enable_notification"
 	//

@@ -88,7 +88,7 @@ type OrderCreateRequest struct {
 	Currency string `protobuf:"bytes,4,opt,name=currency,proto3" json:"currency" query:"PO_CURRENCY" form:"PO_CURRENCY" validate:"omitempty,alpha,len=3"`
 	// @inject_tag: "PO_ACCOUNT" form:"PO_ACCOUNT" json:"account"`
 	//
-	// The customer in the merchant project.
+	// The customer account in the merchant project.
 	Account string `protobuf:"bytes,5,opt,name=account,proto3" json:"account" form:"PO_ACCOUNT"`
 	// @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
 	//
@@ -144,7 +144,7 @@ type OrderCreateRequest struct {
 	IssuerUrl string `protobuf:"bytes,27,opt,name=issuer_url,json=issuerUrl,proto3" json:"-"`
 	// @inject_tag: json:"-"
 	IsEmbedded bool `protobuf:"varint,28,opt,name=is_embedded,json=isEmbedded,proto3" json:"-"`
-	// An encrypted string that represents certain details of your customer (such as the user ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters (including required parameters) in an order object.
+	// An encrypted string that represents certain details of your customer (such as the customer ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters (including required parameters) in an order object.
 	Token string `protobuf:"bytes,29,opt,name=token,proto3" json:"token,omitempty"`
 	// The customer data.
 	User *OrderUser `protobuf:"bytes,30,opt,name=user,proto3" json:"user,omitempty"`
@@ -152,7 +152,7 @@ type OrderCreateRequest struct {
 	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"-" validate:"omitempty,uuid"`
 	// @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
 	//
-	// The order type. It depends on your sales option (Game Keys, Virtual Items, the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, for a simple checkout - the simple type. Enum values: key, product, simple.
+	// The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, as Virtual Currency - the virtual_currency type, for a simple checkout - the simple type. Enum values: key, product, virtual_currency, simple.
 	Type string `protobuf:"bytes,32,opt,name=type,proto3" json:"type" required:"true"`
 	// The default platform's name for which the customer buys a key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
 	PlatformId string `protobuf:"bytes,33,opt,name=platform_id,json=platformId,proto3" json:"platform_id,omitempty"`
@@ -6608,7 +6608,7 @@ type TokenSettings struct {
 	PlatformId string `protobuf:"bytes,11,opt,name=platform_id,json=platformId,proto3" json:"platform_id"`
 	//@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"
 	//
-	// The order type. It depends on your sales option: Game Keys, Virtual Items, Simple Checkout. Available values: key, product, simple.
+	// The order type. It depends on your sales option: Game Keys, Virtual Items, Virtual Currency, Simple Checkout. Available values: key, product, virtual_currency, simple.
 	Type string `protobuf:"bytes,12,opt,name=type,proto3" json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"`
 	//@inject_tag: json:"is_buy_for_virtual_currency"
 	//
