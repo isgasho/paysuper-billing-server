@@ -365,9 +365,10 @@ const (
 	VatPayerSeller = "seller"
 	VatPayerNobody = "nobody"
 
+	ProjectRedirectModeAny        = "any"
+	ProjectRedirectModeDisable    = "disable"
 	ProjectRedirectModeSuccessful = "successful"
 	ProjectRedirectModeFail       = "fail"
-	ProjectRedirectModeAny        = "any"
 	ProjectRedirectUsageAny       = "any"
 )
 

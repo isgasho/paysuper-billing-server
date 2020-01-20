@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/jinzhu/copier"
 	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -18,6 +19,86 @@ import (
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
 	"testing"
+)
+
+var (
+	merchantMock = &billing.Merchant{
+		Id: primitive.NewObjectID().Hex(),
+		User: &billing.MerchantUser{
+			Id:    primitive.NewObjectID().Hex(),
+			Email: "test@unit.test",
+		},
+		Company: &billing.MerchantCompanyInfo{
+			Name:    "merchant1",
+			Country: "RU",
+			Zip:     "190000",
+			City:    "St.Petersburg",
+		},
+		Contacts: &billing.MerchantContact{
+			Authorized: &billing.MerchantContactAuthorized{},
+			Technical:  &billing.MerchantContactTechnical{},
+		},
+		Banking: &billing.MerchantBanking{
+			Currency: "RUB",
+			Name:     "Bank name",
+		},
+		IsVatEnabled:              true,
+		IsCommissionToUserEnabled: true,
+		Status:                    pkg.MerchantStatusDraft,
+		IsSigned:                  true,
+		DontChargeVat:             false,
+	}
+
+	projectMock = &billing.Project{
+		MerchantId:         merchantMock.Id,
+		Name:               map[string]string{"en": "Unit test", "ru": "Юнит тест"},
+		CallbackCurrency:   "RUB",
+		CallbackProtocol:   pkg.ProjectCallbackProtocolEmpty,
+		LimitsCurrency:     "RUB",
+		MinPaymentAmount:   0,
+		MaxPaymentAmount:   15000,
+		IsProductsCheckout: false,
+		Localizations:      []string{"en", "ru"},
+		FullDescription: map[string]string{
+			"en": "It's english full description",
+			"ru": "Это полное описание на русском языке",
+		},
+		ShortDescription: map[string]string{
+			"en": "It's english short description",
+			"ru": "Это короткое описание на русском языке",
+		},
+		Currencies: []*billing.HasCurrencyItem{
+			{Currency: "USD", Region: "USD"},
+			{Currency: "RUB", Region: "Russia"},
+		},
+		Cover: &billing.ImageCollection{
+			Images: &billing.LocalizedUrl{
+				En: "http://en.localhost",
+				Ru: "http://ru.localhost",
+			},
+			UseOneForAll: true,
+		},
+		VirtualCurrency: &billing.ProjectVirtualCurrency{
+			Logo: "http://localhost",
+			Name: map[string]string{
+				"en": "It's english virtual currency name",
+				"ru": "Это название виртуальной валюты на русском языке",
+			},
+			SuccessMessage: map[string]string{
+				"en": "It's english success message",
+				"ru": "Это сообщение о успешной покупке на русском языке",
+			},
+			Prices: []*billing.ProductPrice{
+				{Amount: 100, Currency: "USD", Region: "USD"},
+				{Amount: 1000, Currency: "RUB", Region: "Russia"},
+			},
+			MaxPurchaseValue: 1000000,
+			SellCountType:    "fractional",
+		},
+		VatPayer:           pkg.VatPayerSeller,
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
+	}
 )
 
 type ProjectCRUDTestSuite struct {
@@ -98,53 +179,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		PaymentSystemId: ps2.Id,
 	}
 
-	paymentMethods := map[string]*billing.MerchantPaymentMethod{
-		pm1.Id: {
-			Commission: &billing.MerchantPaymentMethodCommissions{
-				Fee:            1,
-				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{},
-			},
-			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
-				Id: pm1.Id,
-			},
-		},
-		pm2.Id: {
-			Commission: &billing.MerchantPaymentMethodCommissions{
-				Fee:            1,
-				PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{},
-			},
-			PaymentMethod: &billing.MerchantPaymentMethodIdentification{
-				Id: pm2.Id,
-			},
-		},
-	}
-	merchant := &billing.Merchant{
-		Id: primitive.NewObjectID().Hex(),
-		User: &billing.MerchantUser{
-			Id:    primitive.NewObjectID().Hex(),
-			Email: "test@unit.test",
-		},
-		Company: &billing.MerchantCompanyInfo{
-			Name:    "merchant1",
-			Country: "RU",
-			Zip:     "190000",
-			City:    "St.Petersburg",
-		},
-		Contacts: &billing.MerchantContact{
-			Authorized: &billing.MerchantContactAuthorized{},
-			Technical:  &billing.MerchantContactTechnical{},
-		},
-		Banking: &billing.MerchantBanking{
-			Currency: "RUB",
-			Name:     "Bank name",
-		},
-		IsVatEnabled:              true,
-		IsCommissionToUserEnabled: true,
-		Status:                    pkg.MerchantStatusDraft,
-		IsSigned:                  true,
-		PaymentMethods:            paymentMethods,
-		DontChargeVat:             false,
-	}
+	merchant := merchantMock
 
 	project := &billing.Project{
 		Id:                       projectId,
@@ -1501,4 +1536,214 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Er
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
 	assert.Equal(suite.T(), projectErrorLimitCurrencyRequired, rsp.Message)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_WithoutRedirectSettings_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectSettingsIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_WithRedirectSettings_WithoutRedirectMode_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Usage: pkg.ProjectRedirectUsageAny,
+	}
+
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_WithRedirectSettings_WithoutRedirectUsage_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode: pkg.ProjectRedirectModeAny,
+	}
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectUsageIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_RedirectModeSuccess_RedirectUrlSuccessEmpty_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+
+	req.UrlRedirectSuccess = ""
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode:  pkg.ProjectRedirectModeSuccessful,
+		Usage: pkg.ProjectRedirectUsageAny,
+	}
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeSuccessfulUrlIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_RedirectModeFail_RedirectUrlFailEmpty_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+
+	req.UrlRedirectFail = ""
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode:  pkg.ProjectRedirectModeFail,
+		Usage: pkg.ProjectRedirectUsageAny,
+	}
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeFailUrlIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_RedirectModeAny_RedirectUrlsEmpty_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+
+	req.UrlRedirectFail = ""
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode:  pkg.ProjectRedirectModeAny,
+		Usage: pkg.ProjectRedirectUsageAny,
+	}
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeBothRedirectUrlsIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+
+	req.UrlRedirectFail = "http://localhost?fail"
+	req.UrlRedirectSuccess = ""
+
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeBothRedirectUrlsIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+
+	req.UrlRedirectFail = ""
+	req.UrlRedirectSuccess = ""
+
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeBothRedirectUrlsIsRequired)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_RedirectButtonCaptionNotEmpty_ZeroDelay_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &projectMock)
+	assert.NoError(suite.T(), err)
+
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode:          pkg.ProjectRedirectModeAny,
+		Usage:         pkg.ProjectRedirectUsageAny,
+		ButtonCaption: "button caption",
+	}
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorButtonCaptionAllowedOnlyForAfterRedirect)
+	assert.Nil(suite.T(), rsp.Item)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_UpdateProject_WithoutRedirectSettings_Ok() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &suite.project)
+	assert.NoError(suite.T(), err)
+
+	req.SecretKey = "qwerty"
+	req.RedirectSettings = nil
+
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	assert.Equal(suite.T(), req.Id, rsp.Item.Id)
+	assert.NotEqual(suite.T(), suite.project.SecretKey, rsp.Item.SecretKey)
+	assert.Equal(suite.T(), req.SecretKey, rsp.Item.SecretKey)
+	assert.NotNil(suite.T(), rsp.Item.RedirectSettings)
+	assert.NotEqual(suite.T(), req.RedirectSettings, rsp.Item.RedirectSettings)
+	assert.Equal(suite.T(), suite.project.RedirectSettings, rsp.Item.RedirectSettings)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_UpdateProject_WithRedirectSettings_Ok() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &suite.project)
+	assert.NoError(suite.T(), err)
+
+	req.SecretKey = "qwerty"
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode:          pkg.ProjectRedirectModeDisable,
+		Usage:         pkg.ProjectRedirectUsageAny,
+		Delay:         100,
+		ButtonCaption: "button_caption",
+	}
+
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+
+	assert.Equal(suite.T(), req.Id, rsp.Item.Id)
+	assert.NotEqual(suite.T(), suite.project.SecretKey, rsp.Item.SecretKey)
+	assert.Equal(suite.T(), req.SecretKey, rsp.Item.SecretKey)
+	assert.NotEqual(suite.T(), suite.project.RedirectSettings, rsp.Item.RedirectSettings)
+	assert.Equal(suite.T(), req.RedirectSettings, rsp.Item.RedirectSettings)
+}
+
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_UpdateProject_WithIncorrectRedirectSettings_Error() {
+	req := new(billing.Project)
+	err := copier.Copy(&req, &suite.project)
+	assert.NoError(suite.T(), err)
+
+	req.SecretKey = "qwerty"
+	req.RedirectSettings = &billing.ProjectRedirectSettings{
+		Mode:          "",
+		Delay:         100,
+		ButtonCaption: "button_caption",
+	}
+
+	rsp := &grpc.ChangeProjectResponse{}
+	err = suite.service.ChangeProject(context.TODO(), req, rsp)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), pkg.ResponseStatusBadData, rsp.Status)
+	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectModeIsRequired)
 }

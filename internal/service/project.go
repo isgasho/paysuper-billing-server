@@ -164,17 +164,33 @@ func (s *Service) ChangeProject(
 		}
 	}
 
-	err = s.validateRedirectSettings(req)
-
-	if err != nil {
-		rsp.Status = pkg.ResponseStatusBadData
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
-		return nil
-	}
-
 	if project == nil {
+		if req.RedirectSettings == nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorRedirectSettingsIsRequired
+			return nil
+		}
+
+		err = s.validateRedirectSettings(req)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
+
 		project, err = s.createProject(ctx, req)
 	} else {
+		if req.RedirectSettings != nil {
+			err = s.validateRedirectSettings(req)
+
+			if err != nil {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				return nil
+			}
+		}
+
 		err = s.updateProject(ctx, req, project)
 	}
 
@@ -469,7 +485,10 @@ func (s *Service) updateProject(ctx context.Context, req *billing.Project, proje
 	project.VirtualCurrency = req.VirtualCurrency
 	project.VatPayer = req.VatPayer
 	project.Cover = req.Cover
-	project.RedirectSettings = req.RedirectSettings
+
+	if req.RedirectSettings != nil {
+		project.RedirectSettings = req.RedirectSettings
+	}
 
 	if err := s.project.Update(ctx, project); err != nil {
 		return projectErrorUnknown
@@ -540,10 +559,6 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billing.Projec
 // Validate redirect settings for project in request to project create or update
 func (s *Service) validateRedirectSettings(req *billing.Project) error {
 	settings := req.RedirectSettings
-
-	if settings == nil {
-		return projectErrorRedirectSettingsIsRequired
-	}
 
 	if settings.Mode == "" {
 		return projectErrorRedirectModeIsRequired

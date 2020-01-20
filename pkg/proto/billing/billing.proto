@@ -190,7 +190,7 @@ message Project {
     ProjectVirtualCurrency virtual_currency = 35;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 36;
-    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"
     //
     //Object contain setting for user's redirect after when payment ending
     ProjectRedirectSettings redirect_settings = 37;
