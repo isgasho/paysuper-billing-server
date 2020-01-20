@@ -2562,7 +2562,7 @@ func (m *OrderTax) GetCurrency() string {
 type OrderBillingAddress struct {
 	// @inject_tag: validate:"omitempty,alpha,len=2"
 	//
-	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance US).
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country,omitempty" validate:"omitempty,alpha,len=2"`
 	// The customer’s city.
 	City string `protobuf:"bytes,2,opt,name=city,proto3" json:"city,omitempty"`
@@ -7007,7 +7007,7 @@ type Country struct {
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"-" bson:"_id" validate:"omitempty,hexadecimal,len=24"`
 	//@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
 	//
-	// Two-letter country code by ISO 3166, in uppercase (for instance "US").
+	// Two-letter country code by ISO 3166, in uppercase (for instance US).
 	IsoCodeA2 string `protobuf:"bytes,2,opt,name=iso_code_a2,json=isoCodeA2,proto3" json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"`
 	//@inject_tag: json:"region" bson:"region" validate:"required"
 	//
@@ -13771,7 +13771,7 @@ func (m *OrderCreateByPaylink) GetCookie() string {
 type UserIpData struct {
 	// @inject_tag: json:"country"
 	//
-	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance "US").
+	// The customer's country. Two-letter country code by ISO 3166-1, in uppercase (for instance US).
 	Country string `protobuf:"bytes,1,opt,name=country,proto3" json:"country"`
 	// @inject_tag: json:"city"
 	//
