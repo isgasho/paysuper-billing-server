@@ -606,10 +606,10 @@ type Project struct {
 	VirtualCurrency *ProjectVirtualCurrency `protobuf:"bytes,35,opt,name=virtual_currency,json=virtualCurrency,proto3" json:"virtual_currency" validate:"omitempty,dive"`
 	// @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
 	VatPayer string `protobuf:"bytes,36,opt,name=vat_payer,json=vatPayer,proto3" json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"`
-	//@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
+	//@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"
 	//
 	//Object contain setting for user's redirect after when payment ending
-	RedirectSettings     *ProjectRedirectSettings `protobuf:"bytes,37,opt,name=redirect_settings,json=redirectSettings,proto3" json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"`
+	RedirectSettings     *ProjectRedirectSettings `protobuf:"bytes,37,opt,name=redirect_settings,json=redirectSettings,proto3" json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                    `json:"-" bson:"-" structure:"-" validate:"-"`
