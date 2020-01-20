@@ -1662,7 +1662,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Redi
 	assert.Nil(suite.T(), rsp.Item)
 }
 
-func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_RedirectButtonCaptionNotEmpty_ZeroDelay_Error() {
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_RedirectButtonCaptionNotEmpty_NonZeroDelay_Error() {
 	req := new(billing.Project)
 	err := copier.Copy(&req, &projectMock)
 	assert.NoError(suite.T(), err)
@@ -1670,6 +1670,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Redi
 	req.RedirectSettings = &billing.ProjectRedirectSettings{
 		Mode:          pkg.ProjectRedirectModeAny,
 		Usage:         pkg.ProjectRedirectUsageAny,
+		Delay:         100,
 		ButtonCaption: "button caption",
 	}
 	rsp := &grpc.ChangeProjectResponse{}
@@ -1712,7 +1713,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_UpdateProject_WithRedirectSet
 	req.RedirectSettings = &billing.ProjectRedirectSettings{
 		Mode:          pkg.ProjectRedirectModeDisable,
 		Usage:         pkg.ProjectRedirectUsageAny,
-		Delay:         100,
+		Delay:         0,
 		ButtonCaption: "button_caption",
 	}
 

@@ -39,7 +39,7 @@ var (
 	projectErrorRedirectModeSuccessfulUrlIsRequired              = newBillingServerErrorMsg("pr000015", "redirect url for user's redirect after payment successful ending for selected redirect mode is required")
 	projectErrorRedirectModeFailUrlIsRequired                    = newBillingServerErrorMsg("pr000016", "redirect url for user's redirect after failed payment for selected redirect mode is required")
 	projectErrorRedirectModeBothRedirectUrlsIsRequired           = newBillingServerErrorMsg("pr000017", "redirect urls for user's redirect after payment completed for selected redirect mode is required")
-	projectErrorButtonCaptionAllowedOnlyForAfterRedirect         = newBillingServerErrorMsg("pr000018", "caption for redirect button can't be set with zero delay for auto redirect")
+	projectErrorButtonCaptionAllowedOnlyForAfterRedirect         = newBillingServerErrorMsg("pr000018", "caption for redirect button can't be set with non zero delay for auto redirect")
 	projectErrorRedirectModeIsRequired                           = newBillingServerErrorMsg("pr000019", "redirect mode must be selected")
 	projectErrorRedirectUsageIsRequired                          = newBillingServerErrorMsg("pr000020", "type of redirect usage must be selected")
 	projectErrorRedirectSettingsIsRequired                       = newBillingServerErrorMsg("pr000021", "redirect settings is required")
@@ -580,7 +580,7 @@ func (s *Service) validateRedirectSettings(req *billing.Project) error {
 		return projectErrorRedirectModeBothRedirectUrlsIsRequired
 	}
 
-	if settings.Delay == 0 && settings.ButtonCaption != "" {
+	if settings.Delay > 0 && settings.ButtonCaption != "" {
 		return projectErrorButtonCaptionAllowedOnlyForAfterRedirect
 	}
 
