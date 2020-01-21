@@ -662,7 +662,6 @@ func (s *Service) PayoutDocumentPdfUploaded(
 
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailTemplates.NewPayout,
-		Subject:       fmt.Sprintf(payoutEmailSubjectTemplate, pd.Id),
 		TemplateModel: map[string]string{
 			"merchant_id":            merchant.Id,
 			"payout_id":              pd.Id,
@@ -673,6 +672,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			"merchant_greeting":      merchant.GetAuthorizedName(),
 			"payouts_url":            s.cfg.GetPayoutsUrl(),
 			"operating_company_name": operatingCompany.Name,
+			"email_subject":          fmt.Sprintf(payoutEmailSubjectTemplate, pd.Id),
 		},
 		To: merchant.GetAuthorizedEmail(),
 		Attachments: []*postmarkSdrPkg.PayloadAttachment{
