@@ -39,6 +39,8 @@ const (
 	payoutChangeSourceAdmin    = "admin"
 
 	payoutArrivalInDays = 5
+
+	payoutEmailSubjectTemplate = "New payout invoice #%s from PaySuper"
 )
 
 var (
@@ -333,8 +335,8 @@ func (s *Service) GetPayoutDocumentRoyaltyReports(
 
 func (s *Service) AutoCreatePayoutDocuments(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	rsp *grpc.EmptyResponse,
+	_ *grpc.EmptyRequest,
+	_ *grpc.EmptyResponse,
 ) error {
 	zap.L().Info("start auto-creation of payout documents")
 
@@ -660,6 +662,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 
 	payload := &postmarkSdrPkg.Payload{
 		TemplateAlias: s.cfg.EmailTemplates.NewPayout,
+		Subject:       fmt.Sprintf(payoutEmailSubjectTemplate, pd.Id),
 		TemplateModel: map[string]string{
 			"merchant_id":            merchant.Id,
 			"payout_id":              pd.Id,
