@@ -431,7 +431,7 @@ message ListKeyProductsRequest {
 
 message PaymentCreateRequest {
     // required:"true"
-    // The customer payment requisites.
+    // The customer's payment requisites.
     map<string, string> data = 1;
     // @inject_tag: json:"-"
     string ip = 3;
@@ -473,11 +473,11 @@ message PaymentFormJsonDataProject {
     string name = 1;
     // @inject_tag: json:"url_success"
     //
-    // The redirect URL for a successful payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
+    // The redirect URL for a successful payment. Has an empty value if the dynamic notify URLs option is not set in the Project Settings.
     string url_success = 2;
     // @inject_tag: json:"url_fail"
     //
-    // The redirect URL for a failed payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
+    // The redirect URL for a failed payment. Has an empty value if the dynamic notify URLs option is not set in the Project Settings.
     string url_fail = 3;
     // @inject_tag: json:"id"
     //
@@ -494,7 +494,7 @@ message PaymentFormJsonData {
     string account = 2;
     // @inject_tag: json:"has_vat"
     //
-    // Has a true value if displaying the VAT commission in a payment form.
+    // Has a true value if the payment has the VAT commission.
     bool has_vat = 3;
     // @inject_tag: json:"vat"
     //
@@ -504,7 +504,7 @@ message PaymentFormJsonData {
     double amount = 5;
     // The payment amount including VAT.
     double total_amount = 6;
-    // The currency of the order.
+    // The currency of the payment order.
     string currency = 7;
     // The PaySuper Project data.
     PaymentFormJsonDataProject project = 8;
@@ -546,7 +546,7 @@ message PaymentFormJsonData {
     repeated Platform platforms = 20;
     //@inject_tag: json:"lang"
     //
-    // The language predefined in the merchant project for a payment form.
+    // The language predefined by the payment token in the merchant project for a payment form.
     string lang = 21;
     //@inject_tag: json:"is_already_processed"
     //
@@ -879,7 +879,7 @@ message ProcessBillingAddressRequest {
     string order_id = 1;
     // @inject_tag: validate:"required,len=2" required:"true"
     //
-    // The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance "US").
+    // The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
     string country = 2;
     // @inject_tag: validate:"omitempty,zip_usa"
     //
@@ -894,7 +894,7 @@ message ProcessBillingAddressRequest {
 message ProcessBillingAddressResponseItem {
     // @inject_tag: json:"has_vat"
     //
-    // Has a true value if displaying the VAT commission in a payment form.
+    // Has a true value if the payment has the VAT commission.
     bool has_vat = 2;
     // @inject_tag: json:"vat"
     //
@@ -1715,7 +1715,7 @@ message RecommendedPriceTableRequest {
 message RecommendedPriceTableResponse {
     // @inject_tag: json:"ranges"
     //
-    // A table of the price ranges.
+    // The price ranges list.
     repeated billing.PriceTableRange ranges = 1;
 }
 
@@ -1890,7 +1890,7 @@ message CreatePageReviewRequest {
 message ConfirmUserEmailRequest {
     //@inject_tag: validate:"required" required:"true"
     //
-    // An encrypted string that represents information about your customer (such as the customer ID, email and others), a game and purchase parameters.
+    // An encripted string to confirm the user registration.
     string token = 1;
 }
 

@@ -528,7 +528,7 @@ message OrderUser {
     string ip = 9;
     // @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
     //
-    // The customer's locale name. The language code in ISO 639-1 (for instance "en-US").
+    // The customer's locale name. The language code in ISO 639-1 (for instance en-US).
     string locale = 10;
     // @inject_tag: json:"address"
     //
@@ -2686,7 +2686,7 @@ message PaymentFormDataChangeResponseItem {
     bool country_change_allowed = 5;
     // @inject_tag: json:"has_vat"
     //
-    // Has a true value if displaying the VAT commission in a payment form.
+    // Has a true value if the payment has the VAT commission.
     bool has_vat = 6;
     // @inject_tag: json:"vat"
     //

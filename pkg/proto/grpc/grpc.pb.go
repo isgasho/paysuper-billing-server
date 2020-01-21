@@ -1437,7 +1437,7 @@ func (m *ListKeyProductsRequest) GetEnabled() string {
 
 type PaymentCreateRequest struct {
 	// required:"true"
-	// The customer payment requisites.
+	// The customer's payment requisites.
 	Data map[string]string `protobuf:"bytes,1,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// @inject_tag: json:"-"
 	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"-"`
@@ -1717,11 +1717,11 @@ type PaymentFormJsonDataProject struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name"`
 	// @inject_tag: json:"url_success"
 	//
-	// The redirect URL for a successful payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
+	// The redirect URL for a successful payment. Has an empty value if the dynamic notify URLs option is not set in the Project Settings.
 	UrlSuccess string `protobuf:"bytes,2,opt,name=url_success,json=urlSuccess,proto3" json:"url_success"`
 	// @inject_tag: json:"url_fail"
 	//
-	// The redirect URL for a failed payment. Has a null value if the dynamic notify URLs option is not set in the Project Settings.
+	// The redirect URL for a failed payment. Has an empty value if the dynamic notify URLs option is not set in the Project Settings.
 	UrlFail string `protobuf:"bytes,3,opt,name=url_fail,json=urlFail,proto3" json:"url_fail"`
 	// @inject_tag: json:"id"
 	//
@@ -1794,7 +1794,7 @@ type PaymentFormJsonData struct {
 	Account string `protobuf:"bytes,2,opt,name=account,proto3" json:"account,omitempty"`
 	// @inject_tag: json:"has_vat"
 	//
-	// Has a true value if displaying the VAT commission in a payment form.
+	// Has a true value if the payment has the VAT commission.
 	HasVat bool `protobuf:"varint,3,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
 	//
@@ -1804,7 +1804,7 @@ type PaymentFormJsonData struct {
 	Amount float64 `protobuf:"fixed64,5,opt,name=amount,proto3" json:"amount,omitempty"`
 	// The payment amount including VAT.
 	TotalAmount float64 `protobuf:"fixed64,6,opt,name=total_amount,json=totalAmount,proto3" json:"total_amount,omitempty"`
-	// The currency of the order.
+	// The currency of the payment order.
 	Currency string `protobuf:"bytes,7,opt,name=currency,proto3" json:"currency,omitempty"`
 	// The PaySuper Project data.
 	Project *PaymentFormJsonDataProject `protobuf:"bytes,8,opt,name=project,proto3" json:"project,omitempty"`
@@ -1846,7 +1846,7 @@ type PaymentFormJsonData struct {
 	Platforms []*Platform `protobuf:"bytes,20,rep,name=platforms,proto3" json:"platforms"`
 	//@inject_tag: json:"lang"
 	//
-	// The language predefined in the merchant project for a payment form.
+	// The language predefined by the payment token in the merchant project for a payment form.
 	Lang string `protobuf:"bytes,21,opt,name=lang,proto3" json:"lang"`
 	//@inject_tag: json:"is_already_processed"
 	//
@@ -4017,7 +4017,7 @@ type ProcessBillingAddressRequest struct {
 	OrderId string `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"required,uuid" param:"order_id" required:"true"`
 	// @inject_tag: validate:"required,len=2" required:"true"
 	//
-	// The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance "US").
+	// The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
 	Country string `protobuf:"bytes,2,opt,name=country,proto3" json:"country,omitempty" validate:"required,len=2" required:"true"`
 	// @inject_tag: validate:"omitempty,zip_usa"
 	//
@@ -4095,7 +4095,7 @@ func (m *ProcessBillingAddressRequest) GetCookie() string {
 type ProcessBillingAddressResponseItem struct {
 	// @inject_tag: json:"has_vat"
 	//
-	// Has a true value if displaying the VAT commission in a payment form.
+	// Has a true value if the payment has the VAT commission.
 	HasVat bool `protobuf:"varint,2,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
 	//
@@ -9216,7 +9216,7 @@ func (m *RecommendedPriceTableRequest) GetCurrency() string {
 type RecommendedPriceTableResponse struct {
 	// @inject_tag: json:"ranges"
 	//
-	// A table of the price ranges.
+	// The price ranges list.
 	Ranges               []*billing.PriceTableRange `protobuf:"bytes,1,rep,name=ranges,proto3" json:"ranges"`
 	XXX_NoUnkeyedLiteral struct{}                   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                     `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -10343,7 +10343,7 @@ func (m *CreatePageReviewRequest) GetUrl() string {
 type ConfirmUserEmailRequest struct {
 	//@inject_tag: validate:"required" required:"true"
 	//
-	// An encrypted string that represents information about your customer (such as the customer ID, email and others), a game and purchase parameters.
+	// An encripted string to confirm the user registration.
 	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty" validate:"required" required:"true"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`

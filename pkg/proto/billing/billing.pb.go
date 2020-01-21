@@ -2665,7 +2665,7 @@ type OrderUser struct {
 	Ip string `protobuf:"bytes,9,opt,name=ip,proto3" json:"ip" validate:"omitempty,ip"`
 	// @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
 	//
-	// The customer's locale name. The language code in ISO 639-1 (for instance "en-US").
+	// The customer's locale name. The language code in ISO 639-1 (for instance en-US).
 	Locale string `protobuf:"bytes,10,opt,name=locale,proto3" json:"locale" validate:"omitempty,alpha,len=2"`
 	// @inject_tag: json:"address"
 	//
@@ -13864,7 +13864,7 @@ type PaymentFormDataChangeResponseItem struct {
 	CountryChangeAllowed bool `protobuf:"varint,5,opt,name=country_change_allowed,json=countryChangeAllowed,proto3" json:"country_change_allowed"`
 	// @inject_tag: json:"has_vat"
 	//
-	// Has a true value if displaying the VAT commission in a payment form.
+	// Has a true value if the payment has the VAT commission.
 	HasVat bool `protobuf:"varint,6,opt,name=has_vat,json=hasVat,proto3" json:"has_vat"`
 	// @inject_tag: json:"vat"
 	//
