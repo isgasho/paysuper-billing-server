@@ -55,13 +55,14 @@ type MgoProject struct {
 	UrlFraudPayment          string             `bson:"url_fraud_payment"`
 	UrlRefundPayment         string             `bson:"url_refund_payment"`
 
-	Cover            *ImageCollection        `bson:"cover"`
-	Localizations    []string                `bson:"localizations"`
-	FullDescription  map[string]string       `bson:"full_description"`
-	ShortDescription map[string]string       `bson:"short_description"`
-	Currencies       []*HasCurrencyItem      `bson:"currencies"`
-	VirtualCurrency  *ProjectVirtualCurrency `bson:"virtual_currency"`
-	VatPayer         string                  `bson:"vat_payer"`
+	Cover            *ImageCollection         `bson:"cover"`
+	Localizations    []string                 `bson:"localizations"`
+	FullDescription  map[string]string        `bson:"full_description"`
+	ShortDescription map[string]string        `bson:"short_description"`
+	Currencies       []*HasCurrencyItem       `bson:"currencies"`
+	VirtualCurrency  *ProjectVirtualCurrency  `bson:"virtual_currency"`
+	VatPayer         string                   `bson:"vat_payer"`
+	RedirectSettings *ProjectRedirectSettings `bson:"redirect_settings"`
 }
 
 type MgoMerchantLastPayout struct {
@@ -180,23 +181,24 @@ type MgoCommissionBilling struct {
 }
 
 type MgoOrderProject struct {
-	Id                      primitive.ObjectID `bson:"_id"`
-	MerchantId              primitive.ObjectID `bson:"merchant_id"`
-	Name                    []*MgoMultiLang    `bson:"name"`
-	UrlSuccess              string             `bson:"url_success"`
-	UrlFail                 string             `bson:"url_fail"`
-	NotifyEmails            []string           `bson:"notify_emails"`
-	SecretKey               string             `bson:"secret_key"`
-	SendNotifyEmail         bool               `bson:"send_notify_email"`
-	UrlCheckAccount         string             `bson:"url_check_account"`
-	UrlProcessPayment       string             `bson:"url_process_payment"`
-	CallbackProtocol        string             `bson:"callback_protocol"`
-	UrlChargebackPayment    string             `bson:"url_chargeback_payment"`
-	UrlCancelPayment        string             `bson:"url_cancel_payment"`
-	UrlFraudPayment         string             `bson:"url_fraud_payment"`
-	UrlRefundPayment        string             `bson:"url_refund_payment"`
-	Status                  int32              `bson:"status"`
-	MerchantRoyaltyCurrency string             `bson:"merchant_royalty_currency"`
+	Id                      primitive.ObjectID       `bson:"_id"`
+	MerchantId              primitive.ObjectID       `bson:"merchant_id"`
+	Name                    []*MgoMultiLang          `bson:"name"`
+	UrlSuccess              string                   `bson:"url_success"`
+	UrlFail                 string                   `bson:"url_fail"`
+	NotifyEmails            []string                 `bson:"notify_emails"`
+	SecretKey               string                   `bson:"secret_key"`
+	SendNotifyEmail         bool                     `bson:"send_notify_email"`
+	UrlCheckAccount         string                   `bson:"url_check_account"`
+	UrlProcessPayment       string                   `bson:"url_process_payment"`
+	CallbackProtocol        string                   `bson:"callback_protocol"`
+	UrlChargebackPayment    string                   `bson:"url_chargeback_payment"`
+	UrlCancelPayment        string                   `bson:"url_cancel_payment"`
+	UrlFraudPayment         string                   `bson:"url_fraud_payment"`
+	UrlRefundPayment        string                   `bson:"url_refund_payment"`
+	Status                  int32                    `bson:"status"`
+	MerchantRoyaltyCurrency string                   `bson:"merchant_royalty_currency"`
+	RedirectSettings        *ProjectRedirectSettings `bson:"redirect_settings"`
 }
 
 type MgoOrderPaymentMethod struct {
@@ -1423,6 +1425,7 @@ func (m *Project) MarshalBSON() ([]byte, error) {
 		Currencies:               m.Currencies,
 		VirtualCurrency:          m.VirtualCurrency,
 		VatPayer:                 m.VatPayer,
+		RedirectSettings:         m.RedirectSettings,
 	}
 
 	if len(m.Name) > 0 {
@@ -1511,6 +1514,7 @@ func (m *Project) UnmarshalBSON(raw []byte) error {
 	m.Currencies = decoded.Currencies
 	m.VirtualCurrency = decoded.VirtualCurrency
 	m.VatPayer = decoded.VatPayer
+	m.RedirectSettings = decoded.RedirectSettings
 
 	nameLen := len(decoded.Name)
 
@@ -1698,6 +1702,7 @@ func (m *Order) MarshalBSON() ([]byte, error) {
 			UrlFraudPayment:         m.Project.UrlFraudPayment,
 			Status:                  m.Project.Status,
 			MerchantRoyaltyCurrency: m.Project.MerchantRoyaltyCurrency,
+			RedirectSettings:        m.Project.RedirectSettings,
 		},
 		ProjectOrderId:              m.ProjectOrderId,
 		ProjectAccount:              m.ProjectAccount,
@@ -4519,6 +4524,7 @@ func getOrderProject(in *MgoOrderProject) *ProjectOrder {
 		CallbackProtocol:        in.CallbackProtocol,
 		Status:                  in.Status,
 		MerchantRoyaltyCurrency: in.MerchantRoyaltyCurrency,
+		RedirectSettings:        in.RedirectSettings,
 	}
 
 	if len(in.Name) > 0 {

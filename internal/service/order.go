@@ -852,10 +852,11 @@ func (s *Service) fillPaymentFormJsonData(order *billing.Order, rsp *grpc.Paymen
 	rsp.Item.Vat = order.Tax.Amount
 	rsp.Item.Currency = order.Currency
 	rsp.Item.Project = &grpc.PaymentFormJsonDataProject{
-		Id:         order.Project.Id,
-		Name:       projectName,
-		UrlSuccess: order.Project.UrlSuccess,
-		UrlFail:    order.Project.UrlFail,
+		Id:               order.Project.Id,
+		Name:             projectName,
+		UrlSuccess:       order.Project.UrlSuccess,
+		UrlFail:          order.Project.UrlFail,
+		RedirectSettings: order.Project.RedirectSettings,
 	}
 	rsp.Item.Token = s.centrifugoPaymentForm.GetChannelToken(order.Uuid, expire)
 	rsp.Item.Amount = order.OrderAmount
@@ -2109,6 +2110,7 @@ func (v *OrderCreateRequestProcessor) prepareOrder() (*billing.Order, error) {
 			MerchantId:              v.checked.merchant.Id,
 			Status:                  v.checked.project.Status,
 			MerchantRoyaltyCurrency: v.checked.merchant.GetPayoutCurrency(),
+			RedirectSettings:        v.checked.project.RedirectSettings,
 		},
 		Description:    fmt.Sprintf(orderDefaultDescription, id),
 		ProjectOrderId: v.request.OrderId,
@@ -2278,6 +2280,10 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 
 	v.checked.project = project
 	v.checked.merchant = merchant
+
+	if v.request.ButtonCaption != "" {
+		v.checked.setRedirectButtonCaption(v.request.ButtonCaption)
+	}
 
 	return nil
 }
@@ -2680,6 +2686,8 @@ func (v *OrderCreateRequestProcessor) processCustomerToken() error {
 	if token.User.Locale != nil {
 		v.checked.user.Locale = token.User.Locale.Value
 	}
+
+	v.request.ButtonCaption = token.Settings.ButtonCaption
 
 	v.checked.user.Id = customer.Id
 	v.checked.user.Object = pkg.ObjectTypeUser
@@ -4235,7 +4243,7 @@ func (s *Service) getOrderReceiptObject(ctx context.Context, order *billing.Orde
 	for i, item := range order.Items {
 		price, err := s.formatter.FormatCurrency(DefaultLanguage, item.Amount, currency)
 
-		// Virtual currency always returns error but formatting with Name  
+		// Virtual currency always returns error but formatting with Name
 		if err != nil && order.IsBuyForVirtualCurrency == false {
 			zap.L().Error(
 				orderErrorDuringFormattingCurrency.Message,
@@ -4758,4 +4766,9 @@ func (s *Service) processKeyProducts(
 	items, err = s.GetOrderKeyProductsItems(orderProducts, locale, usedPriceGroup, platformId)
 
 	return
+}
+
+// Set caption for redirect button in payment form
+func (m *orderCreateRequestProcessorChecked) setRedirectButtonCaption(caption string) {
+	m.project.RedirectSettings.ButtonCaption = caption
 }
