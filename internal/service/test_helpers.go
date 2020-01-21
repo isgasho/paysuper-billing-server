@@ -783,6 +783,12 @@ func helperCreateProject(
 		Status:                   pkg.ProjectStatusDraft,
 		MerchantId:               merchantId,
 		VatPayer:                 vatPayer,
+		RedirectSettings: &billing.ProjectRedirectSettings{
+			Mode:  pkg.ProjectRedirectModeAny,
+			Usage: pkg.ProjectRedirectUsageAny,
+		},
+		UrlRedirectSuccess: "http://localhost?success",
+		UrlRedirectFail:    "http://localhost?fail",
 	}
 
 	if err := service.project.Insert(context.TODO(), project); err != nil {

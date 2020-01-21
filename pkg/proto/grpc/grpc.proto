@@ -483,6 +483,10 @@ message PaymentFormJsonDataProject {
     //
     // The unique identifier for the project.
     string id = 4;
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
+    //
+    //Object contain setting for user's redirect after when payment ending
+    billing.ProjectRedirectSettings redirect_settings = 5;
 }
 
 message PaymentFormJsonData {
