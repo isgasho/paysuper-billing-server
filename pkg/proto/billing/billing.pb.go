@@ -148,8 +148,8 @@ type OrderCreateRequest struct {
 	Token string `protobuf:"bytes,29,opt,name=token,proto3" json:"token,omitempty"`
 	// The customer data.
 	User *OrderUser `protobuf:"bytes,30,opt,name=user,proto3" json:"user,omitempty"`
-	// @inject_tag: json:"-" validate:"omitempty,uuid"
-	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"-" validate:"omitempty,uuid"`
+	// @inject_tag: json:"order" validate:"omitempty,uuid"
+	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"order" validate:"omitempty,uuid"`
 	// @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
 	//
 	// The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, as Virtual Currency - the virtual_currency type, for a simple checkout - the simple type. Enum values: key, product, virtual_currency, simple.

@@ -90,7 +90,7 @@ message OrderCreateRequest {
     string token = 29;
     // The customer data.
     OrderUser user = 30;
-    // @inject_tag: json:"-" validate:"omitempty,uuid"
+    // @inject_tag: json:"order" validate:"omitempty,uuid"
     string psp_order_uuid = 31;
     // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
     //
