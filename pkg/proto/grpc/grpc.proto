@@ -490,7 +490,7 @@ message PaymentFormJsonData {
     string id = 1;
     // @inject_tag: json:"account,omitempty"
     //
-    // The customer account in the merchant project. Can be null.
+    // The customer account in the merchant project. Can be an empty string.
     string account = 2;
     // @inject_tag: json:"has_vat"
     //
