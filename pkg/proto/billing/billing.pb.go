@@ -92,7 +92,7 @@ type OrderCreateRequest struct {
 	Account string `protobuf:"bytes,5,opt,name=account,proto3" json:"account" form:"PO_ACCOUNT"`
 	// @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
 	//
-	// The unique order identifier in the merchant project. This field is not required, but we recommend always sending this field.
+	// The unique identifier for the order in the merchant project. This field is not required, but we recommend always sending this field.
 	OrderId string `protobuf:"bytes,6,opt,name=order_id,json=orderId,proto3" json:"order_id" query:"PO_ORDER_ID" form:"PO_ORDER_ID" validate:"omitempty,max=255"`
 	// @inject_tag: query:"PO_DESCRIPTION" form:"PO_DESCRIPTION" json:"description" validate:"omitempty,max=255"
 	//
@@ -149,6 +149,8 @@ type OrderCreateRequest struct {
 	// The customer data.
 	User *OrderUser `protobuf:"bytes,30,opt,name=user,proto3" json:"user,omitempty"`
 	// @inject_tag: json:"order" validate:"omitempty,uuid"
+	//
+	// The PaySuper unique identifier for the order.
 	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"order" validate:"omitempty,uuid"`
 	// @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
 	//
