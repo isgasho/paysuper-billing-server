@@ -146,7 +146,7 @@ type OrderCreateRequest struct {
 	Cookie                  string `protobuf:"bytes,40,opt,name=cookie,proto3" json:"cookie,omitempty"`
 	//@inject_tag: json:"-" bson:"-"
 	//
-	//Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
+	//The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
 	ButtonCaption        string   `protobuf:"bytes,41,opt,name=button_caption,json=buttonCaption,proto3" json:"-" bson:"-"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -461,19 +461,19 @@ func (m *OrderCreateRequest) GetButtonCaption() string {
 type ProjectRedirectSettings struct {
 	//@inject_tag: json:"mode" bson:"mode" validate:"required,oneof=disable successful fail any"
 	//
-	//Mode of redirection from payment from after the user complete the payment. Available values: disable, successful, fail, any.
+	//The mode to redirect the customer from the payment form after the payment. Available values: disable, successful, fail, any.
 	Mode string `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode" bson:"mode" validate:"required,oneof=disable successful fail any"`
 	//@inject_tag: json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"
 	//
-	//Delay after which the user will be redirected to the return URL. Default values is 0.
+	//The delay before the customer's redirection to the return URL. Default value is 0.
 	Delay int32 `protobuf:"varint,2,opt,name=delay,proto3" json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"`
 	//@inject_tag: json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"
 	//
-	//Redirect feature could be used in different representations of payment form. Default value is "any". Available values: standalone, iframe, embed, any.
+	//The redirection feature could be used in different representations of the payment form. Default value is any. Available values: standalone, iframe, embed, any.
 	Usage string `protobuf:"bytes,3,opt,name=usage,proto3" json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"`
 	//@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
 	//
-	//Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
+	//The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
 	ButtonCaption        string   `protobuf:"bytes,4,opt,name=button_caption,json=buttonCaption,proto3" json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -608,7 +608,7 @@ type Project struct {
 	VatPayer string `protobuf:"bytes,36,opt,name=vat_payer,json=vatPayer,proto3" json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"`
 	//@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"
 	//
-	//Object contain setting for user's redirect after when payment ending
+	//The customer's redirection settings for the successful or failed payment.
 	RedirectSettings     *ProjectRedirectSettings `protobuf:"bytes,37,opt,name=redirect_settings,json=redirectSettings,proto3" json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -920,7 +920,7 @@ type ProjectOrder struct {
 	MerchantRoyaltyCurrency string `protobuf:"bytes,17,opt,name=merchant_royalty_currency,json=merchantRoyaltyCurrency,proto3" json:"-"`
 	//@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
 	//
-	//Object contain setting for user's redirect after when payment ending
+	//The customer's redirection settings for the successful or failed payment.
 	RedirectSettings     *ProjectRedirectSettings `protobuf:"bytes,18,opt,name=redirect_settings,json=redirectSettings,proto3" json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"`
 	XXX_NoUnkeyedLiteral struct{}                 `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -6582,7 +6582,7 @@ type TokenSettings struct {
 	IsBuyForVirtualCurrency bool `protobuf:"varint,13,opt,name=is_buy_for_virtual_currency,json=isBuyForVirtualCurrency,proto3" json:"is_buy_for_virtual_currency"`
 	//@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
 	//
-	//Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
+	//The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
 	ButtonCaption        string   `protobuf:"bytes,14,opt,name=button_caption,json=buttonCaption,proto3" json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`

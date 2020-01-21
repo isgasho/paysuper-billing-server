@@ -94,26 +94,26 @@ message OrderCreateRequest {
 
     //@inject_tag: json:"-" bson:"-"
     //
-    //Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
+    //The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
     string button_caption = 41;
 }
 
 message ProjectRedirectSettings {
     //@inject_tag: json:"mode" bson:"mode" validate:"required,oneof=disable successful fail any"
     //
-    //Mode of redirection from payment from after the user complete the payment. Available values: disable, successful, fail, any.
+    //The mode to redirect the customer from the payment form after the payment. Available values: disable, successful, fail, any.
     string mode = 1;
     //@inject_tag: json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"
     //
-    //Delay after which the user will be redirected to the return URL. Default values is 0.
+    //The delay before the customer's redirection to the return URL. Default value is 0.
     int32 delay = 2;
     //@inject_tag: json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"
     //
-    //Redirect feature could be used in different representations of payment form. Default value is "any". Available values: standalone, iframe, embed, any.
+    //The redirection feature could be used in different representations of the payment form. Default value is any. Available values: standalone, iframe, embed, any.
     string usage = 3;
     //@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
     //
-    //Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
+    //The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
     string button_caption = 4;
 }
 
@@ -192,7 +192,7 @@ message Project {
     string vat_payer = 36;
     //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"
     //
-    //Object contain setting for user's redirect after when payment ending
+    //The customer's redirection settings for the successful or failed payment.
     ProjectRedirectSettings redirect_settings = 37;
 }
 
@@ -217,7 +217,7 @@ message ProjectOrder {
     string merchant_royalty_currency = 17;
     //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
     //
-    //Object contain setting for user's redirect after when payment ending
+    //The customer's redirection settings for the successful or failed payment.
     ProjectRedirectSettings redirect_settings = 18;
 }
 
@@ -1164,7 +1164,7 @@ message TokenSettings {
     bool is_buy_for_virtual_currency = 13;
     //@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
     //
-    //Texts for redirect button for successful or fail payment ending. If field is empty then text for redirect button will be set as "OK".
+    //The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
     string button_caption = 14;
 }
 
