@@ -34,7 +34,7 @@ message OrderCreateRequest {
     string account = 5;
     // @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
     //
-    // The unique order identifier in the merchant project. This field is not required, but we recommend always sending this field.
+    // The unique identifier for the order in the merchant project. This field is not required, but we recommend always sending this field.
     string order_id = 6;
     // @inject_tag: query:"PO_DESCRIPTION" form:"PO_DESCRIPTION" json:"description" validate:"omitempty,max=255"
     //
@@ -90,7 +90,9 @@ message OrderCreateRequest {
     string token = 29;
     // The customer data.
     OrderUser user = 30;
-    // @inject_tag: json:"-" validate:"omitempty,uuid"
+    // @inject_tag: json:"order" validate:"omitempty,uuid"
+    //
+    // The PaySuper unique identifier for the order.
     string psp_order_uuid = 31;
     // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
     //

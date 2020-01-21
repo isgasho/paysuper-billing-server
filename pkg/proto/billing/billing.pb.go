@@ -92,7 +92,7 @@ type OrderCreateRequest struct {
 	Account string `protobuf:"bytes,5,opt,name=account,proto3" json:"account" form:"PO_ACCOUNT"`
 	// @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
 	//
-	// The unique order identifier in the merchant project. This field is not required, but we recommend always sending this field.
+	// The unique identifier for the order in the merchant project. This field is not required, but we recommend always sending this field.
 	OrderId string `protobuf:"bytes,6,opt,name=order_id,json=orderId,proto3" json:"order_id" query:"PO_ORDER_ID" form:"PO_ORDER_ID" validate:"omitempty,max=255"`
 	// @inject_tag: query:"PO_DESCRIPTION" form:"PO_DESCRIPTION" json:"description" validate:"omitempty,max=255"
 	//
@@ -148,8 +148,10 @@ type OrderCreateRequest struct {
 	Token string `protobuf:"bytes,29,opt,name=token,proto3" json:"token,omitempty"`
 	// The customer data.
 	User *OrderUser `protobuf:"bytes,30,opt,name=user,proto3" json:"user,omitempty"`
-	// @inject_tag: json:"-" validate:"omitempty,uuid"
-	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"-" validate:"omitempty,uuid"`
+	// @inject_tag: json:"order" validate:"omitempty,uuid"
+	//
+	// The PaySuper unique identifier for the order.
+	PspOrderUuid string `protobuf:"bytes,31,opt,name=psp_order_uuid,json=pspOrderUuid,proto3" json:"order" validate:"omitempty,uuid"`
 	// @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
 	//
 	// The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, as Virtual Currency - the virtual_currency type, for a simple checkout - the simple type. Enum values: key, product, virtual_currency, simple.
