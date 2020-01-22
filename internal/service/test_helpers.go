@@ -782,7 +782,7 @@ func helperCreateProject(
 		Status:                   billingpb.ProjectStatusDraft,
 		MerchantId:               merchantId,
 		VatPayer:                 vatPayer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},

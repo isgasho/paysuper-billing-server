@@ -179,7 +179,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 	}
 
 	merchant := merchantMock
-	
+
 	project := &billingpb.Project{
 		Id:                       projectId,
 		CallbackCurrency:         "RUB",

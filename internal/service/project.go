@@ -165,7 +165,7 @@ func (s *Service) ChangeProject(
 
 	if project == nil {
 		if req.RedirectSettings == nil {
-			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = projectErrorRedirectSettingsIsRequired
 			return nil
 		}
@@ -173,8 +173,8 @@ func (s *Service) ChangeProject(
 		err = s.validateRedirectSettings(req)
 
 		if err != nil {
-			rsp.Status = pkg.ResponseStatusBadData
-			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			rsp.Status = billingpb.ResponseStatusBadData
+			rsp.Message = err.(*billingpb.ResponseErrorMessage)
 			return nil
 		}
 
@@ -184,8 +184,8 @@ func (s *Service) ChangeProject(
 			err = s.validateRedirectSettings(req)
 
 			if err != nil {
-				rsp.Status = pkg.ResponseStatusBadData
-				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				rsp.Status = billingpb.ResponseStatusBadData
+				rsp.Message = err.(*billingpb.ResponseErrorMessage)
 				return nil
 			}
 		}
@@ -556,7 +556,7 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billingpb.Proj
 }
 
 // Validate redirect settings for project in request to project create or update
-func (s *Service) validateRedirectSettings(req *billing.Project) error {
+func (s *Service) validateRedirectSettings(req *billingpb.Project) error {
 	settings := req.RedirectSettings
 
 	if settings.Mode == "" {
