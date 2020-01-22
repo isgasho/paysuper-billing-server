@@ -947,7 +947,7 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetCommonUserProfile_HasProje
 		Company: &billingpb.MerchantCompanyInfo{Name: "name"},
 		Banking: &billingpb.MerchantBanking{Currency: "currency"},
 	}
-	err = suite.service.merchant.Insert(ctx, merchant)
+	err = suite.service.merchantRepository.Insert(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
 	role := &billingpb.UserRole{

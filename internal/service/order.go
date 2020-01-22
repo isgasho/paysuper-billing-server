@@ -1020,9 +1020,9 @@ func (s *Service) PaymentCreateProcess(
 		delete(order.PaymentRequisites, billingpb.PaymentCreateFieldRecurringId)
 	}
 
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
+	merchant, err := s.merchantRepository.GetById(ctx, order.GetMerchantId())
 	if err != nil {
-		return err
+		return merchantErrorNotFound
 	}
 	order.MccCode = merchant.MccCode
 	order.IsHighRisk = merchant.IsHighRisk()
@@ -2264,7 +2264,7 @@ func (v *OrderCreateRequestProcessor) processProject() error {
 		return orderErrorProjectMerchantNotFound
 	}
 
-	merchant, err := v.merchant.GetById(v.ctx, project.MerchantId)
+	merchant, err := v.merchantRepository.GetById(v.ctx, project.MerchantId)
 	if err != nil {
 		return orderErrorProjectMerchantNotFound
 	}
@@ -2930,9 +2930,9 @@ func (v *PaymentCreateProcessor) processPaymentFormData(ctx context.Context) err
 		}
 	}
 
-	merchant, err := v.service.merchant.GetById(ctx, order.GetMerchantId())
+	merchant, err := v.service.merchantRepository.GetById(ctx, order.GetMerchantId())
 	if err != nil {
-		return err
+		return merchantErrorNotFound
 	}
 
 	if order.MccCode == "" {
@@ -3432,7 +3432,7 @@ func (s *Service) ProcessOrderVirtualCurrency(ctx context.Context, order *billin
 		priceGroup *billingpb.PriceGroup
 	)
 
-	merchant, _ := s.merchant.GetById(ctx, order.Project.MerchantId)
+	merchant, _ := s.merchantRepository.GetById(ctx, order.Project.MerchantId)
 	defaultCurrency := merchant.GetPayoutCurrency()
 
 	if defaultCurrency == "" {
@@ -3979,7 +3979,7 @@ func (s *Service) applyCountryRestriction(
 		return
 	}
 
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
+	merchant, err := s.merchantRepository.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return
 	}
@@ -4129,7 +4129,7 @@ func (s *Service) OrderReceipt(
 }
 
 func (s *Service) getOrderReceiptObject(ctx context.Context, order *billingpb.Order) (*billingpb.OrderReceipt, error) {
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
+	merchant, err := s.merchantRepository.GetById(ctx, order.GetMerchantId())
 
 	if err != nil {
 		zap.L().Error(orderErrorMerchantForOrderNotFound.Message, zap.Error(err))
@@ -4487,7 +4487,7 @@ func (s *Service) getOrderPriceGroup(ctx context.Context, order *billingpb.Order
 		return
 	}
 
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
+	merchant, err := s.merchantRepository.GetById(ctx, order.GetMerchantId())
 	if err != nil {
 		return
 	}
@@ -4635,7 +4635,7 @@ func (s *Service) processProducts(
 		return
 	}
 
-	merchant, err := s.merchant.GetById(ctx, project.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, project.MerchantId)
 	if err != nil {
 		return
 	}
@@ -4714,7 +4714,7 @@ func (s *Service) processKeyProducts(
 		platformId = platforms[0].Id
 	}
 
-	merchant, err := s.merchant.GetById(ctx, project.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, project.MerchantId)
 	if err != nil {
 		return
 	}

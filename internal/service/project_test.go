@@ -247,7 +247,7 @@ func (suite *ProjectCRUDTestSuite) SetupTest() {
 		suite.FailNow("Insert payment methods test data failed", "%v", err)
 	}
 
-	if err := suite.service.merchant.Insert(context.TODO(), merchant); err != nil {
+	if err := suite.service.merchantRepository.Insert(context.TODO(), merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 

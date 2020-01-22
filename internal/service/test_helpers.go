@@ -546,7 +546,7 @@ func helperCreateMerchant(
 	}
 
 	merchants := []*billingpb.Merchant{merchant}
-	if err := service.merchant.MultipleInsert(context.TODO(), merchants); err != nil {
+	if err := service.merchantRepository.MultipleInsert(context.TODO(), merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 

@@ -40,10 +40,6 @@ const (
 	MIMEApplicationForm = "application/x-www-form-urlencoded"
 	MIMEApplicationJSON = "application/json"
 
-	DefaultPaymentMethodFee               = float64(5)
-	DefaultPaymentMethodPerTransactionFee = float64(0)
-	DefaultPaymentMethodCurrency          = ""
-
 	CountryCodeUSA = "US"
 
 	DefaultLanguage = "en"
@@ -67,7 +63,6 @@ type Service struct {
 	supportedCurrencies        []string
 	currenciesPrecision        map[string]int32
 	project                    *Project
-	merchant                   MerchantRepositoryInterface
 	payoutDocument             PayoutDocumentServiceInterface
 	merchantBalance            MerchantBalanceServiceInterface
 	royaltyReport              RoyaltyReportServiceInterface
@@ -104,6 +99,7 @@ type Service struct {
 	userProfileRepository      repository.UserProfileRepositoryInterface
 	turnoverRepository         repository.TurnoverRepositoryInterface
 	priceGroupRepository       repository.PriceGroupRepositoryInterface
+	merchantRepository         repository.MerchantRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *billingpb.ResponseErrorMessage) *billingpb.ResponseError {
@@ -159,7 +155,6 @@ func NewBillingService(
 
 func (s *Service) Init() (err error) {
 	s.paymentMethod = newPaymentMethodService(s)
-	s.merchant = newMerchantService(s)
 	s.payoutDocument = newPayoutService(s)
 	s.merchantBalance = newMerchantBalance(s)
 	s.royaltyReport = newRoyaltyReport(s)
@@ -192,6 +187,7 @@ func (s *Service) Init() (err error) {
 	s.userProfileRepository = repository.NewUserProfileRepository(s.db)
 	s.turnoverRepository = repository.NewTurnoverRepository(s.db, s.cacher)
 	s.priceGroupRepository = repository.NewPriceGroupRepository(s.db, s.cacher)
+	s.merchantRepository = repository.NewMerchantRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
@@ -251,16 +247,6 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billingpb.Order, _ *bill
 	return nil
 }
 
-func (s *Service) UpdateMerchant(ctx context.Context, req *billingpb.Merchant, _ *billingpb.EmptyResponse) error {
-	err := s.merchant.Update(ctx, req)
-
-	if err != nil {
-		zap.S().Errorf("Update merchant failed", "err", err.Error(), "order", req)
-	}
-
-	return nil
-}
-
 func (s *Service) IsDbNotFoundError(err error) bool {
 	return err.Error() == errorBbNotFoundMessage
 }
@@ -305,10 +291,10 @@ func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {
 
 func (s *Service) getDefaultPaymentMethodCommissions() *billingpb.MerchantPaymentMethodCommissions {
 	return &billingpb.MerchantPaymentMethodCommissions{
-		Fee: DefaultPaymentMethodFee,
+		Fee: pkg.DefaultPaymentMethodFee,
 		PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{
-			Fee:      DefaultPaymentMethodPerTransactionFee,
-			Currency: DefaultPaymentMethodCurrency,
+			Fee:      pkg.DefaultPaymentMethodPerTransactionFee,
+			Currency: pkg.DefaultPaymentMethodCurrency,
 		},
 	}
 }

@@ -91,7 +91,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 
 	var err error
 
-	if _, err := s.merchant.GetById(ctx, req.MerchantId); err != nil {
+	if _, err := s.merchantRepository.GetById(ctx, req.MerchantId); err != nil {
 		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 		return nil

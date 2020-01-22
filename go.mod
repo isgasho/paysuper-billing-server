@@ -25,12 +25,12 @@ require (
 	github.com/micro/go-micro v1.18.0
 	github.com/micro/go-plugins v1.2.0
 	github.com/paysuper/paysuper-i18n v0.0.0-20190926113224-7eaca4563c7b
-	github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200119221447-498828dffe30
+	github.com/paysuper/paysuper-proto/go/billingpb v0.0.0-20200121185149-f55f83cfb8c3
 	github.com/paysuper/paysuper-proto/go/casbinpb v0.0.0-20200119221447-498828dffe30
 	github.com/paysuper/paysuper-proto/go/currenciespb v0.0.0-20200119003232-91615911efec
 	github.com/paysuper/paysuper-proto/go/document_signerpb v0.0.0-20200117170849-2e388108ebcc
 	github.com/paysuper/paysuper-proto/go/postmarkpb v0.0.0-20200117180736-12adca1f8860
-	github.com/paysuper/paysuper-proto/go/recurringpb v0.0.0-20200119004420-095f33cbe4b8
+	github.com/paysuper/paysuper-proto/go/recurringpb v0.0.0-20200119221447-498828dffe30
 	github.com/paysuper/paysuper-proto/go/reporterpb v0.0.0-20200117172130-df1a443c1fe8
 	github.com/paysuper/paysuper-proto/go/taxpb v0.0.0-20200118235449-5c93300b7a1f
 	github.com/paysuper/paysuper-tools v0.0.0-20200117101901-522574ce4d1c

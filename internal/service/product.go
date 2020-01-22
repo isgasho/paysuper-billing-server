@@ -306,7 +306,7 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *billingpb.Update
 		}
 	}
 
-	merchant, err := s.merchant.GetById(ctx, product.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, product.MerchantId)
 	if err != nil {
 		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound

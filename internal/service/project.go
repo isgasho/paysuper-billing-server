@@ -46,7 +46,7 @@ func (s *Service) ChangeProject(
 	var err error
 
 	var merchant = &billingpb.Merchant{}
-	if merchant, err = s.merchant.GetById(ctx, req.MerchantId); err != nil {
+	if merchant, err = s.merchantRepository.GetById(ctx, req.MerchantId); err != nil {
 		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = merchantErrorNotFound
 

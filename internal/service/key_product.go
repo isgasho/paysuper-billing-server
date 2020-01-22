@@ -178,7 +178,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 
 	countUserDefinedPlatforms := 0
 
-	merchant, err := s.merchant.GetById(ctx, product.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, product.MerchantId)
 	if err != nil {
 		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
@@ -303,15 +303,9 @@ func (s *Service) GetKeyProducts(
 	res *billingpb.ListKeyProductsResponse,
 ) error {
 	res.Status = billingpb.ResponseStatusOk
-	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 	if merchant == nil || err != nil {
-		if err != nil {
-			res.Status = billingpb.ResponseStatusSystemError
-			res.Message = keyProductInternalError
-			res.Message.Details = err.Error()
-			return nil
-		}
 		res.Status = billingpb.ResponseStatusBadData
 		res.Message = keyProductMerchantNotFound
 		return nil

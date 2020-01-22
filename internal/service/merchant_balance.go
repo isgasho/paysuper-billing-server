@@ -79,9 +79,9 @@ func (s *Service) GetMerchantBalance(
 }
 
 func (s *Service) getMerchantBalance(ctx context.Context, merchantId string) (*billingpb.MerchantBalance, error) {
-	merchant, err := s.merchant.GetById(ctx, merchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, merchantId)
 	if err != nil {
-		return nil, err
+		return nil, merchantErrorNotFound
 	}
 
 	if merchant.GetPayoutCurrency() == "" {
@@ -93,9 +93,9 @@ func (s *Service) getMerchantBalance(ctx context.Context, merchantId string) (*b
 }
 
 func (s *Service) updateMerchantBalance(ctx context.Context, merchantId string) (*billingpb.MerchantBalance, error) {
-	merchant, err := s.merchant.GetById(ctx, merchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, merchantId)
 	if err != nil {
-		return nil, err
+		return nil, merchantErrorNotFound
 	}
 
 	if merchant.GetPayoutCurrency() == "" {

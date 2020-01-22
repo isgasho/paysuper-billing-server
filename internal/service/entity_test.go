@@ -328,7 +328,7 @@ func (suite *EntityTestSuite) SetupTest() {
 	}
 
 	merchants := []*billingpb.Merchant{merchant, merchantAgreement, merchant1}
-	if err := suite.service.merchant.MultipleInsert(ctx, merchants); err != nil {
+	if err := suite.service.merchantRepository.MultipleInsert(ctx, merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 

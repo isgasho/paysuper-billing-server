@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var (
@@ -15,13 +16,13 @@ func (s *Service) GetDashboardMainReport(
 	req *billingpb.GetDashboardMainRequest,
 	rsp *billingpb.GetDashboardMainResponse,
 ) error {
-	_, err := s.merchant.GetById(ctx, req.MerchantId)
+	_, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusNotFound
-		rsp.Message = err.(*billingpb.ResponseErrorMessage)
+		rsp.Message = merchantErrorNotFound
 
-		if err == merchantErrorUnknown {
+		if err != mongo.ErrNoDocuments {
 			rsp.Status = billingpb.ResponseStatusSystemError
 		}
 
@@ -48,13 +49,13 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 	req *billingpb.GetDashboardMainRequest,
 	rsp *billingpb.GetDashboardRevenueDynamicsReportResponse,
 ) error {
-	_, err := s.merchant.GetById(ctx, req.MerchantId)
+	_, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusNotFound
-		rsp.Message = err.(*billingpb.ResponseErrorMessage)
+		rsp.Message = merchantErrorNotFound
 
-		if err == merchantErrorUnknown {
+		if err != mongo.ErrNoDocuments {
 			rsp.Status = billingpb.ResponseStatusSystemError
 		}
 
@@ -81,13 +82,13 @@ func (s *Service) GetDashboardBaseReport(
 	req *billingpb.GetDashboardBaseReportRequest,
 	rsp *billingpb.GetDashboardBaseReportResponse,
 ) error {
-	_, err := s.merchant.GetById(ctx, req.MerchantId)
+	_, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		rsp.Status = billingpb.ResponseStatusNotFound
-		rsp.Message = err.(*billingpb.ResponseErrorMessage)
+		rsp.Message = merchantErrorNotFound
 
-		if err == merchantErrorUnknown {
+		if err != mongo.ErrNoDocuments {
 			rsp.Status = billingpb.ResponseStatusSystemError
 		}
 

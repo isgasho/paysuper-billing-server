@@ -125,7 +125,7 @@ func (s *Service) GetMerchantsForUser(ctx context.Context, req *billingpb.GetMer
 	merchants := make([]*billingpb.MerchantForUserInfo, len(users))
 
 	for i, user := range users {
-		merchant, err := s.merchant.GetById(ctx, user.MerchantId)
+		merchant, err := s.merchantRepository.GetById(ctx, user.MerchantId)
 		if err != nil {
 			zap.L().Error(
 				"Can't get merchant by id",
@@ -170,7 +170,7 @@ func (s *Service) InviteUserMerchant(
 		return nil
 	}
 
-	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
@@ -348,7 +348,7 @@ func (s *Service) ResendInviteMerchant(
 	req *billingpb.ResendInviteMerchantRequest,
 	res *billingpb.EmptyResponseWithStatus,
 ) error {
-	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
