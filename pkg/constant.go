@@ -364,6 +364,12 @@ const (
 	VatPayerBuyer  = "buyer"
 	VatPayerSeller = "seller"
 	VatPayerNobody = "nobody"
+
+	ProjectRedirectModeAny        = "any"
+	ProjectRedirectModeDisable    = "disable"
+	ProjectRedirectModeSuccessful = "successful"
+	ProjectRedirectModeFail       = "fail"
+	ProjectRedirectUsageAny       = "any"
 )
 
 var (

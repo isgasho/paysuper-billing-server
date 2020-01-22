@@ -12,85 +12,132 @@ message Name {
     string ru = 2;
 }
 
+// @summary A payment order data about a customer and payment
 message OrderCreateRequest {
-    // @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project" validate:"omitempty,hexadecimal"
+    // @inject_tag: query:"PO_PROJECT_ID" form:"PO_PROJECT_ID" json:"project"  validate:"omitempty,hexadecimal" required:"true"
+    //
+    // The ID of the Project found in your merchant account in the PaySuper Dashboard.
     string project_id = 1;
-    // @inject_tag: query:"PO_SIGNATURE" form:"PO_SIGNATURE" validate:"omitempty,alphanum"
+    // @inject_tag: query:"PO_SIGNATURE" form:"PO_SIGNATURE" json:"-" validate:"omitempty,alphanum"
     string signature = 2;
     // @inject_tag: query:"PO_AMOUNT" form:"PO_AMOUNT" json:"amount" validate:"omitempty,numeric,gte=0"
+    //
+    // The order amount as a positive number. It is required for a simple checkout payment.
     double amount = 3;
     // @inject_tag: query:"PO_CURRENCY" form:"PO_CURRENCY" json:"currency" validate:"omitempty,alpha,len=3"
+    //
+    // The currency of the order. Three-letter Currency Code ISO 4217, in uppercase. If provided, the amount will be processed in this currency. It is required for a payment when the type equals to simple.
     string currency = 4;
     // @inject_tag: "PO_ACCOUNT" form:"PO_ACCOUNT" json:"account"`
+    //
+    // The customer account in the merchant project.
     string account = 5;
     // @inject_tag: query:"PO_ORDER_ID" form:"PO_ORDER_ID" json:"order_id" validate:"omitempty,max=255"
+    //
+    // The unique identifier for the order in the merchant project. This field is not required, but we recommend always sending this field.
     string order_id = 6;
     // @inject_tag: query:"PO_DESCRIPTION" form:"PO_DESCRIPTION" json:"description" validate:"omitempty,max=255"
+    //
+    // The arbitrary order description.
     string description = 7;
-    // @inject_tag: query:"PO_PAYMENT_METHOD" form:"PO_PAYMENT_METHOD" json:"payment_method" validate:"omitempty,max=255"
+    // @inject_tag: query:"PO_PAYMENT_METHOD" form:"PO_PAYMENT_METHOD" json:"-" validate:"omitempty,max=255"
     string payment_method = 8;
-    // @inject_tag: query:"PO_URL_VERIFY" form:"PO_URL_VERIFY" json:"url_verify" validate:"omitempty,url"
+    // @inject_tag: query:"PO_URL_VERIFY" form:"PO_URL_VERIFY" json:"-" validate:"omitempty,url"
     string url_verify = 9;
-    // @inject_tag: query:"PO_URL_NOTIFY" form:"PO_URL_NOTIFY" json:"url_notify" validate:"omitempty,url"
+    // @inject_tag: query:"PO_URL_NOTIFY" form:"PO_URL_NOTIFY" json:"-" validate:"omitempty,url"
     string url_notify = 10;
     // @inject_tag: query:"PO_URL_SUCCESS" form:"PO_URL_SUCCESS" json:"url_success" validate:"omitempty,url"
+    //
+    // The redirect URL for the successful payment. You need to enable the dynamic notify URLs option in the Project Settings to use this field.
     string url_success = 11;
     // @inject_tag: query:"PO_URL_FAIL" form:"PO_URL_FAIL" json:"url_fail" validate:"omitempty,url"
+    //
+    // The redirect URL for the failed payment. You need to enable the dynamic notify URLs option in the Project Settings to use this field.
     string url_fail = 12;
-    // @inject_tag: query:"PO_PAYER_EMAIL" form:"PO_PAYER_EMAIL" json:"payer_email" validate:"omitempty,email"
+    // @inject_tag: query:"PO_PAYER_EMAIL" form:"PO_PAYER_EMAIL" json:"-" validate:"omitempty,email"
     string payer_email = 13;
-    // @inject_tag: query:"PO_PAYER_PHONE" form:"PO_PAYER_PHONE" json:"payer_phone" validate:"omitempty,max=255"
+    // @inject_tag: query:"PO_PAYER_PHONE" form:"PO_PAYER_PHONE" json:"-" validate:"omitempty,max=255"
     string payer_phone = 14;
-    // @inject_tag: query:"PO_REGION" form:"PO_REGION" json:"region" validate:"omitempty,alpha,len=2"
+    // @inject_tag: query:"PO_REGION" form:"PO_REGION" json:"-" validate:"omitempty,alpha,len=2"
     string region = 15;
+    // @inject_tag: json:"-"
     map<string, string> other = 17;
     // @inject_tag: json:"-"
     map<string, string> raw_params = 18;
     // @inject_tag: json:"-"
-    string raw_body = 19; //`json:"-"`
+    string raw_body = 19;
     // @inject_tag: json:"-"
     bool is_json = 20;
     // @inject_tag: json:"-"
     string language = 21;
     // @inject_tag: json:"products" validate:"omitempty,gte=1,dive,hexadecimal,len=24"
+    //
+    // The list of unique identifiers of Products being in the Project. It is required if a payment type is equal to product or key.
     repeated string products = 22;
     // @inject_tag: json:"-"
     map<string, string> metadata = 23;
     // @inject_tag: json:"-"
     map<string, string> private_metadata = 24;
-    // @inject_tag: json:"receipt_number"
+    // @inject_tag: json:"-"
     string receipt_number = 25; // payer receipt number from create order request
-    // @inject_tag: json:"receipt_url"
+    // @inject_tag: json:"-"
     string receipt_url = 26; // payer receipt url from create order request
-    // @inject_tag: json:"issuer_url"
+    // @inject_tag: json:"-"
     string issuer_url = 27;
-    // @inject_tag: json:"is_embedded"
+    // @inject_tag: json:"-"
     bool is_embedded = 28;
-
+    // An encrypted string that represents certain details of your customer (such as the customer ID, email and others), a game and purchase parameters. The token overrides the corresponding parameters (including required parameters) in an order object.
     string token = 29;
+    // The customer data.
     OrderUser user = 30;
-
     // @inject_tag: json:"order" validate:"omitempty,uuid"
+    //
+    // The PaySuper unique identifier for the order.
     string psp_order_uuid = 31;
-
-    // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type"
+    // @inject_tag: validate="required,oneof=simple product key virtual_currency" json:"type" required:"true"
+    //
+    // The order type. It depends on your sales option (Game Keys, Virtual Items, Virtual Currency the simple checkout). For products created as Game Keys use the key type, as Virtual Items - the product type, as Virtual Currency - the virtual_currency type, for a simple checkout - the simple type. Enum values: key, product, virtual_currency, simple.
     string type = 32;
-
+    // The default platform's name for which the customer buys a key. This field is used only for the key type. Enum values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform_id = 33;
-
-    //@inject_tag: bson:"issuer_reference" json:"issuer_reference"
+    //@inject_tag: bson:"issuer_reference" json:"-"
     string issuer_reference = 34;
-    //@inject_tag: bson:"issuer_reference_type" json:"issuer_reference_type"
+    //@inject_tag: bson:"issuer_reference_type" json:"-"
     string issuer_reference_type = 35;
-    //@inject_tag: bson:"utm_source" json:"utm_source"
+    //@inject_tag: bson:"utm_source" json:"-"
     string utm_source = 36;
-    //@inject_tag: bson:"utm_medium" json:"utm_medium"
+    //@inject_tag: bson:"utm_medium" json:"-"
     string utm_medium = 37;
-    //@inject_tag: bson:"utm_campaign" json:"utm_campaign"
+    //@inject_tag: bson:"utm_campaign" json:"-"
     string utm_campaign = 38;
     //@inject_tag: bson:"-" json:"-"
     bool is_buy_for_virtual_currency = 39;
+    // @inject_tag: json:"-"
     string cookie = 40;
+
+    //@inject_tag: json:"-" bson:"-"
+    //
+    //The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
+    string button_caption = 41;
+}
+
+message ProjectRedirectSettings {
+    //@inject_tag: json:"mode" bson:"mode" validate:"required,oneof=disable successful fail any"
+    //
+    //The mode to redirect the customer from the payment form after the payment. Available values: disable, successful, fail, any.
+    string mode = 1;
+    //@inject_tag: json:"delay" bson:"delay" validate:"omitempty,numeric,gte=0"
+    //
+    //The delay before the customer's redirection to the return URL. Default value is 0.
+    int32 delay = 2;
+    //@inject_tag: json:"usage" bson:"usage" validate:"required,oneof=standalone iframe embed any"
+    //
+    //The redirection feature could be used in different representations of the payment form. Default value is any. Available values: standalone, iframe, embed, any.
+    string usage = 3;
+    //@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
+    //
+    //The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
+    string button_caption = 4;
 }
 
 message Project {
@@ -166,6 +213,10 @@ message Project {
     ProjectVirtualCurrency virtual_currency = 35;
     // @inject_tag: json:"vat_payer" bson:"vat_payer" validate:"oneof=buyer seller nobody"
     string vat_payer = 36;
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"omitempty,dive"
+    //
+    //The customer's redirection settings for the successful or failed payment.
+    ProjectRedirectSettings redirect_settings = 37;
 }
 
 message ProjectOrder {
@@ -187,6 +238,10 @@ message ProjectOrder {
     int32 status = 16;
     // @inject_tag: json:"-"
     string merchant_royalty_currency = 17;
+    //@inject_tag: json:"redirect_settings" bson:"redirect_settings" validate:"required,dive"
+    //
+    //The customer's redirection settings for the successful or failed payment.
+    ProjectRedirectSettings redirect_settings = 18;
 }
 
 message MerchantContact {
@@ -303,7 +358,7 @@ message MerchantAgreementSignatureData {
 }
 
 message MerchantTariff {
-    // @inject_tag: json:"payments"
+    // @inject_tag: json:"-"
     repeated billing.MerchantTariffRatesPayment payment = 1;
     // @inject_tag: json:"-"
     MerchantTariffRatesSettingsItem payout = 2;
@@ -459,43 +514,69 @@ message OrderTax {
 
 message OrderBillingAddress {
     // @inject_tag: validate:"omitempty,alpha,len=2"
+    //
+    // The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
     string country = 1;
+    // The customer’s city.
     string city = 2;
     // @inject_tag: bson:"postal_code"
+    //
+    // The customer's postal code.
     string postal_code = 3;
+    // The customer's state code in ISO 3166-2.
     string state = 4;
 }
 
 message OrderUser {
-    // @inject_tag: json:"id"
+    // @inject_tag: json:"-"
     string id = 1;
-    // @inject_tag: json:"object"
+    // @inject_tag: json:"-"
     string object = 2;
     // @inject_tag: json:"external_id" bson:"external_id"
+    //
+    // The unique identifier for the customer in the merchant project.
     string external_id = 3;
     // @inject_tag: json:"name"
+    //
+    // The customer's name.
     string name = 4;
     // @inject_tag: json:"email" validate:"omitempty,email"
+    //
+    // The customer's email address.
     string email = 5;
     // @inject_tag: json:"email_verified" bson:"email_verified"
+    //
+    // Whether the customer's email address has been verified on the merchant side.
     bool email_verified = 6;
     // @inject_tag: json:"phone" validate:"omitempty,phone"
+    //
+    // The customer's phone number.
     string phone = 7;
     // @inject_tag: json:"phone_verified" bson:"phone_verified"
+    //
+    // Whether the customer's phone number has been verified on the merchant side.
     bool phone_verified = 8;
     // @inject_tag: json:"ip" validate:"omitempty,ip"
+    //
+    // The customer's IP address.
     string ip = 9;
     // @inject_tag: json:"locale" validate:"omitempty,alpha,len=2"
+    //
+    // The customer's locale name. The language code in ISO 639-1 (for instance en-US).
     string locale = 10;
     // @inject_tag: json:"address"
+    //
+    // The customer's address details.
     OrderBillingAddress address = 11;
     // @inject_tag: json:"metadata"
+    //
+    // A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer's payment.
     map<string, string> metadata = 12;
     // @inject_tag: json:"-"
     string tech_email = 13;
-    //@inject_tag: json:"notify_new_region" bson:"notify_new_region"
+    //@inject_tag: json:"-" bson:"notify_new_region"
     bool notify_new_region = 14;
-    //@inject_tag: json:"notify_new_region_email" bson:"notify_new_region_email"
+    //@inject_tag: json:"-" bson:"notify_new_region_email"
     string notify_new_region_email = 15;
 }
 
@@ -672,33 +753,61 @@ message CountryRestriction {
 }
 
 message OrderItem {
-    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id"
+    //@inject_tag: validate:"required,hexadecimal,len=24" json:"id" bson:"_id" required:"true"
+    //
+    // The unique identifier for the item.
     string id = 1;
-    //@inject_tag: validate:"required" json:"object" bson:"object"
+    //@inject_tag: validate:"required" json:"object" bson:"object" required:"true"
+    //
+    // String representing the item’s type.
     string object = 2;
-    //@inject_tag: validate:"required" json:"sku" bson:"sku"
+    //@inject_tag: validate:"required" json:"sku" bson:"sku" required:"true"
+    //
+    // SKU of the item.
     string sku = 3;
-    //@inject_tag: validate:"required" json:"name" bson:"name"
+    //@inject_tag: validate:"required" json:"name" bson:"name" required:"true"
+    //
+    // The item's name.
     string name = 4;
-    //@inject_tag: validate:"required" json:"description" bson:"description"
+    //@inject_tag: validate:"required" json:"description" bson:"description" required:"true"
+    //
+    // The item's description.
     string description = 5;
-    // @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount"
+    // @inject_tag: validate:"required,numeric,gt=0" json:"amount" bson:"amount" required:"true"
+    //
+    // The item's price.
     double amount = 6;
-    //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency"
+    //@inject_tag: validate:"required,alpha,len=3" json:"currency" bson:"currency" required:"true"
+    //
+    // The item's price currency. Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 7;
     //@inject_tag: validate:"dive,omitempty,uri" json:"images" bson:"images"
+    //
+    // The item's images URL list.
     repeated string images = 8;
     //@inject_tag: validate:"omitempty,url" json:"url" bson:"url"
+    //
+    // The item's URL in the merchant project.
     string url = 9;
     //@inject_tag: json:"metadata" bson:"metadata"
+    //
+    // A string-value description for the item.
     map<string, string> metadata = 10;
     //@inject_tag: json:"created_at" bson:"created_at"
+    //
+    // Date of the object creation.
     google.protobuf.Timestamp created_at = 11;
     //@inject_tag: json:"updated_at" bson:"updated_at"
+    //
+    // Date of the object update.
     google.protobuf.Timestamp updated_at = 12;
     //@inject_tag: validate:"omitempty,min=3" json:"platform_id" bson:"platform_id"
+    //
+    // The unique identifier for the platform.
     string platform_id = 13;
     //@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
+    //
+    // The game code.
     string code = 14;
 }
 
@@ -877,28 +986,46 @@ message Commission {
 
 message CardExpire {
     // @inject_tag: bson:"month"
+    //
+    // The card expiration month.
     string month = 1;
     // @inject_tag: bson:"year"
+    //
+    // The card expiration year.
     string year = 2;
 }
 
 message SavedCard {
+    // The unique identifier of the saved card.
     string id = 1;
+    // The card number.
     string pan = 2;
+    // The cardholder’s name.
     string card_holder = 3;
+    // The card expiration.
     CardExpire expire = 4;
 }
 
 message PaymentFormPaymentMethod {
+    // The unique identifier for the payment method.
     string id = 1;
+    // The payment method's name.
     string name = 2;
+    // The payment method's type. Available values: bank_card, ewallet, crypto.
     string type = 3;
     // @inject_tag: json:"group_alias"
+    //
+    // The payment method's group alias.
     string group = 4;
+    // The regexp mask for checking the main requisite of a payment method.
     string account_regexp = 5;
     // @inject_tag: json:"has_saved_cards"
+    //
+    // Has a true value if contains a saved card as a payment method.
     bool has_saved_cards = 6;
     // @inject_tag: json:"saved_cards,omitempty"
+    //
+    // The saved cards' data.
     repeated SavedCard saved_cards = 7;
 }
 
@@ -1051,39 +1178,59 @@ message Customer {
 
 message TokenUserEmailValue {
     //@inject_tag: validate:"omitempty,email"
+    //
+    // The customer’s email address.
     string value = 1;
+    // Whether the email has been verified on the merchant side.
     bool verified = 2;
 }
 
 message TokenUserPhoneValue {
     //@inject_tag: validate:"omitempty,phone"
+    //
+    // The customer’s phone.
     string value = 1;
+    // Whether the phone has been verified on the merchant side.
     bool verified = 2;
 }
 
 message TokenUserIpValue {
     //@inject_tag: validate:"omitempty,ip"
+    //
+    // The customer’s IP address.
     string value = 1;
 }
 
 message TokenUserLocaleValue {
     //@inject_tag: validate:"omitempty,locale,min=5"
+    //
+    // The customer’s locale name. The Accept-Language format by RFC 7231.
     string value = 1;
 }
 
 message TokenUserValue {
+    // The customer’s name.
     string value = 1;
 }
 
 message TokenUser {
-    //@inject_tag: validate:"required"
+    //@inject_tag: validate:"required" required:"true"
+    //
+    // The unique identifier for the customer in the merchant project.
     string id = 1;
+    // The customer’s email data.
     TokenUserEmailValue email = 2;
+    // The customer’s phone data.
     TokenUserPhoneValue phone = 4;
+    // The customer’s name data.
     TokenUserValue name = 6;
+    // The customer’s IP address data.
     TokenUserIpValue ip = 7;
+    // The customer’s locale data.
     TokenUserLocaleValue locale = 8;
+    // The customer’s address data.
     OrderBillingAddress address = 9;
+    // A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer’s payment.
     map<string, string> metadata = 10;
     //@inject_tag: json:"-"
     string user_agent = 11;
@@ -1093,8 +1240,12 @@ message TokenUser {
 
 message TokenSettingsReturnUrl {
     //@inject_tag: validate:"omitempty,url"
+    //
+    // The redirect URL for a successful payment.
     string success = 1;
     //@inject_tag: validate:"omitempty,url"
+    //
+    // The redirect URL for a failed payment.
     string fail = 2;
 }
 
@@ -1108,28 +1259,52 @@ message TokenSettingsItem {
 }
 
 message TokenSettings {
-    //@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: json:"project_id" validate:"required,hexadecimal,len=24" required:"true"
+    //
+    // The ID of the Project found in your merchant account in the PaySuper Dashboard.
     string project_id = 2;
     //@inject_tag: json:"return_url"
+    //
+    // Redirect URLs.
     TokenSettingsReturnUrl return_url = 3;
     //@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
+    //
+    // The order currency. Three-letter Currency Code ISO 4217, in uppercase. It's required for a simple checkout payment.
     string currency = 4;
     //@inject_tag: json:"amount" validate:"omitempty,numeric,gt=0"
+    //
+    // The order amount. It's required for a simple checkout payment.
     double amount = 5;
-    //@inject_tag: json:"payment_method"
+    //@inject_tag: json:"-"
     string payment_method = 6;
     //@inject_tag: json:"description"
+    //
+    // An arbitrary order description.
     string description = 8;
     //@inject_tag: json:"products_ids"
+    //
+    // A list of unique identifiers for Project's products. It's required if a payment type equals to ‘product’ or ‘key’.
     repeated string products_ids = 9;
     //@inject_tag: json:"metadata"
+    //
+    // A string-value description that you can attach to the customer's object. It can be useful for storing additional information about your customer’s payment.
     map<string, string> metadata = 10;
     //@inject_tag: json:"platform_id"
+    //
+    // The default platform's name for which the customer buys a key. This field is used only for the key type. Available values: steam, gog, uplay, origin, psn, xbox, nintendo, itch, egs.
     string platform_id = 11;
-    //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency"
+    //@inject_tag: json:"type" validate:"required,oneof=simple key product virtual_currency" required:"true"
+    //
+    // The order type. It depends on your sales option: Game Keys, Virtual Items, Virtual Currency, Simple Checkout. Available values: key, product, virtual_currency, simple.
     string type = 12;
     //@inject_tag: json:"is_buy_for_virtual_currency"
+    //
+    // Has a true value if an order must be processed using a virtual currency.
     bool is_buy_for_virtual_currency = 13;
+    //@inject_tag: json:"button_caption" bson:"button_caption" validate:"omitempty,max=18"
+    //
+    //The redirect button messages after the successful or failed payment. If it has an empty value the redirect message will be set at OK.
+    string button_caption = 14;
 }
 
 message OrderIssuer {
@@ -1173,8 +1348,12 @@ message GetCountryRequest {
 
 message CountryVatThreshold {
     // @inject_tag: json:"year" bson:"year" validate:"numeric,gte=0"
+    //
+    // The maximum value of the PaySuper's revenue (since the beginning of the year) from this country which subjects to VAT.
     double year = 1;
     // @inject_tag: json:"world" bson:"world" validate:"numeric,gte=0"
+    //
+    // The maximum value of the PaySuper's worldwide revenue (since the beginning of the year) which subjects to VAT.
     double world = 2;
 }
 
@@ -1182,46 +1361,81 @@ message Country {
     //@inject_tag: json:"-" bson:"_id" validate:"omitempty,hexadecimal,len=24"
     string id = 1;
     //@inject_tag: json:"iso_code_a2" bson:"iso_code_a2" validate:"required,alpha,len=2"
+    //
+    // Two-letter country code in ISO 3166, in uppercase (for instance US).
     string iso_code_a2 = 2;
     //@inject_tag: json:"region" bson:"region" validate:"required"
+    //
+    // A PaySuper system's relative geographical area for this country.
     string region = 3;
     //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    //
+    // The currency of the country. Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 4;
     //@inject_tag: json:"payments_allowed" bson:"payments_allowed"
+    //
+    // Has a true value if a payment is allowed from this country.
     bool payments_allowed = 5;
     //@inject_tag: json:"change_allowed" bson:"change_allowed"
+    //
+    // Has a true value if the customer can select another country in case of the payments are disallowed for this country.
     bool change_allowed = 6;
     //@inject_tag: json:"vat_enabled" bson:"vat_enabled"
+    //
+    // Has a true value if VAT is calculated and paid for this country.
     bool vat_enabled = 7;
     //@inject_tag: json:"vat_currency" bson:"vat_currency" validate:"omitempty,alpha,len=3"
+    //
+    // VAT currency. It can differ from the country currency. Three-letter Currency Code ISO 4217, in uppercase.
     string vat_currency = 8;
     //@inject_tag: json:"price_group_id" bson:"price_group_id" validate:"required,hexadecimal,len=24"
+    //
+    // The unique identifier for the price group this country belongs to.
     string price_group_id = 9;
     // @inject_tag: json:"vat_threshold" bson:"vat_threshold" validate:"required,dive"
+    //
+    // VAT threshold for this country.
     CountryVatThreshold vat_threshold = 10;
     // @inject_tag: json:"vat_period_month" bson:"vat_period_month" validate:"numeric,gte=0,lte=12"
+    //
+    // The length of the taxation period in months.
     int32 vat_period_month = 11;
     // @inject_tag: json:"vat_deadline_days" bson:"vat_deadline_days" validate:"numeric,gte=0"
+    //
+    // The number of days after the taxation period end to pay VAT.
     int32 vat_deadline_days = 12;
     // @inject_tag: json:"vat_store_years" bson:"vat_store_years" validate:"numeric,gte=0"
+    //
+    // The number of years to store the VAT payment history for this country.
     int32 vat_store_years = 13;
     // @inject_tag: json:"vat_currency_rates_policy" bson:"vat_currency_rates_policy" validate:"omitempty,oneof=on-day last-day mid-month"
+    //
+    // The VAT calculation policy with a currency that differs from this country's VAT currency. Available values: on-day (the conversion rate on the day of payment), last-day (the conversion rate on the last day of a tax period), mid-month (the system reserved option of a conversion rate calculation. This option is disabled.).
     string vat_currency_rates_policy = 14;
     // @inject_tag: json:"vat_currency_rates_source" bson:"vat_currency_rates_source" validate:"alpha"
+    //
+    // The source of currency rates to calculate the tax amount.
     string vat_currency_rates_source = 15;
     //@inject_tag: json:"-" bson:"created_at"
     google.protobuf.Timestamp created_at = 16;
     //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 17;
     //@inject_tag: json:"payer_tariff_region" bson:"payer_tariff_region"
+    //
+    // A PaySuper system's relative geographical area for this country. Available values: asia, europe, latin_america, russia_and_cis, worldwide.
     string payer_tariff_region = 18;
     //@inject_tag: json:"high_risk_payments_allowed" bson:"high_risk_payments_allowed"
+    //
+    // Has a true value if payments from this country are allowed. Has a false value for a high-risk merchant.
     bool high_risk_payments_allowed = 19;
     //@inject_tag: json:"high_risk_change_allowed" bson:"high_risk_change_allowed"
+    //
+    // Has a true value if the customer can select another country while the payments are disallowed for a country determined by their IP address.
     bool high_risk_change_allowed = 20;
 }
 
 message CountriesList {
+    // A list of countries.
     repeated Country countries = 1;
 }
 
@@ -1231,11 +1445,17 @@ message GetPriceGroupRequest {
 }
 
 message PriceGroup {
-    //@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24"
+    //@inject_tag: json:"id" bson:"_id" validate:"required,hexadecimal,len=24" required:"true"
+    //
+    // The unique identifier for the price group.
     string id = 1;
-    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3"
+    //@inject_tag: json:"currency" bson:"currency" validate:"required,alpha,len=3" required:"true"
+    //
+    // Three-letter Currency Code ISO 4217, in uppercase.
     string currency = 2;
     //@inject_tag: json:"region" bson:"region" validate:"omitempty,alpha"
+    //
+    // The region's name.
     string region = 3;
     //@inject_tag: validate:"required,numeric,gte=0" bson:"inflation_rate" json:"-"
     double inflation_rate = 4;
@@ -1246,21 +1466,32 @@ message PriceGroup {
     //@inject_tag: json:"-" bson:"updated_at"
     google.protobuf.Timestamp updated_at = 7;
     // @inject_tag: json:"is_active" bson:"is_active"
+    //
+    // Has a true value if the price group is active.
     bool is_active = 8;
 }
 
 message ZipCodeState {
     //@inject_tag: bson:"code"
+    //
+    // The state's postal code.
     string code = 1;
     //@inject_tag: bson:"name"
+    //
+    // The state's name.
     string name = 2;
 }
 
 message ZipCode {
+    // The postal code.
     string zip = 1;
+    // The country's name.
     string country = 2;
+    // The city's name.
     string city = 3;
+    // The state data.
     ZipCodeState state = 4;
+    // The date this item was added.
     google.protobuf.Timestamp created_at = 5;
 }
 
@@ -2069,10 +2300,16 @@ message OrderViewPrivate {
 
 message RecommendedPrice {
     // @inject_tag: json:"region"
+    //
+    // The region's name.
     string region = 1;
     // @inject_tag: json:"currency"
+    //
+    // Three-letter currency code in ISO 4217, in uppercase.
     string currency = 2;
     // @inject_tag: json:"amount"
+    //
+    // The recommended currency conversion price.
     double amount = 3;
 }
 
@@ -2087,10 +2324,16 @@ message PriceTable {
 
 message PriceTableRange {
     //@inject_tag: json:"position" bson:"position"
+    //
+    // The order number in a pricing table.
     int32 position = 1;
     // @inject_tag: json:"from"
+    //
+    // The lower boundary value of the range.
     double from = 3;
     // @inject_tag: json:"to"
+    //
+    // The upper boundary value of the range.
     double to = 4;
 }
 
@@ -2257,38 +2500,72 @@ message MerchantBalance {
 
 message OrderReceipt {
     //@inject_tag: json:"total_price"
+    //
+    // The total order price not including VAT formatted with a sign of the order currency.
     string total_price = 1;
     //@inject_tag: json:"transaction_id"
+    //
+    // The unique identifier for the transaction.
     string transaction_id = 2;
     //@inject_tag: json:"transaction_date"
+    //
+    // The transaction date.
     string transaction_date = 3;
     //@inject_tag: json:"project_name"
+    //
+    // The project's name.
     string project_name = 4;
     //@inject_tag: json:"merchant_name"
+    //
+    // The merchant's name.
     string merchant_name = 5;
     //@inject_tag: json:"items"
+    //
+    // The receipt's items data.
     repeated OrderReceiptItem items = 6;
     //@inject_tag: json:"order_type"
+    //
+    // The type of the order.
     string order_type = 7;
     //@inject_tag: json:"platform_name"
+    //
+    // The platform's name (if any).
     string platform_name = 8;
     //@inject_tag: json:"payment_partner"
+    //
+    // The payment partner's name.
     string payment_partner = 9;
     // @inject_tag: json:"vat_payer"
+    //
+    // Responsible for VAT. Available values: buyer (VAT is added to the order charge), seller (VAT is included in the order charge), nobody (VAT exempt).
     string vat_payer = 10;
     //@inject_tag: json:"vat_in_order_currency"
+    //
+    // VAT amount formatted with a sign of the order currency.
     string vat_in_order_currency = 11;
     //@inject_tag: json:"vat_in_charge_currency"
+    //
+    // VAT amount formatted with an order charge currency sign.
     string vat_in_charge_currency = 12;
     //@inject_tag: json:"total_amount"
+    //
+    // The order total amount including VAT formatted with a sign of the order currency.
     string total_amount = 13;
     //@inject_tag: json:"total_charge"
+    //
+    // The order total amount including VAT formatted with a sign of the order charge currency.
     string total_charge = 14;
     //@inject_tag: json:"receipt_id"
+    //
+    // The unique identifier for the order receipt.
     string receipt_id = 15;
     //@inject_tag: json:"url"
+    //
+    // The order receipt URL.
     string url = 16;
     //@inject_tag: json:"vat_rate"
+    //
+    // The order VAT rate formatted with a percent sign.
     string vat_rate = 17;
     //@inject_tag: json:"customer_email"
     //
@@ -2298,8 +2575,12 @@ message OrderReceipt {
 
 message OrderReceiptItem {
     //@inject_tag: json:"name"
+    //
+    // The receipt's item name.
     string name = 1;
     //@inject_tag: json:"price"
+    //
+    // The receipt's item price.
     string price = 2;
 }
 
@@ -2409,42 +2690,77 @@ message OrderCreateByPaylink {
 
 message UserIpData {
     // @inject_tag: json:"country"
+    //
+    // The customer's country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
     string country = 1;
     // @inject_tag: json:"city"
+    //
+    // The customer's city.
     string city = 2;
     // @inject_tag: json:"zip"
+    //
+    // The customer's postal code.
     string zip = 3;
 }
 
 message PaymentFormDataChangeResponseItem {
     // @inject_tag: json:"user_address_data_required"
+    //
+    // Has a true value if it's required to get a real customer's geo-position information.
     bool user_address_data_required = 1;
     // @inject_tag: json:"user_ip_data"
+    //
+    // The customer's IP address.
     UserIpData user_ip_data = 2;
+    //
     string brand = 3;
     //@inject_tag: json:"country_payments_allowed"
+    //
+    // Has a true value if the payments are allowed from this customer's country.
     bool country_payments_allowed = 4;
     //@inject_tag: json:"country_change_allowed"
+    //
+    // Has a true value if the customer can select another country while payments are disallowed for his country.
     bool country_change_allowed = 5;
     // @inject_tag: json:"has_vat"
+    //
+    // Has a true value if the payment has the VAT commission.
     bool has_vat = 6;
     // @inject_tag: json:"vat"
+    //
+    // The amount of VAT.
     double vat = 7;
     // @inject_tag: json:"amount"
+    //
+    // The payment amount without VAT.
     double amount = 8;
     // @inject_tag: json:"total_amount"
+    //
+    // The payment amount including VAT.
     double total_amount = 9;
     //@inject_tag: json:"currency"
+    //
+    // The currency of the order.
     string currency = 10;
     // @inject_tag: json:"items"
+    //
+    // A list of purchased items in this order.
     repeated billing.OrderItem items = 11;
     // @inject_tag: json:"charge_currency"
+    //
+    // The currency of the order charge. It can differ from the order currency because it also depends on the customer's card currency.
     string charge_currency = 12;
     // @inject_tag: json:"charge_amount"
+    //
+    // The total amount of the order charge.
     double charge_amount = 13;
     // @inject_tag: json:"vat_in_charge_currency"
+    //
+    // The VAT currency of the order charge. It can differ from the order currency because it depends on the user's card currency.
     double vat_in_charge_currency = 14;
     // @inject_tag: json:"vat_rate"
+    //
+    // VAT rate.
     double vat_rate = 15;
 }
 

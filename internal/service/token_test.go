@@ -450,10 +450,11 @@ func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 			},
 		},
 		Settings: &billing.TokenSettings{
-			ProjectId: suite.project.Id,
-			Amount:    100,
-			Currency:  "RUB",
-			Type:      billing.OrderType_simple,
+			ProjectId:     suite.project.Id,
+			Amount:        100,
+			Currency:      "RUB",
+			Type:          billing.OrderType_simple,
+			ButtonCaption: "unit test",
 		},
 	}
 	rsp := &grpc.TokenResponse{}
