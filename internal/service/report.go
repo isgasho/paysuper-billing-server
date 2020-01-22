@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -25,29 +24,29 @@ var (
 
 func (s *Service) FindAllOrdersPublic(
 	ctx context.Context,
-	req *grpc.ListOrdersRequest,
-	rsp *grpc.ListOrdersPublicResponse,
+	req *billingpb.ListOrdersRequest,
+	rsp *billingpb.ListOrdersPublicResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, collectionOrderView, make([]*billing.OrderViewPublic, 1))
+	count, orders, err := s.getOrdersList(ctx, req, collectionOrderView, make([]*billingpb.OrderViewPublic, 1))
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = reportErrorUnknown
 
 		return nil
 	}
 
-	orderList := orders.([]*billing.OrderViewPublic)
+	orderList := orders.([]*billingpb.OrderViewPublic)
 
 	if len(orderList) > 0 && orderList[0].MerchantId != req.Merchant[0] {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = reportErrorUnknown
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &grpc.ListOrdersPublicResponseItem{
+	rsp.Status = billingpb.ResponseStatusOk
+	rsp.Item = &billingpb.ListOrdersPublicResponseItem{
 		Count: count,
 		Items: orderList,
 	}
@@ -57,22 +56,22 @@ func (s *Service) FindAllOrdersPublic(
 
 func (s *Service) FindAllOrdersPrivate(
 	ctx context.Context,
-	req *grpc.ListOrdersRequest,
-	rsp *grpc.ListOrdersPrivateResponse,
+	req *billingpb.ListOrdersRequest,
+	rsp *billingpb.ListOrdersPrivateResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, collectionOrderView, make([]*billing.OrderViewPrivate, 1))
+	count, orders, err := s.getOrdersList(ctx, req, collectionOrderView, make([]*billingpb.OrderViewPrivate, 1))
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = reportErrorUnknown
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &grpc.ListOrdersPrivateResponseItem{
+	rsp.Status = billingpb.ResponseStatusOk
+	rsp.Item = &billingpb.ListOrdersPrivateResponseItem{
 		Count: count,
-		Items: orders.([]*billing.OrderViewPrivate),
+		Items: orders.([]*billingpb.OrderViewPrivate),
 	}
 
 	return nil
@@ -80,22 +79,22 @@ func (s *Service) FindAllOrdersPrivate(
 
 func (s *Service) FindAllOrders(
 	ctx context.Context,
-	req *grpc.ListOrdersRequest,
-	rsp *grpc.ListOrdersResponse,
+	req *billingpb.ListOrdersRequest,
+	rsp *billingpb.ListOrdersResponse,
 ) error {
-	count, orders, err := s.getOrdersList(ctx, req, repository.CollectionOrder, make([]*billing.Order, 1))
+	count, orders, err := s.getOrdersList(ctx, req, repository.CollectionOrder, make([]*billingpb.Order, 1))
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
+		rsp.Status = billingpb.ResponseStatusSystemError
 		rsp.Message = reportErrorUnknown
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = &grpc.ListOrdersResponseItem{
+	rsp.Status = billingpb.ResponseStatusOk
+	rsp.Item = &billingpb.ListOrdersResponseItem{
 		Count: count,
-		Items: orders.([]*billing.Order),
+		Items: orders.([]*billingpb.Order),
 	}
 
 	return nil
@@ -103,63 +102,63 @@ func (s *Service) FindAllOrders(
 
 func (s *Service) GetOrderPublic(
 	ctx context.Context,
-	req *grpc.GetOrderRequest,
-	rsp *grpc.GetOrderPublicResponse,
+	req *billingpb.GetOrderRequest,
+	rsp *billingpb.GetOrderPublicResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy(ctx, "", req.OrderId, req.MerchantId, new(billing.OrderViewPublic))
+	order, err := s.orderView.GetOrderBy(ctx, "", req.OrderId, req.MerchantId, new(billingpb.OrderViewPublic))
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusSystemError
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		if err == orderErrorNotFound {
-			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Status = billingpb.ResponseStatusNotFound
 		}
 
 		return nil
 	}
 
-	rsp.Item = order.(*billing.OrderViewPublic)
+	rsp.Item = order.(*billingpb.OrderViewPublic)
 
 	if rsp.Item.MerchantId != req.MerchantId {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusSystemError
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) GetOrderPrivate(
 	ctx context.Context,
-	req *grpc.GetOrderRequest,
-	rsp *grpc.GetOrderPrivateResponse,
+	req *billingpb.GetOrderRequest,
+	rsp *billingpb.GetOrderPrivateResponse,
 ) error {
-	order, err := s.orderView.GetOrderBy(ctx, "", req.OrderId, req.MerchantId, new(billing.OrderViewPrivate))
+	order, err := s.orderView.GetOrderBy(ctx, "", req.OrderId, req.MerchantId, new(billingpb.OrderViewPrivate))
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusSystemError
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		if err == orderErrorNotFound {
-			rsp.Status = pkg.ResponseStatusNotFound
+			rsp.Status = billingpb.ResponseStatusNotFound
 		}
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
-	rsp.Item = order.(*billing.OrderViewPrivate)
+	rsp.Status = billingpb.ResponseStatusOk
+	rsp.Item = order.(*billingpb.OrderViewPrivate)
 
 	return nil
 }
 
 func (s *Service) getOrdersList(
 	ctx context.Context,
-	req *grpc.ListOrdersRequest,
+	req *billingpb.ListOrdersRequest,
 	source string,
 	receiver interface{},
 ) (int64, interface{}, error) {
@@ -300,13 +299,13 @@ func (s *Service) getOrdersList(
 		return 0, nil, err
 	}
 
-	if res, ok := receiver.([]*billing.OrderViewPublic); ok {
+	if res, ok := receiver.([]*billingpb.OrderViewPublic); ok {
 		err = cursor.All(ctx, &res)
 		receiver = res
-	} else if res, ok := receiver.([]*billing.OrderViewPrivate); ok {
+	} else if res, ok := receiver.([]*billingpb.OrderViewPrivate); ok {
 		err = cursor.All(ctx, &res)
 		receiver = res
-	} else if res, ok := receiver.([]*billing.Order); ok {
+	} else if res, ok := receiver.([]*billingpb.Order); ok {
 		err = cursor.All(ctx, &res)
 		receiver = res
 	}

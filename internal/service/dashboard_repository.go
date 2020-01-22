@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -47,12 +47,12 @@ var (
 )
 
 type DashboardRepositoryInterface interface {
-	GetMainReport(context.Context, string, string) (*grpc.DashboardMainReport, error)
-	GetRevenueDynamicsReport(context.Context, string, string) (*grpc.DashboardRevenueDynamicReport, error)
-	GetBaseReport(context.Context, string, string) (*grpc.DashboardBaseReports, error)
-	GetBaseRevenueByCountryReport(context.Context, string, string) (*grpc.DashboardRevenueByCountryReport, error)
-	GetBaseSalesTodayReport(context.Context, string, string) (*grpc.DashboardSalesTodayReport, error)
-	GetBaseSourcesReport(context.Context, string, string) (*grpc.DashboardSourcesReport, error)
+	GetMainReport(context.Context, string, string) (*billingpb.DashboardMainReport, error)
+	GetRevenueDynamicsReport(context.Context, string, string) (*billingpb.DashboardRevenueDynamicReport, error)
+	GetBaseReport(context.Context, string, string) (*billingpb.DashboardBaseReports, error)
+	GetBaseRevenueByCountryReport(context.Context, string, string) (*billingpb.DashboardRevenueByCountryReport, error)
+	GetBaseSalesTodayReport(context.Context, string, string) (*billingpb.DashboardSalesTodayReport, error)
+	GetBaseSourcesReport(context.Context, string, string) (*billingpb.DashboardSourcesReport, error)
 }
 
 type DashboardReportProcessorInterface interface {
@@ -66,13 +66,13 @@ type DashboardReportProcessorInterface interface {
 }
 
 type GrossRevenueAndVatReports struct {
-	GrossRevenue *grpc.DashboardAmountItemWithChart `bson:"gross_revenue"`
-	Vat          *grpc.DashboardAmountItemWithChart `bson:"vat"`
+	GrossRevenue *billingpb.DashboardAmountItemWithChart `bson:"gross_revenue"`
+	Vat          *billingpb.DashboardAmountItemWithChart `bson:"vat"`
 }
 
 type TotalTransactionsAndArpuReports struct {
-	TotalTransactions *grpc.DashboardMainReportTotalTransactions `bson:"total_transactions"`
-	Arpu              *grpc.DashboardAmountItemWithChart         `bson:"arpu"`
+	TotalTransactions *billingpb.DashboardMainReportTotalTransactions `bson:"total_transactions"`
+	Arpu              *billingpb.DashboardAmountItemWithChart         `bson:"arpu"`
 }
 
 func newDashboardRepository(s *Service) DashboardRepositoryInterface {
@@ -82,7 +82,7 @@ func newDashboardRepository(s *Service) DashboardRepositoryInterface {
 func (m *DashboardRepository) GetMainReport(
 	ctx context.Context,
 	merchantId, period string,
-) (*grpc.DashboardMainReport, error) {
+) (*billingpb.DashboardMainReport, error) {
 	processorGrossRevenueAndVatCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -172,8 +172,8 @@ func (m *DashboardRepository) GetMainReport(
 
 	if dataGrossRevenueAndVatPreviousTyped == nil {
 		dataGrossRevenueAndVatPreviousTyped = &GrossRevenueAndVatReports{
-			GrossRevenue: &grpc.DashboardAmountItemWithChart{},
-			Vat:          &grpc.DashboardAmountItemWithChart{},
+			GrossRevenue: &billingpb.DashboardAmountItemWithChart{},
+			Vat:          &billingpb.DashboardAmountItemWithChart{},
 		}
 	}
 	dataGrossRevenueAndVatCurrentTyped.GrossRevenue.AmountPrevious = dataGrossRevenueAndVatPreviousTyped.GrossRevenue.AmountCurrent
@@ -184,14 +184,14 @@ func (m *DashboardRepository) GetMainReport(
 
 	if dataTotalTransactionsAndArpuPreviousTyped == nil {
 		dataTotalTransactionsAndArpuPreviousTyped = &TotalTransactionsAndArpuReports{
-			TotalTransactions: &grpc.DashboardMainReportTotalTransactions{},
-			Arpu:              &grpc.DashboardAmountItemWithChart{},
+			TotalTransactions: &billingpb.DashboardMainReportTotalTransactions{},
+			Arpu:              &billingpb.DashboardAmountItemWithChart{},
 		}
 	}
 	dataTotalTransactionsAndArpuCurrentTyped.TotalTransactions.CountPrevious = dataTotalTransactionsAndArpuPreviousTyped.TotalTransactions.CountCurrent
 	dataTotalTransactionsAndArpuCurrentTyped.Arpu.AmountPrevious = dataTotalTransactionsAndArpuPreviousTyped.Arpu.AmountCurrent
 
-	result := &grpc.DashboardMainReport{
+	result := &billingpb.DashboardMainReport{
 		GrossRevenue:      dataGrossRevenueAndVatCurrentTyped.GrossRevenue,
 		Vat:               dataGrossRevenueAndVatCurrentTyped.Vat,
 		TotalTransactions: dataTotalTransactionsAndArpuCurrentTyped.TotalTransactions,
@@ -204,7 +204,7 @@ func (m *DashboardRepository) GetMainReport(
 func (m *DashboardRepository) GetRevenueDynamicsReport(
 	ctx context.Context,
 	merchantId, period string,
-) (*grpc.DashboardRevenueDynamicReport, error) {
+) (*billingpb.DashboardRevenueDynamicReport, error) {
 	processor, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -220,13 +220,13 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 	}
 
 	processor.DbQueryFn = processor.ExecuteRevenueDynamicReport
-	data, err := processor.ExecuteReport(ctx, new(grpc.DashboardRevenueDynamicReport))
+	data, err := processor.ExecuteReport(ctx, new(billingpb.DashboardRevenueDynamicReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataTyped := data.(*grpc.DashboardRevenueDynamicReport)
+	dataTyped := data.(*billingpb.DashboardRevenueDynamicReport)
 
 	if len(dataTyped.Items) > 0 {
 		dataTyped.Currency = dataTyped.Items[0].Currency
@@ -238,7 +238,7 @@ func (m *DashboardRepository) GetRevenueDynamicsReport(
 func (m *DashboardRepository) GetBaseReport(
 	ctx context.Context,
 	merchantId, period string,
-) (*grpc.DashboardBaseReports, error) {
+) (*billingpb.DashboardBaseReports, error) {
 	revenueByCountryReport, err := m.GetBaseRevenueByCountryReport(ctx, merchantId, period)
 
 	if err != nil {
@@ -257,7 +257,7 @@ func (m *DashboardRepository) GetBaseReport(
 		return nil, err
 	}
 
-	reports := &grpc.DashboardBaseReports{
+	reports := &billingpb.DashboardBaseReports{
 		RevenueByCountry: revenueByCountryReport,
 		SalesToday:       salesTodayReport,
 		Sources:          sourcesReport,
@@ -269,7 +269,7 @@ func (m *DashboardRepository) GetBaseReport(
 func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 	ctx context.Context,
 	merchantId, period string,
-) (*grpc.DashboardRevenueByCountryReport, error) {
+) (*billingpb.DashboardRevenueByCountryReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -300,28 +300,28 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 
 	processorCurrent.DbQueryFn = processorCurrent.ExecuteRevenueByCountryReport
 	processorPrevious.DbQueryFn = processorPrevious.ExecuteRevenueByCountryReport
-	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(grpc.DashboardRevenueByCountryReport))
+	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(billingpb.DashboardRevenueByCountryReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(grpc.DashboardRevenueByCountryReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(billingpb.DashboardRevenueByCountryReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataCurrentTyped := dataCurrent.(*grpc.DashboardRevenueByCountryReport)
+	dataCurrentTyped := dataCurrent.(*billingpb.DashboardRevenueByCountryReport)
 
 	if dataCurrentTyped == nil {
-		dataCurrentTyped = &grpc.DashboardRevenueByCountryReport{}
+		dataCurrentTyped = &billingpb.DashboardRevenueByCountryReport{}
 	}
 
-	dataPreviousTyped := dataPrevious.(*grpc.DashboardRevenueByCountryReport)
+	dataPreviousTyped := dataPrevious.(*billingpb.DashboardRevenueByCountryReport)
 
 	if dataPreviousTyped == nil {
-		dataPreviousTyped = &grpc.DashboardRevenueByCountryReport{}
+		dataPreviousTyped = &billingpb.DashboardRevenueByCountryReport{}
 	}
 
 	dataCurrentTyped.TotalPrevious = dataPreviousTyped.TotalCurrent
@@ -332,7 +332,7 @@ func (m *DashboardRepository) GetBaseRevenueByCountryReport(
 func (m *DashboardRepository) GetBaseSalesTodayReport(
 	ctx context.Context,
 	merchantId, period string,
-) (*grpc.DashboardSalesTodayReport, error) {
+) (*billingpb.DashboardSalesTodayReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -363,20 +363,20 @@ func (m *DashboardRepository) GetBaseSalesTodayReport(
 
 	processorCurrent.DbQueryFn = processorCurrent.ExecuteSalesTodayReport
 	processorPrevious.DbQueryFn = processorPrevious.ExecuteSalesTodayReport
-	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(grpc.DashboardSalesTodayReport))
+	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(billingpb.DashboardSalesTodayReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(grpc.DashboardSalesTodayReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(billingpb.DashboardSalesTodayReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataCurrentTyped := dataCurrent.(*grpc.DashboardSalesTodayReport)
-	dataPreviousTyped := dataPrevious.(*grpc.DashboardSalesTodayReport)
+	dataCurrentTyped := dataCurrent.(*billingpb.DashboardSalesTodayReport)
+	dataPreviousTyped := dataPrevious.(*billingpb.DashboardSalesTodayReport)
 	dataCurrentTyped.TotalPrevious = dataPreviousTyped.TotalCurrent
 
 	return dataCurrentTyped, nil
@@ -385,7 +385,7 @@ func (m *DashboardRepository) GetBaseSalesTodayReport(
 func (m *DashboardRepository) GetBaseSourcesReport(
 	ctx context.Context,
 	merchantId, period string,
-) (*grpc.DashboardSourcesReport, error) {
+) (*billingpb.DashboardSourcesReport, error) {
 	processorCurrent, err := m.NewDashboardReportProcessor(
 		merchantId,
 		period,
@@ -416,20 +416,20 @@ func (m *DashboardRepository) GetBaseSourcesReport(
 
 	processorCurrent.DbQueryFn = processorCurrent.ExecuteSourcesReport
 	processorPrevious.DbQueryFn = processorPrevious.ExecuteSourcesReport
-	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(grpc.DashboardSourcesReport))
+	dataCurrent, err := processorCurrent.ExecuteReport(ctx, new(billingpb.DashboardSourcesReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(grpc.DashboardSourcesReport))
+	dataPrevious, err := processorPrevious.ExecuteReport(ctx, new(billingpb.DashboardSourcesReport))
 
 	if err != nil {
 		return nil, dashboardErrorUnknown
 	}
 
-	dataCurrentTyped := dataCurrent.(*grpc.DashboardSourcesReport)
-	dataPreviousTyped := dataPrevious.(*grpc.DashboardSourcesReport)
+	dataCurrentTyped := dataCurrent.(*billingpb.DashboardSourcesReport)
+	dataPreviousTyped := dataPrevious.(*billingpb.DashboardSourcesReport)
 	dataCurrentTyped.TotalPrevious = dataPreviousTyped.TotalCurrent
 
 	return dataCurrentTyped, nil
@@ -455,7 +455,7 @@ func (m *DashboardRepository) NewDashboardReportProcessor(
 		Collection:  collectionOrderView,
 		Cache:       cache,
 		CacheExpire: time.Duration(0),
-		Errors: map[string]*grpc.ResponseErrorMessage{
+		Errors: map[string]*billingpb.ResponseErrorMessage{
 			"unknown": dashboardErrorUnknown,
 		},
 	}

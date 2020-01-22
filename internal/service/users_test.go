@@ -3,14 +3,13 @@ package service
 import (
 	"context"
 	"errors"
-	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
-	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	casbinProto "github.com/paysuper/paysuper-proto/go/casbinpb"
+	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -89,23 +88,23 @@ func (suite *UsersTestSuite) Test_GetUsers_Error() {
 	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.GetMerchantUsersResponse{}
-	err := suite.service.GetMerchantUsers(context.TODO(), &grpc.GetMerchantUsersRequest{MerchantId: primitive.NewObjectID().Hex()}, res)
+	res := &billingpb.GetMerchantUsersResponse{}
+	err := suite.service.GetMerchantUsers(context.TODO(), &billingpb.GetMerchantUsersRequest{MerchantId: primitive.NewObjectID().Hex()}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetUsers_Ok() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
+	repository.On("GetUsersForMerchant", mock.Anything, mock.Anything).Return([]*billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.GetMerchantUsersResponse{}
-	err := suite.service.GetMerchantUsers(context.TODO(), &grpc.GetMerchantUsersRequest{MerchantId: primitive.NewObjectID().Hex()}, res)
+	res := &billingpb.GetMerchantUsersResponse{}
+	err := suite.service.GetMerchantUsers(context.TODO(), &billingpb.GetMerchantUsersRequest{MerchantId: primitive.NewObjectID().Hex()}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetAdminUsers_Error() {
@@ -115,23 +114,23 @@ func (suite *UsersTestSuite) Test_GetAdminUsers_Error() {
 	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.GetAdminUsersResponse{}
-	err := suite.service.GetAdminUsers(context.TODO(), &grpc.EmptyRequest{}, res)
+	res := &billingpb.GetAdminUsersResponse{}
+	err := suite.service.GetAdminUsers(context.TODO(), &billingpb.EmptyRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetAdminUsers_Ok() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
+	repository.On("GetUsersForAdmin", mock.Anything, mock.Anything).Return([]*billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.GetAdminUsersResponse{}
-	err := suite.service.GetAdminUsers(context.TODO(), &grpc.EmptyRequest{}, res)
+	res := &billingpb.GetAdminUsersResponse{}
+	err := suite.service.GetAdminUsers(context.TODO(), &billingpb.EmptyRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetMerchantsForUser() {
@@ -141,19 +140,19 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetMerchantsForUser(
 	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.GetMerchantsForUserResponse{}
-	err := suite.service.GetMerchantsForUser(context.TODO(), &grpc.GetMerchantsForUserRequest{
+	res := &billingpb.GetMerchantsForUserResponse{}
+	err := suite.service.GetMerchantsForUser(context.TODO(), &billingpb.GetMerchantsForUserRequest{
 		UserId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetById() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billingpb.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
 	suite.service.userRoleRepository = repository
 
 	repositoryM := &mocks.MerchantRepositoryInterface{}
@@ -162,27 +161,27 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetById() {
 		Return(nil, errors.New("error"))
 	suite.service.merchant = repositoryM
 
-	res := &grpc.GetMerchantsForUserResponse{}
-	err := suite.service.GetMerchantsForUser(context.TODO(), &grpc.GetMerchantsForUserRequest{
+	res := &billingpb.GetMerchantsForUserResponse{}
+	err := suite.service.GetMerchantsForUser(context.TODO(), &billingpb.GetMerchantsForUserRequest{
 		UserId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_Empty() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{}, nil)
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.GetMerchantsForUserResponse{}
-	err := suite.service.GetMerchantsForUser(context.TODO(), &grpc.GetMerchantsForUserRequest{
+	res := &billingpb.GetMerchantsForUserResponse{}
+	err := suite.service.GetMerchantsForUser(context.TODO(), &billingpb.GetMerchantsForUserRequest{
 		UserId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 	shouldBe.Empty(res.Merchants)
 }
 
@@ -190,21 +189,21 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_NotEmpty() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billing.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
+	repository.On("GetMerchantsForUser", mock.Anything, mock.Anything).Return([]*billingpb.UserRole{{Id: primitive.NewObjectID().Hex()}}, nil)
 	suite.service.userRoleRepository = repository
 
 	repositoryM := &mocks.MerchantRepositoryInterface{}
 	repositoryM.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Id: primitive.NewObjectID().Hex(), Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Id: primitive.NewObjectID().Hex(), Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = repositoryM
 
-	res := &grpc.GetMerchantsForUserResponse{}
-	err := suite.service.GetMerchantsForUser(context.TODO(), &grpc.GetMerchantsForUserRequest{
+	res := &billingpb.GetMerchantsForUserResponse{}
+	err := suite.service.GetMerchantsForUser(context.TODO(), &billingpb.GetMerchantsForUserRequest{
 		UserId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 	shouldBe.NotEmpty(res.Merchants)
 }
 
@@ -215,31 +214,31 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_GetUser() {
 	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &billingpb.ChangeRoleForAdminUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_Update() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetAdminUserByUserId", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleSystemAdmin}, nil)
-	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
+	repository.On("GetAdminUserByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserRole{Role: billingpb.RoleSystemAdmin}, nil)
+	repository.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{Role: "test"}, nil)
 	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &billingpb.ChangeRoleForAdminUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_DeleteFromCasbin() {
@@ -248,7 +247,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_DeleteFromCasbin() {
 	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
+		Return(&billingpb.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
 	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -256,13 +255,13 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_DeleteFromCasbin() {
 	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &billingpb.ChangeRoleForAdminUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_AddRoleForUserCasbin() {
@@ -271,7 +270,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_AddRoleForUserCasbin
 	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
+		Return(&billingpb.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
 	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -280,13 +279,13 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Error_AddRoleForUserCasbin
 	casbin.On("AddRoleForUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &billingpb.ChangeRoleForAdminUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Ok() {
@@ -295,7 +294,7 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Ok() {
 	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
+		Return(&billingpb.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
 	repository.On("UpdateAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -304,25 +303,25 @@ func (suite *UsersTestSuite) Test_ChangeAdminUserRole_Ok() {
 	casbin.On("AddRoleForUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &grpc.ChangeRoleForAdminUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForAdminUser(context.TODO(), &billingpb.ChangeRoleForAdminUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_SetRoleOwner() {
 	shouldBe := require.New(suite.T())
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &billingpb.ChangeRoleForMerchantUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
-		Role:   pkg.RoleMerchantOwner,
+		Role:   billingpb.RoleMerchantOwner,
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnsupportedRoleType, res.Message)
 }
 
@@ -333,31 +332,31 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_GetUser() {
 	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &billingpb.ChangeRoleForMerchantUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_Update() {
 	shouldBe := require.New(suite.T())
 
 	repository := &mocks.UserRoleRepositoryInterface{}
-	repository.On("GetMerchantUserByUserId", mock.Anything, mock.Anything, mock.Anything).Return(&billing.UserRole{Role: pkg.RoleMerchantOwner}, nil)
-	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{Role: "test"}, nil)
+	repository.On("GetMerchantUserByUserId", mock.Anything, mock.Anything, mock.Anything).Return(&billingpb.UserRole{Role: billingpb.RoleMerchantOwner}, nil)
+	repository.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{Role: "test"}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = repository
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &billingpb.ChangeRoleForMerchantUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_DeleteFromCasbin() {
@@ -366,7 +365,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_DeleteFromCasb
 	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetMerchantUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
+		Return(&billingpb.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -374,13 +373,13 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_DeleteFromCasb
 	casbin.On("DeleteUser", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &billingpb.ChangeRoleForMerchantUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_AddRoleForUserCasbin() {
@@ -389,7 +388,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_AddRoleForUser
 	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetMerchantUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
+		Return(&billingpb.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -398,13 +397,13 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Error_AddRoleForUser
 	casbin.On("AddRoleForUser", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &billingpb.ChangeRoleForMerchantUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusSystemError, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusSystemError, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Ok() {
@@ -413,7 +412,7 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Ok() {
 	repository := &mocks.UserRoleRepositoryInterface{}
 	repository.
 		On("GetMerchantUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
+		Return(&billingpb.UserRole{Role: "test", UserId: primitive.NewObjectID().Hex()}, nil)
 	repository.On("UpdateMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = repository
 
@@ -422,26 +421,26 @@ func (suite *UsersTestSuite) Test_ChangeRoleForMerchantUser_Ok() {
 	casbin.On("AddRoleForUser", mock.Anything, mock.Anything, mock.Anything).Return(&casbinProto.Empty{}, nil)
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &grpc.ChangeRoleForMerchantUserRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ChangeRoleForMerchantUser(context.TODO(), &billingpb.ChangeRoleForMerchantUserRequest{
 		RoleId: primitive.NewObjectID().Hex(),
 		Role:   "test_role",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) TestInviteUserMerchant_Error_SetRoleOwner() {
 	shouldBe := require.New(suite.T())
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
-		Role:       pkg.RoleMerchantOwner,
+		Role:       billingpb.RoleMerchantOwner,
 		Email:      "test@test.com",
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnsupportedRoleType, res.Message)
 }
 
@@ -454,12 +453,12 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_GetMerchant() {
 		Return(nil, errors.New("error"))
 	suite.service.merchant = merchRep
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserMerchantNotFound, res.Message)
 }
 
@@ -469,15 +468,15 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_MerchantCompanyIsEmpt
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{}}, nil)
 	suite.service.merchant = merchRep
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserEmptyCompanyName, res.Message)
 }
 
@@ -487,7 +486,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_OwnerNotFound() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
@@ -496,12 +495,12 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_OwnerNotFound() {
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -511,24 +510,24 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_UserAlreadyExists() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserAlreadyExist, res.Message)
 }
 
@@ -538,7 +537,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_AddMerchantUser() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
@@ -553,12 +552,12 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_AddMerchantUser() {
 		Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToAdd, res.Message)
 }
 
@@ -568,13 +567,13 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_SendEmail() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
+		Return(&billingpb.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, nil)
@@ -589,12 +588,12 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_SendEmail() {
 		Return(errors.New("error"))
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToSendInvite, res.Message)
 }
 
@@ -604,13 +603,13 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Ok() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
+		Return(&billingpb.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, nil)
@@ -625,12 +624,12 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Ok() {
 		Return(nil)
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.InviteUserMerchantResponse{}
-	err := suite.service.InviteUserMerchant(context.TODO(), &grpc.InviteUserMerchantRequest{
+	res := &billingpb.InviteUserMerchantResponse{}
+	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_GetAdmin() {
@@ -642,10 +641,10 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_GetAdmin() {
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.InviteUserAdminResponse{}
-	err := suite.service.InviteUserAdmin(context.TODO(), &grpc.InviteUserAdminRequest{}, res)
+	res := &billingpb.InviteUserAdminResponse{}
+	err := suite.service.InviteUserAdmin(context.TODO(), &billingpb.InviteUserAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -655,16 +654,16 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_UserExists() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.InviteUserAdminResponse{}
-	err := suite.service.InviteUserAdmin(context.TODO(), &grpc.InviteUserAdminRequest{}, res)
+	res := &billingpb.InviteUserAdminResponse{}
+	err := suite.service.InviteUserAdmin(context.TODO(), &billingpb.InviteUserAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserAlreadyExist, res.Message)
 }
 
@@ -674,7 +673,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_AddAdminUser() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
 		Return(nil, nil)
@@ -683,10 +682,10 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_AddAdminUser() {
 		Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.InviteUserAdminResponse{}
-	err := suite.service.InviteUserAdmin(context.TODO(), &grpc.InviteUserAdminRequest{}, res)
+	res := &billingpb.InviteUserAdminResponse{}
+	err := suite.service.InviteUserAdmin(context.TODO(), &billingpb.InviteUserAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToAdd, res.Message)
 }
 
@@ -696,7 +695,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_SendEmail() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
 		Return(nil, nil)
@@ -711,10 +710,10 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Error_SendEmail() {
 		Return(errors.New("error"))
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.InviteUserAdminResponse{}
-	err := suite.service.InviteUserAdmin(context.TODO(), &grpc.InviteUserAdminRequest{}, res)
+	res := &billingpb.InviteUserAdminResponse{}
+	err := suite.service.InviteUserAdmin(context.TODO(), &billingpb.InviteUserAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToSendInvite, res.Message)
 }
 
@@ -724,7 +723,7 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Ok() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
 		Return(nil, nil)
@@ -739,10 +738,10 @@ func (suite *UsersTestSuite) Test_InviteUserAdmin_Ok() {
 		Return(nil)
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.InviteUserAdminResponse{}
-	err := suite.service.InviteUserAdmin(context.TODO(), &grpc.InviteUserAdminRequest{}, res)
+	res := &billingpb.InviteUserAdminResponse{}
+	err := suite.service.InviteUserAdmin(context.TODO(), &billingpb.InviteUserAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_GetMerchant() {
@@ -754,12 +753,12 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_GetMerchant() {
 		Return(nil, errors.New("error"))
 	suite.service.merchant = merchRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteMerchant(context.TODO(), &grpc.ResendInviteMerchantRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserMerchantNotFound, res.Message)
 }
 
@@ -769,7 +768,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_OwnerNotFound() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{}, nil)
+		Return(&billingpb.Merchant{}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
@@ -778,12 +777,12 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_OwnerNotFound() {
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteMerchant(context.TODO(), &grpc.ResendInviteMerchantRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -793,24 +792,24 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_UserNotFound() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{}, nil)
+		Return(&billingpb.Merchant{}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteMerchant(context.TODO(), &grpc.ResendInviteMerchantRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -820,24 +819,24 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_UnableToResend() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{}, nil)
+		Return(&billingpb.Merchant{}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusAccepted}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusAccepted}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteMerchant(context.TODO(), &grpc.ResendInviteMerchantRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableResendInvite, res.Message)
 }
 
@@ -847,16 +846,16 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_SendEmail() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
+		Return(&billingpb.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	postmanBroker := &mocks.BrokerInterface{}
@@ -865,12 +864,12 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_SendEmail() {
 		Return(errors.New("error"))
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteMerchant(context.TODO(), &grpc.ResendInviteMerchantRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToSendInvite, res.Message)
 }
 
@@ -880,16 +879,16 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Ok() {
 	merchRep := &mocks.MerchantRepositoryInterface{}
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
-		Return(&billing.Merchant{Company: &billing.MerchantCompanyInfo{Name: "name"}}, nil)
+		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
 	suite.service.merchant = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetMerchantOwner", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
+		Return(&billingpb.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
 	userRoleRep.
 		On("GetMerchantUserByEmail", mock.Anything, mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	postmanBroker := &mocks.BrokerInterface{}
@@ -898,12 +897,12 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Ok() {
 		Return(nil)
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteMerchant(context.TODO(), &grpc.ResendInviteMerchantRequest{
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
 		MerchantId: primitive.NewObjectID().Hex(),
 	}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdmin() {
@@ -915,10 +914,10 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdmin() {
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteAdmin(context.TODO(), &grpc.ResendInviteAdminRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteAdmin(context.TODO(), &billingpb.ResendInviteAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -928,16 +927,16 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_GetAdminUserByEmail() 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteAdmin(context.TODO(), &grpc.ResendInviteAdminRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteAdmin(context.TODO(), &billingpb.ResendInviteAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -947,10 +946,10 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_SendEmail() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
+		Return(&billingpb.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	postmanBroker := &mocks.BrokerInterface{}
@@ -959,10 +958,10 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Error_SendEmail() {
 		Return(errors.New("error"))
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteAdmin(context.TODO(), &grpc.ResendInviteAdminRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteAdmin(context.TODO(), &billingpb.ResendInviteAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToSendInvite, res.Message)
 }
 
@@ -972,10 +971,10 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Ok() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetSystemAdmin", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
+		Return(&billingpb.UserRole{Email: "test@test.com", FirstName: "firstName", LastName: "lastName"}, nil)
 	userRoleRep.
 		On("GetAdminUserByEmail", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{}, nil)
+		Return(&billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	postmanBroker := &mocks.BrokerInterface{}
@@ -984,37 +983,37 @@ func (suite *UsersTestSuite) Test_ResendInviteAdmin_Ok() {
 		Return(nil)
 	suite.service.postmarkBroker = postmanBroker
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.ResendInviteAdmin(context.TODO(), &grpc.ResendInviteAdminRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.ResendInviteAdmin(context.TODO(), &billingpb.ResendInviteAdminRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_ParseToken() {
 	shouldBe := require.New(suite.T())
 
-	res := &grpc.AcceptInviteResponse{}
-	err := suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err := suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserInvalidToken, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_InvalidEmail() {
 	shouldBe := require.New(suite.T())
 
-	token, err := suite.service.createInviteToken(&billing.UserRole{Email: "aaa@aaa.aaa"})
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: "bbb@bbb.bbb", Token: token}, res)
+	token, err := suite.service.createInviteToken(&billingpb.UserRole{Email: "aaa@aaa.aaa"})
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: "bbb@bbb.bbb", Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserInvalidInviteEmail, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_GetByUserId() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
@@ -1023,42 +1022,42 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_GetByUserId() {
 		Return(nil, errors.New("error"))
 	suite.service.userProfileRepository = userProfileRep
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserProfileNotFound, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_NoPersonalData() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
-		Return(&grpc.UserProfile{Personal: nil}, nil)
+		Return(&billingpb.UserProfile{Personal: nil}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserEmptyNames, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_GetAdminUserById() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
-		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
+		Return(&billingpb.UserProfile{Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
@@ -1067,82 +1066,82 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_GetAdminUserById() {
 		Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_AlreadyAccept() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
-		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
+		Return(&billingpb.UserProfile{Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusAccepted}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusAccepted}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserInviteAlreadyAccepted, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_UpdateAdminUser() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
-		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
+		Return(&billingpb.UserProfile{Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	userRoleRep.
 		On("UpdateAdminUser", mock.Anything, mock.Anything).
 		Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToAdd, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_AddToCasbin() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
-		Return(&grpc.UserProfile{Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
+		Return(&billingpb.UserProfile{Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"}}, nil)
 	suite.service.userProfileRepository = userProfileRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	userRoleRep.
 		On("UpdateAdminUser", mock.Anything, mock.Anything).
 		Return(nil)
@@ -1152,23 +1151,23 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_AddToCasbin() {
 	casbin.On("AddRoleForUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToAddToCasbin, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_ConfirmEmail() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	profile := &grpc.UserProfile{
-		Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"},
-		Email:    &grpc.UserProfileEmail{},
+	profile := &billingpb.UserProfile{
+		Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"},
+		Email:    &billingpb.UserProfileEmail{},
 	}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
@@ -1181,7 +1180,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_ConfirmEmail() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	userRoleRep.
 		On("UpdateAdminUser", mock.Anything, mock.Anything).
 		Return(nil)
@@ -1191,23 +1190,23 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_ConfirmEmail() {
 	casbin.On("AddRoleForUser", mock.Anything, mock.Anything).Return(nil, nil)
 	suite.service.casbinService = casbin
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserConfirmEmail, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Error_CentrifugoPublish() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	profile := &grpc.UserProfile{
-		Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"},
-		Email:    &grpc.UserProfileEmail{},
+	profile := &billingpb.UserProfile{
+		Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"},
+		Email:    &billingpb.UserProfileEmail{},
 	}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
@@ -1220,7 +1219,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_CentrifugoPublish() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	userRoleRep.
 		On("UpdateAdminUser", mock.Anything, mock.Anything).
 		Return(nil)
@@ -1234,23 +1233,23 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Error_CentrifugoPublish() {
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.centrifugoDashboard = centrifugo
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserConfirmEmail, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_AcceptInvite_Ok() {
 	shouldBe := require.New(suite.T())
 
-	role := &billing.UserRole{Email: "aaa@aaa.aaa"}
+	role := &billingpb.UserRole{Email: "aaa@aaa.aaa"}
 	token, err := suite.service.createInviteToken(role)
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	profile := &grpc.UserProfile{
-		Personal: &grpc.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"},
-		Email:    &grpc.UserProfileEmail{},
+	profile := &billingpb.UserProfile{
+		Personal: &billingpb.UserProfilePersonal{FirstName: "firstName", LastName: "lastName"},
+		Email:    &billingpb.UserProfileEmail{},
 	}
 	userProfileRep.
 		On("GetByUserId", mock.Anything, mock.Anything).
@@ -1263,7 +1262,7 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Ok() {
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
 		On("GetAdminUserById", mock.Anything, mock.Anything).
-		Return(&billing.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
+		Return(&billingpb.UserRole{Status: pkg.UserRoleStatusInvited}, nil)
 	userRoleRep.
 		On("UpdateAdminUser", mock.Anything, mock.Anything).
 		Return(nil)
@@ -1277,48 +1276,48 @@ func (suite *UsersTestSuite) Test_AcceptInvite_Ok() {
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	suite.service.centrifugoDashboard = centrifugo
 
-	res := &grpc.AcceptInviteResponse{}
-	err = suite.service.AcceptInvite(context.TODO(), &grpc.AcceptInviteRequest{Email: role.Email, Token: token}, res)
+	res := &billingpb.AcceptInviteResponse{}
+	err = suite.service.AcceptInvite(context.TODO(), &billingpb.AcceptInviteRequest{Email: role.Email, Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_CheckInviteToken_Error_ParseToken() {
 	shouldBe := require.New(suite.T())
 
-	res := &grpc.CheckInviteTokenResponse{}
-	err := suite.service.CheckInviteToken(context.TODO(), &grpc.CheckInviteTokenRequest{}, res)
+	res := &billingpb.CheckInviteTokenResponse{}
+	err := suite.service.CheckInviteToken(context.TODO(), &billingpb.CheckInviteTokenRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserInvalidToken, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_CheckInviteToken_Error_InvalidEmail() {
 	shouldBe := require.New(suite.T())
 
-	token, err := suite.service.createInviteToken(&billing.UserRole{Email: "aaa@aaa.aaa"})
-	res := &grpc.CheckInviteTokenResponse{}
-	err = suite.service.CheckInviteToken(context.TODO(), &grpc.CheckInviteTokenRequest{Email: "bbb@bbb.bbb", Token: token}, res)
+	token, err := suite.service.createInviteToken(&billingpb.UserRole{Email: "aaa@aaa.aaa"})
+	res := &billingpb.CheckInviteTokenResponse{}
+	err = suite.service.CheckInviteToken(context.TODO(), &billingpb.CheckInviteTokenRequest{Email: "bbb@bbb.bbb", Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserInvalidInviteEmail, res.Message)
 }
 
 func (suite *UsersTestSuite) Test_CheckInviteToken_Ok() {
 	shouldBe := require.New(suite.T())
 
-	token, err := suite.service.createInviteToken(&billing.UserRole{Email: "aaa@aaa.aaa"})
-	res := &grpc.CheckInviteTokenResponse{}
-	err = suite.service.CheckInviteToken(context.TODO(), &grpc.CheckInviteTokenRequest{Email: "aaa@aaa.aaa", Token: token}, res)
+	token, err := suite.service.createInviteToken(&billingpb.UserRole{Email: "aaa@aaa.aaa"})
+	res := &billingpb.CheckInviteTokenResponse{}
+	err = suite.service.CheckInviteToken(context.TODO(), &billingpb.CheckInviteTokenRequest{Email: "aaa@aaa.aaa", Token: token}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetRoleList_Ok() {
 	shouldBe := require.New(suite.T())
 
-	res := &grpc.GetRoleListResponse{}
-	err := suite.service.GetRoleList(context.TODO(), &grpc.GetRoleListRequest{Type: pkg.RoleTypeSystem}, res)
+	res := &billingpb.GetRoleListResponse{}
+	err := suite.service.GetRoleList(context.TODO(), &billingpb.GetRoleListRequest{Type: pkg.RoleTypeSystem}, res)
 	shouldBe.NoError(err)
 	shouldBe.Len(res.Items, 5)
 }
@@ -1326,8 +1325,8 @@ func (suite *UsersTestSuite) Test_GetRoleList_Ok() {
 func (suite *UsersTestSuite) Test_GetRoleList_Ok_UnknownType() {
 	shouldBe := require.New(suite.T())
 
-	res := &grpc.GetRoleListResponse{}
-	err := suite.service.GetRoleList(context.TODO(), &grpc.GetRoleListRequest{Type: "unknown"}, res)
+	res := &billingpb.GetRoleListResponse{}
+	err := suite.service.GetRoleList(context.TODO(), &billingpb.GetRoleListRequest{Type: "unknown"}, res)
 	shouldBe.NoError(err)
 	shouldBe.Len(res.Items, 0)
 }
@@ -1339,10 +1338,10 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_GetMerchantUserById()
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -1350,13 +1349,13 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_AnotherMerchantUser()
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{MerchantId: "1"}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{MerchantId: "1"}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{MerchantId: "2"}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{MerchantId: "2"}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -1364,14 +1363,14 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteUser() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToDelete, res.Message)
 }
 
@@ -1379,7 +1378,7 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{UserId: "1"}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{UserId: "1"}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1387,10 +1386,10 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_DeleteFromCasbin() {
 	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToDeleteFromCasbin, res.Message)
 }
 
@@ -1398,12 +1397,12 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_TruncateEmailConfirma
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&grpc.UserProfile{Email: &grpc.UserProfileEmail{}}, nil)
+	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserProfile{Email: &billingpb.UserProfileEmail{}}, nil)
 	userProfileRep.On("Update", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userProfileRepository = userProfileRep
 
@@ -1411,10 +1410,10 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_TruncateEmailConfirma
 	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(nil, nil)
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserConfirmEmail, res.Message)
 }
 
@@ -1422,12 +1421,12 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_CentrifugoPublish() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&grpc.UserProfile{Email: &grpc.UserProfileEmail{}}, nil)
+	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserProfile{Email: &billingpb.UserProfileEmail{}}, nil)
 	userProfileRep.On("Update", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userProfileRepository = userProfileRep
 
@@ -1439,10 +1438,10 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Error_CentrifugoPublish() {
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.centrifugoDashboard = centrifugo
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserConfirmEmail, res.Message)
 }
 
@@ -1450,12 +1449,12 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Ok() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteMerchantUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&grpc.UserProfile{Email: &grpc.UserProfileEmail{}}, nil)
+	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserProfile{Email: &billingpb.UserProfileEmail{}}, nil)
 	userProfileRep.On("Update", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userProfileRepository = userProfileRep
 
@@ -1467,10 +1466,10 @@ func (suite *UsersTestSuite) Test_DeleteMerchantUser_Ok() {
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	suite.service.centrifugoDashboard = centrifugo
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteMerchantUser(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteMerchantUser(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_GetMerchantUserById() {
@@ -1480,10 +1479,10 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_GetMerchantUserById() {
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteAdminUser(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -1491,14 +1490,14 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteUser() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteAdminUser(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToDelete, res.Message)
 }
 
@@ -1506,7 +1505,7 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteFromCasbin() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{UserId: "1"}, nil)
+	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{UserId: "1"}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
@@ -1514,10 +1513,10 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_DeleteFromCasbin() {
 	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteAdminUser(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserUnableToDeleteFromCasbin, res.Message)
 }
 
@@ -1525,12 +1524,12 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_TruncateEmailConfirmatio
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&grpc.UserProfile{Email: &grpc.UserProfileEmail{}}, nil)
+	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserProfile{Email: &billingpb.UserProfileEmail{}}, nil)
 	userProfileRep.On("Update", mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.userProfileRepository = userProfileRep
 
@@ -1538,10 +1537,10 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_TruncateEmailConfirmatio
 	casbin.On("DeleteUser", mock.Anything, mock.Anything).Return(nil, nil)
 	suite.service.casbinService = casbin
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteAdminUser(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserConfirmEmail, res.Message)
 }
 
@@ -1549,12 +1548,12 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_CentrifugoPublish() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&grpc.UserProfile{Email: &grpc.UserProfileEmail{}}, nil)
+	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserProfile{Email: &billingpb.UserProfileEmail{}}, nil)
 	userProfileRep.On("Update", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userProfileRepository = userProfileRep
 
@@ -1566,10 +1565,10 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Error_CentrifugoPublish() {
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("error"))
 	suite.service.centrifugoDashboard = centrifugo
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteAdminUser(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserConfirmEmail, res.Message)
 }
 
@@ -1577,12 +1576,12 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Ok() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	userRoleRep.On("DeleteAdminUser", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userRoleRepository = userRoleRep
 
 	userProfileRep := &mocks.UserProfileRepositoryInterface{}
-	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&grpc.UserProfile{Email: &grpc.UserProfileEmail{}}, nil)
+	userProfileRep.On("GetByUserId", mock.Anything, mock.Anything).Return(&billingpb.UserProfile{Email: &billingpb.UserProfileEmail{}}, nil)
 	userProfileRep.On("Update", mock.Anything, mock.Anything).Return(nil)
 	suite.service.userProfileRepository = userProfileRep
 
@@ -1594,10 +1593,10 @@ func (suite *UsersTestSuite) Test_DeleteAdminUser_Ok() {
 	centrifugo.On("Publish", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	suite.service.centrifugoDashboard = centrifugo
 
-	res := &grpc.EmptyResponseWithStatus{}
-	err := suite.service.DeleteAdminUser(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.EmptyResponseWithStatus{}
+	err := suite.service.DeleteAdminUser(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_UserNotFound() {
@@ -1607,10 +1606,10 @@ func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_UserNotFound() {
 	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.UserRoleResponse{}
-	err := suite.service.GetMerchantUserRole(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.UserRoleResponse{}
+	err := suite.service.GetMerchantUserRole(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -1618,13 +1617,13 @@ func (suite *UsersTestSuite) Test_GetMerchantUserRole_Error_AnotherMerchant() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{MerchantId: "1"}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{MerchantId: "1"}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.UserRoleResponse{}
-	err := suite.service.GetMerchantUserRole(context.TODO(), &grpc.MerchantRoleRequest{MerchantId: "2"}, res)
+	res := &billingpb.UserRoleResponse{}
+	err := suite.service.GetMerchantUserRole(context.TODO(), &billingpb.MerchantRoleRequest{MerchantId: "2"}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -1632,13 +1631,13 @@ func (suite *UsersTestSuite) Test_GetMerchantUserRole_Ok() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetMerchantUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.UserRoleResponse{}
-	err := suite.service.GetMerchantUserRole(context.TODO(), &grpc.MerchantRoleRequest{}, res)
+	res := &billingpb.UserRoleResponse{}
+	err := suite.service.GetMerchantUserRole(context.TODO(), &billingpb.MerchantRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_GetAdminUserRole_Error_UserNotFound() {
@@ -1648,10 +1647,10 @@ func (suite *UsersTestSuite) Test_GetAdminUserRole_Error_UserNotFound() {
 	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(nil, errors.New("error"))
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.UserRoleResponse{}
-	err := suite.service.GetAdminUserRole(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.UserRoleResponse{}
+	err := suite.service.GetAdminUserRole(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusBadData, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusBadData, res.Status)
 	shouldBe.EqualValues(errorUserNotFound, res.Message)
 }
 
@@ -1659,13 +1658,13 @@ func (suite *UsersTestSuite) Test_GetAdminUserRole_Ok() {
 	shouldBe := require.New(suite.T())
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
-	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billing.UserRole{}, nil)
+	userRoleRep.On("GetAdminUserById", mock.Anything, mock.Anything).Return(&billingpb.UserRole{}, nil)
 	suite.service.userRoleRepository = userRoleRep
 
-	res := &grpc.UserRoleResponse{}
-	err := suite.service.GetAdminUserRole(context.TODO(), &grpc.AdminRoleRequest{}, res)
+	res := &billingpb.UserRoleResponse{}
+	err := suite.service.GetAdminUserRole(context.TODO(), &billingpb.AdminRoleRequest{}, res)
 	shouldBe.NoError(err)
-	shouldBe.EqualValues(pkg.ResponseStatusOk, res.Status)
+	shouldBe.EqualValues(billingpb.ResponseStatusOk, res.Status)
 }
 
 func (suite *UsersTestSuite) Test_getUserPermissions_Error_GetImplicitPermissionsForUser() {

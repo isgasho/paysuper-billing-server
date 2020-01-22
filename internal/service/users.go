@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	postmarkSdrPkg "github.com/paysuper/postmark-sender/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	casbinProto "github.com/paysuper/paysuper-proto/go/casbinpb"
+	"github.com/paysuper/paysuper-proto/go/postmarkpb"
 	"github.com/streadway/amqp"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -61,69 +60,69 @@ var (
 	errorUserEmptyNames               = newBillingServerErrorMsg("uu000022", "first and last names cannot be empty")
 	errorUserEmptyCompanyName         = newBillingServerErrorMsg("uu000023", "company name cannot be empty")
 
-	merchantUserRoles = map[string][]*billing.RoleListItem{
+	merchantUserRoles = map[string][]*billingpb.RoleListItem{
 		pkg.RoleTypeMerchant: {
-			{Id: pkg.RoleMerchantOwner, Name: roleNameMerchantOwner},
-			{Id: pkg.RoleMerchantDeveloper, Name: roleNameMerchantDeveloper},
-			{Id: pkg.RoleMerchantAccounting, Name: roleNameMerchantAccounting},
-			{Id: pkg.RoleMerchantSupport, Name: roleNameMerchantSupport},
-			{Id: pkg.RoleMerchantViewOnly, Name: roleNameMerchantViewOnly},
+			{Id: billingpb.RoleMerchantOwner, Name: roleNameMerchantOwner},
+			{Id: billingpb.RoleMerchantDeveloper, Name: roleNameMerchantDeveloper},
+			{Id: billingpb.RoleMerchantAccounting, Name: roleNameMerchantAccounting},
+			{Id: billingpb.RoleMerchantSupport, Name: roleNameMerchantSupport},
+			{Id: billingpb.RoleMerchantViewOnly, Name: roleNameMerchantViewOnly},
 		},
 		pkg.RoleTypeSystem: {
-			{Id: pkg.RoleSystemAdmin, Name: roleNameSystemAdmin},
-			{Id: pkg.RoleSystemRiskManager, Name: roleNameSystemRiskManager},
-			{Id: pkg.RoleSystemFinancial, Name: roleNameSystemFinancial},
-			{Id: pkg.RoleSystemSupport, Name: roleNameSystemSupport},
-			{Id: pkg.RoleSystemViewOnly, Name: roleNameSystemViewOnly},
+			{Id: billingpb.RoleSystemAdmin, Name: roleNameSystemAdmin},
+			{Id: billingpb.RoleSystemRiskManager, Name: roleNameSystemRiskManager},
+			{Id: billingpb.RoleSystemFinancial, Name: roleNameSystemFinancial},
+			{Id: billingpb.RoleSystemSupport, Name: roleNameSystemSupport},
+			{Id: billingpb.RoleSystemViewOnly, Name: roleNameSystemViewOnly},
 		},
 	}
 )
 
-func (s *Service) GetMerchantUsers(ctx context.Context, req *grpc.GetMerchantUsersRequest, res *grpc.GetMerchantUsersResponse) error {
+func (s *Service) GetMerchantUsers(ctx context.Context, req *billingpb.GetMerchantUsersRequest, res *billingpb.GetMerchantUsersResponse) error {
 	users, err := s.userRoleRepository.GetUsersForMerchant(ctx, req.MerchantId)
 
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = usersDbInternalError
 		res.Message.Details = err.Error()
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Users = users
 
 	return nil
 }
 
-func (s *Service) GetAdminUsers(ctx context.Context, _ *grpc.EmptyRequest, res *grpc.GetAdminUsersResponse) error {
+func (s *Service) GetAdminUsers(ctx context.Context, _ *billingpb.EmptyRequest, res *billingpb.GetAdminUsersResponse) error {
 	users, err := s.userRoleRepository.GetUsersForAdmin(ctx)
 
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = usersDbInternalError
 		res.Message.Details = err.Error()
 
 		return nil
 	}
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Users = users
 
 	return nil
 }
 
-func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchantsForUserRequest, res *grpc.GetMerchantsForUserResponse) error {
+func (s *Service) GetMerchantsForUser(ctx context.Context, req *billingpb.GetMerchantsForUserRequest, res *billingpb.GetMerchantsForUserResponse) error {
 	users, err := s.userRoleRepository.GetMerchantsForUser(ctx, req.UserId)
 
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = usersDbInternalError
 		res.Message.Details = err.Error()
 
 		return nil
 	}
 
-	merchants := make([]*grpc.MerchantForUserInfo, len(users))
+	merchants := make([]*billingpb.MerchantForUserInfo, len(users))
 
 	for i, user := range users {
 		merchant, err := s.merchant.GetById(ctx, user.MerchantId)
@@ -134,7 +133,7 @@ func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchant
 				zap.String("merchant_id", user.MerchantId),
 			)
 
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = usersDbInternalError
 			res.Message.Details = err.Error()
 
@@ -146,26 +145,26 @@ func (s *Service) GetMerchantsForUser(ctx context.Context, req *grpc.GetMerchant
 			name = merchant.Company.Name
 		}
 
-		merchants[i] = &grpc.MerchantForUserInfo{
+		merchants[i] = &billingpb.MerchantForUserInfo{
 			Id:   user.MerchantId,
 			Name: name,
 			Role: user.Role,
 		}
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Merchants = merchants
 	return nil
 }
 
 func (s *Service) InviteUserMerchant(
 	ctx context.Context,
-	req *grpc.InviteUserMerchantRequest,
-	res *grpc.InviteUserMerchantResponse,
+	req *billingpb.InviteUserMerchantRequest,
+	res *billingpb.InviteUserMerchantResponse,
 ) error {
-	if req.Role == pkg.RoleMerchantOwner {
+	if req.Role == billingpb.RoleMerchantOwner {
 		zap.L().Error(errorUserUnsupportedRoleType.Message, zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnsupportedRoleType
 
 		return nil
@@ -175,7 +174,7 @@ func (s *Service) InviteUserMerchant(
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserMerchantNotFound
 
 		return nil
@@ -183,7 +182,7 @@ func (s *Service) InviteUserMerchant(
 
 	if merchant.Company == nil || merchant.Company.Name == "" {
 		zap.L().Error(errorUserEmptyCompanyName.Message, zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserEmptyCompanyName
 
 		return nil
@@ -193,7 +192,7 @@ func (s *Service) InviteUserMerchant(
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -203,13 +202,13 @@ func (s *Service) InviteUserMerchant(
 	zap.L().Error("[InviteUserMerchant] GetMerchantUserByEmail", zap.Error(err), zap.Any("req", req), zap.Any("user", user))
 	if (err != nil && err != mongo.ErrNoDocuments) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req), zap.Any("user", user))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserAlreadyExist
 
 		return nil
 	}
 
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: merchant.Id,
 		Role:       req.Role,
@@ -219,7 +218,7 @@ func (s *Service) InviteUserMerchant(
 
 	if err = s.userRoleRepository.AddMerchantUser(ctx, role); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
 
 		return nil
@@ -236,7 +235,7 @@ func (s *Service) InviteUserMerchant(
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToCreateToken
 
 		return nil
@@ -253,13 +252,13 @@ func (s *Service) InviteUserMerchant(
 			zap.String("senderCompany", merchant.Company.Name),
 			zap.String("token", tokenString),
 		)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Role = role
 
 	return nil
@@ -267,14 +266,14 @@ func (s *Service) InviteUserMerchant(
 
 func (s *Service) InviteUserAdmin(
 	ctx context.Context,
-	req *grpc.InviteUserAdminRequest,
-	res *grpc.InviteUserAdminResponse,
+	req *billingpb.InviteUserAdminRequest,
+	res *billingpb.InviteUserAdminResponse,
 ) error {
 	owner, err := s.userRoleRepository.GetSystemAdmin(ctx)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -284,13 +283,13 @@ func (s *Service) InviteUserAdmin(
 
 	if (err != nil && err != mongo.ErrNoDocuments) || user != nil {
 		zap.L().Error(errorUserAlreadyExist.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserAlreadyExist
 
 		return nil
 	}
 
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:     primitive.NewObjectID().Hex(),
 		Role:   req.Role,
 		Status: pkg.UserRoleStatusInvited,
@@ -299,7 +298,7 @@ func (s *Service) InviteUserAdmin(
 
 	if err = s.userRoleRepository.AddAdminUser(ctx, role); err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
 
 		return nil
@@ -316,7 +315,7 @@ func (s *Service) InviteUserAdmin(
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToCreateToken
 
 		return nil
@@ -332,13 +331,13 @@ func (s *Service) InviteUserAdmin(
 			zap.String("senderLastName", owner.LastName),
 			zap.String("token", tokenString),
 		)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Role = role
 
 	return nil
@@ -346,14 +345,14 @@ func (s *Service) InviteUserAdmin(
 
 func (s *Service) ResendInviteMerchant(
 	ctx context.Context,
-	req *grpc.ResendInviteMerchantRequest,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.ResendInviteMerchantRequest,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
 		zap.L().Error(errorUserMerchantNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserMerchantNotFound
 
 		return nil
@@ -363,7 +362,7 @@ func (s *Service) ResendInviteMerchant(
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -373,7 +372,7 @@ func (s *Service) ResendInviteMerchant(
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -381,7 +380,7 @@ func (s *Service) ResendInviteMerchant(
 
 	if role.Status != pkg.UserRoleStatusInvited {
 		zap.L().Error(errorUserUnableResendInvite.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableResendInvite
 
 		return nil
@@ -391,7 +390,7 @@ func (s *Service) ResendInviteMerchant(
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToCreateToken
 
 		return nil
@@ -408,27 +407,27 @@ func (s *Service) ResendInviteMerchant(
 			zap.String("senderCompany", merchant.Company.Name),
 			zap.String("tokenString", token),
 		)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) ResendInviteAdmin(
 	ctx context.Context,
-	req *grpc.ResendInviteAdminRequest,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.ResendInviteAdminRequest,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 	owner, err := s.userRoleRepository.GetSystemAdmin(ctx)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -438,7 +437,7 @@ func (s *Service) ResendInviteAdmin(
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -448,7 +447,7 @@ func (s *Service) ResendInviteAdmin(
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToCreateToken.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToCreateToken
 
 		return nil
@@ -464,27 +463,27 @@ func (s *Service) ResendInviteAdmin(
 			zap.String("senderLastName", owner.LastName),
 			zap.String("tokenString", token),
 		)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToSendInvite
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) AcceptInvite(
 	ctx context.Context,
-	req *grpc.AcceptInviteRequest,
-	res *grpc.AcceptInviteResponse,
+	req *billingpb.AcceptInviteRequest,
+	res *billingpb.AcceptInviteResponse,
 ) error {
 	claims, err := s.parseInviteToken(req.Token)
 
 	if err != nil {
 		zap.L().Error("Error on parse invite token", zap.Error(err), zap.String("token", req.Token), zap.String("email", req.Email))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserInvalidToken
 
 		return nil
@@ -492,7 +491,7 @@ func (s *Service) AcceptInvite(
 
 	if claims[claimEmail] != req.Email {
 		zap.L().Error(errorUserInvalidInviteEmail.Message, zap.String("token email", claims[claimEmail].(string)), zap.String("email", req.Email))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserInvalidInviteEmail
 
 		return nil
@@ -502,7 +501,7 @@ func (s *Service) AcceptInvite(
 
 	if err != nil {
 		zap.L().Error(errorUserProfileNotFound.Message, zap.Error(err), zap.String("user_id", req.UserId))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserProfileNotFound
 
 		return nil
@@ -510,13 +509,13 @@ func (s *Service) AcceptInvite(
 
 	if profile.Personal == nil || profile.Personal.FirstName == "" || profile.Personal.LastName == "" {
 		zap.L().Error(errorUserEmptyNames.Message, zap.Error(err), zap.String("user_id", req.UserId))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserEmptyNames
 
 		return nil
 	}
 
-	var user *billing.UserRole
+	var user *billingpb.UserRole
 
 	switch claims[claimType] {
 	case pkg.RoleTypeMerchant:
@@ -531,14 +530,14 @@ func (s *Service) AcceptInvite(
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 		return nil
 	}
 
 	if user.Status != pkg.UserRoleStatusInvited {
 		zap.L().Error(errorUserInviteAlreadyAccepted.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserInviteAlreadyAccepted
 		return nil
 	}
@@ -561,7 +560,7 @@ func (s *Service) AcceptInvite(
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToAdd.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToAdd
 		return nil
 	}
@@ -579,19 +578,19 @@ func (s *Service) AcceptInvite(
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToAddToCasbin.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToAddToCasbin
 		return nil
 	}
 
 	if err = s.emailConfirmedSuccessfully(ctx, profile); err != nil {
 		zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserConfirmEmail
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Role = user
 
 	return nil
@@ -599,14 +598,14 @@ func (s *Service) AcceptInvite(
 
 func (s *Service) CheckInviteToken(
 	ctx context.Context,
-	req *grpc.CheckInviteTokenRequest,
-	res *grpc.CheckInviteTokenResponse,
+	req *billingpb.CheckInviteTokenRequest,
+	res *billingpb.CheckInviteTokenResponse,
 ) error {
 	claims, err := s.parseInviteToken(req.Token)
 
 	if err != nil {
 		zap.L().Error("Error on parse invite token", zap.Error(err), zap.String("token", req.Token), zap.String("email", req.Email))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserInvalidToken
 
 		return nil
@@ -614,13 +613,13 @@ func (s *Service) CheckInviteToken(
 
 	if claims[claimEmail] != req.Email {
 		zap.L().Error(errorUserInvalidInviteEmail.Message, zap.String("token email", claims[claimEmail].(string)), zap.String("email", req.Email))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserInvalidInviteEmail
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.RoleId = claims[claimRoleId].(string)
 	res.RoleType = claims[claimType].(string)
 
@@ -628,7 +627,7 @@ func (s *Service) CheckInviteToken(
 }
 
 func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, senderLastName, senderCompany, token string) error {
-	payload := &postmarkSdrPkg.Payload{
+	payload := &postmarkpb.Payload{
 		TemplateAlias: s.cfg.EmailTemplates.UserInvite,
 		TemplateModel: map[string]string{
 			"sender_first_name": senderFirstName,
@@ -639,7 +638,7 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 		},
 		To: receiverEmail,
 	}
-	err := s.postmarkBroker.Publish(postmarkSdrPkg.PostmarkSenderTopicName, payload, amqp.Table{})
+	err := s.postmarkBroker.Publish(postmarkpb.PostmarkSenderTopicName, payload, amqp.Table{})
 
 	if err != nil {
 		return err
@@ -648,10 +647,10 @@ func (s *Service) sendInviteEmail(receiverEmail, senderEmail, senderFirstName, s
 	return nil
 }
 
-func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.ChangeRoleForMerchantUserRequest, res *grpc.EmptyResponseWithStatus) error {
-	if req.Role == pkg.RoleMerchantOwner {
+func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *billingpb.ChangeRoleForMerchantUserRequest, res *billingpb.EmptyResponseWithStatus) error {
+	if req.Role == billingpb.RoleMerchantOwner {
 		zap.L().Error(errorUserUnsupportedRoleType.Message, zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnsupportedRoleType
 
 		return nil
@@ -661,7 +660,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 
 	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -672,7 +671,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorUserUnableToSave
 
 		return nil
@@ -685,7 +684,7 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 
 		if err != nil {
 			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
@@ -697,23 +696,23 @@ func (s *Service) ChangeRoleForMerchantUser(ctx context.Context, req *grpc.Chang
 
 		if err != nil {
 			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
-func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRoleForAdminUserRequest, res *grpc.EmptyResponseWithStatus) error {
+func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *billingpb.ChangeRoleForAdminUserRequest, res *billingpb.EmptyResponseWithStatus) error {
 	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -724,7 +723,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 
 	if err != nil {
 		zap.L().Error(errorUserUnableToSave.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorUserUnableToSave
 		res.Message.Details = err.Error()
 
@@ -736,7 +735,7 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 
 		if err != nil {
 			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
@@ -748,18 +747,18 @@ func (s *Service) ChangeRoleForAdminUser(ctx context.Context, req *grpc.ChangeRo
 
 		if err != nil {
 			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
-func (s *Service) GetRoleList(ctx context.Context, req *grpc.GetRoleListRequest, res *grpc.GetRoleListResponse) error {
+func (s *Service) GetRoleList(ctx context.Context, req *billingpb.GetRoleListRequest, res *billingpb.GetRoleListResponse) error {
 	list, ok := merchantUserRoles[req.Type]
 
 	if !ok {
@@ -774,14 +773,14 @@ func (s *Service) GetRoleList(ctx context.Context, req *grpc.GetRoleListRequest,
 
 func (s *Service) DeleteMerchantUser(
 	ctx context.Context,
-	req *grpc.MerchantRoleRequest,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.MerchantRoleRequest,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 	user, err := s.userRoleRepository.GetMerchantUserById(ctx, req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -789,7 +788,7 @@ func (s *Service) DeleteMerchantUser(
 
 	if err = s.userRoleRepository.DeleteMerchantUser(ctx, user); err != nil {
 		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToDelete
 
 		return nil
@@ -802,7 +801,7 @@ func (s *Service) DeleteMerchantUser(
 
 		if err != nil {
 			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
@@ -813,27 +812,27 @@ func (s *Service) DeleteMerchantUser(
 	if profile != nil {
 		if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
 			zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorUserConfirmEmail
 			return nil
 		}
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) DeleteAdminUser(
 	ctx context.Context,
-	req *grpc.AdminRoleRequest,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.AdminRoleRequest,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
@@ -841,7 +840,7 @@ func (s *Service) DeleteAdminUser(
 
 	if err = s.userRoleRepository.DeleteAdminUser(ctx, user); err != nil {
 		zap.L().Error(errorUserUnableToDelete.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserUnableToDelete
 
 		return nil
@@ -852,7 +851,7 @@ func (s *Service) DeleteAdminUser(
 
 		if err != nil {
 			zap.L().Error(errorUserUnableToDeleteFromCasbin.Message, zap.Error(err), zap.Any("req", req))
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorUserUnableToDeleteFromCasbin
 			return nil
 		}
@@ -863,33 +862,33 @@ func (s *Service) DeleteAdminUser(
 	if profile != nil {
 		if err = s.emailConfirmedTruncate(ctx, profile); err != nil {
 			zap.L().Error(errorUserConfirmEmail.Message, zap.Error(err), zap.Any("profile", profile))
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorUserConfirmEmail
 			return nil
 		}
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) GetMerchantUserRole(
 	ctx context.Context,
-	req *grpc.MerchantRoleRequest,
-	res *grpc.UserRoleResponse,
+	req *billingpb.MerchantRoleRequest,
+	res *billingpb.UserRoleResponse,
 ) error {
 	user, err := s.userRoleRepository.GetMerchantUserById(ctx, req.RoleId)
 
 	if err != nil || user.MerchantId != req.MerchantId {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.UserRole = user
 
 	return nil
@@ -921,7 +920,7 @@ func (s *Service) parseInviteToken(t string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func (s *Service) createInviteToken(role *billing.UserRole) (string, error) {
+func (s *Service) createInviteToken(role *billingpb.UserRole) (string, error) {
 	roleType := pkg.RoleTypeMerchant
 	if role.MerchantId == "" {
 		roleType = pkg.RoleTypeSystem
@@ -938,7 +937,7 @@ func (s *Service) createInviteToken(role *billing.UserRole) (string, error) {
 	return token.SignedString([]byte(s.cfg.UserInviteTokenSecret))
 }
 
-func (s *Service) getUserPermissions(ctx context.Context, userId string, merchantId string) ([]*grpc.Permission, error) {
+func (s *Service) getUserPermissions(ctx context.Context, userId string, merchantId string) ([]*billingpb.Permission, error) {
 	id := userId
 
 	if len(merchantId) > 0 {
@@ -957,9 +956,9 @@ func (s *Service) getUserPermissions(ctx context.Context, userId string, merchan
 		return nil, errorUserDontHaveRole
 	}
 
-	permissions := make([]*grpc.Permission, len(rsp.D2))
+	permissions := make([]*billingpb.Permission, len(rsp.D2))
 	for i, p := range rsp.D2 {
-		permissions[i] = &grpc.Permission{
+		permissions[i] = &billingpb.Permission{
 			Name:   p.D1[0],
 			Access: p.D1[1],
 		}
@@ -970,20 +969,20 @@ func (s *Service) getUserPermissions(ctx context.Context, userId string, merchan
 
 func (s *Service) GetAdminUserRole(
 	ctx context.Context,
-	req *grpc.AdminRoleRequest,
-	res *grpc.UserRoleResponse,
+	req *billingpb.AdminRoleRequest,
+	res *billingpb.UserRoleResponse,
 ) error {
 	user, err := s.userRoleRepository.GetAdminUserById(ctx, req.RoleId)
 
 	if err != nil {
 		zap.L().Error(errorUserNotFound.Message, zap.Error(err), zap.Any("req", req))
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorUserNotFound
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.UserRole = user
 
 	return nil

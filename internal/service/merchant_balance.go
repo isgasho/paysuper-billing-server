@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,8 +34,8 @@ type reserveQueryResItem struct {
 }
 
 type MerchantBalanceServiceInterface interface {
-	Insert(ctx context.Context, document *billing.MerchantBalance) error
-	GetByMerchantIdAndCurrency(ctx context.Context, merchantId, currency string) (*billing.MerchantBalance, error)
+	Insert(ctx context.Context, document *billingpb.MerchantBalance) error
+	GetByMerchantIdAndCurrency(ctx context.Context, merchantId, currency string) (*billingpb.MerchantBalance, error)
 }
 
 func newMerchantBalance(svc *Service) MerchantBalanceServiceInterface {
@@ -46,11 +45,11 @@ func newMerchantBalance(svc *Service) MerchantBalanceServiceInterface {
 
 func (s *Service) GetMerchantBalance(
 	ctx context.Context,
-	req *grpc.GetMerchantBalanceRequest,
-	res *grpc.GetMerchantBalanceResponse,
+	req *billingpb.GetMerchantBalanceRequest,
+	res *billingpb.GetMerchantBalanceResponse,
 ) error {
 	var err error
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	res.Item, err = s.getMerchantBalance(ctx, req.MerchantId)
 	if err == nil {
@@ -60,16 +59,16 @@ func (s *Service) GetMerchantBalance(
 	if err == mongo.ErrNoDocuments {
 		res.Item, err = s.updateMerchantBalance(ctx, req.MerchantId)
 		if err != nil {
-			if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-				res.Status = pkg.ResponseStatusSystemError
+			if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+				res.Status = billingpb.ResponseStatusSystemError
 				res.Message = e
 				return nil
 			}
 			return err
 		}
 	} else {
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusSystemError
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = e
 			return nil
 		}
@@ -79,7 +78,7 @@ func (s *Service) GetMerchantBalance(
 	return nil
 }
 
-func (s *Service) getMerchantBalance(ctx context.Context, merchantId string) (*billing.MerchantBalance, error) {
+func (s *Service) getMerchantBalance(ctx context.Context, merchantId string) (*billingpb.MerchantBalance, error) {
 	merchant, err := s.merchant.GetById(ctx, merchantId)
 	if err != nil {
 		return nil, err
@@ -93,7 +92,7 @@ func (s *Service) getMerchantBalance(ctx context.Context, merchantId string) (*b
 	return s.merchantBalance.GetByMerchantIdAndCurrency(ctx, merchant.Id, merchant.GetPayoutCurrency())
 }
 
-func (s *Service) updateMerchantBalance(ctx context.Context, merchantId string) (*billing.MerchantBalance, error) {
+func (s *Service) updateMerchantBalance(ctx context.Context, merchantId string) (*billingpb.MerchantBalance, error) {
 	merchant, err := s.merchant.GetById(ctx, merchantId)
 	if err != nil {
 		return nil, err
@@ -119,7 +118,7 @@ func (s *Service) updateMerchantBalance(ctx context.Context, merchantId string) 
 		return nil, err
 	}
 
-	balance := &billing.MerchantBalance{
+	balance := &billingpb.MerchantBalance{
 		Id:             primitive.NewObjectID().Hex(),
 		MerchantId:     merchantId,
 		Currency:       merchant.GetPayoutCurrency(),
@@ -223,7 +222,7 @@ func (s *Service) getRollingReserveForBalance(ctx context.Context, merchantId, c
 	return result, nil
 }
 
-func (m MerchantBalance) Insert(ctx context.Context, mb *billing.MerchantBalance) (err error) {
+func (m MerchantBalance) Insert(ctx context.Context, mb *billingpb.MerchantBalance) (err error) {
 	_, err = m.svc.db.Collection(collectionMerchantBalances).InsertOne(ctx, mb)
 
 	if err != nil {
@@ -258,8 +257,8 @@ func (m MerchantBalance) Insert(ctx context.Context, mb *billing.MerchantBalance
 func (m MerchantBalance) GetByMerchantIdAndCurrency(
 	ctx context.Context,
 	merchantId, currency string,
-) (mb *billing.MerchantBalance, err error) {
-	var c billing.MerchantBalance
+) (mb *billingpb.MerchantBalance, err error) {
+	var c billingpb.MerchantBalance
 	key := fmt.Sprintf(cacheKeyMerchantBalances, merchantId, currency)
 
 	if err := m.svc.cacher.Get(key, c); err == nil {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
@@ -24,7 +24,7 @@ type DashboardReportProcessor struct {
 	Cache       database.CacheInterface
 	CacheKey    string
 	CacheExpire time.Duration
-	Errors      map[string]*grpc.ResponseErrorMessage
+	Errors      map[string]*billingpb.ResponseErrorMessage
 }
 
 func (m *DashboardReportProcessor) ExecuteReport(ctx context.Context, receiver interface{}) (interface{}, error) {
@@ -282,7 +282,7 @@ func (m *DashboardReportProcessor) ExecuteRevenueDynamicReport(ctx context.Conte
 		{"$sort": bson.M{"_id": 1}},
 	}
 
-	receiverTyped := receiver.(*grpc.DashboardRevenueDynamicReport)
+	receiverTyped := receiver.(*billingpb.DashboardRevenueDynamicReport)
 	cursor, err := m.Db.Collection(m.Collection).Aggregate(ctx, query)
 
 	if err != nil {

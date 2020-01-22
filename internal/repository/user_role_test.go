@@ -7,8 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -59,7 +58,7 @@ func (suite *UserRoleTestSuite) TestCountry_NewUserRoleRepository_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_AddMerchantUser_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddMerchantUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -69,7 +68,7 @@ func (suite *UserRoleTestSuite) TestUserRole_AddMerchantUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_AddMerchantUser_ErrorDb() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatedAt: &timestamp.Timestamp{Seconds: -100000000000000},
 	}
@@ -78,7 +77,7 @@ func (suite *UserRoleTestSuite) TestUserRole_AddMerchantUser_ErrorDb() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_AddAdminUser_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -88,7 +87,7 @@ func (suite *UserRoleTestSuite) TestUserRole_AddAdminUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_AddAdminUser_ErrorDb() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatedAt: &timestamp.Timestamp{Seconds: -100000000000000},
 	}
@@ -97,7 +96,7 @@ func (suite *UserRoleTestSuite) TestUserRole_AddAdminUser_ErrorDb() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 
 	cache := &mocks.CacheInterface{}
 	cache.On("Delete", fmt.Sprintf(cacheUserMerchants, role.UserId)).Return(nil)
@@ -117,7 +116,7 @@ func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_ErrorInvalidId() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 	err := suite.repository.AddMerchantUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -127,13 +126,13 @@ func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_ErrorInvalidId()
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_ErrorNotFound() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 	err := suite.repository.UpdateMerchantUser(context.TODO(), role)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_ErrorDropCache() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 
 	cache := &mocks.CacheInterface{}
 	cache.On("Delete", fmt.Sprintf(cacheUserMerchants, role.UserId)).Return(errors.New("error"))
@@ -148,7 +147,7 @@ func (suite *UserRoleTestSuite) TestUserRole_UpdateMerchantUser_ErrorDropCache()
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -163,7 +162,7 @@ func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_ErrorInvalidId() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -173,13 +172,13 @@ func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_ErrorInvalidId() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_UpdateAdminUser_ErrorNotFound() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: "id"}
 	err := suite.repository.UpdateAdminUser(context.TODO(), role)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserById_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -201,7 +200,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserById_ErrorNotFound() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserById_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddMerchantUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -223,7 +222,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserById_ErrorNotFound()
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteAdminUser_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -236,19 +235,19 @@ func (suite *UserRoleTestSuite) TestUserRole_DeleteAdminUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteAdminUser_ErrorInvalidId() {
-	role := &billing.UserRole{Id: "id"}
+	role := &billingpb.UserRole{Id: "id"}
 	err := suite.repository.DeleteAdminUser(context.TODO(), role)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteAdminUser_ErrorNotFound() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.DeleteAdminUser(context.TODO(), role)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 
 	cache := &mocks.CacheInterface{}
 	cache.On("Delete", fmt.Sprintf(cacheUserMerchants, role.UserId)).Return(nil)
@@ -266,19 +265,19 @@ func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_ErrorInvalidId() {
-	role := &billing.UserRole{Id: "id"}
+	role := &billingpb.UserRole{Id: "id"}
 	err := suite.repository.DeleteMerchantUser(context.TODO(), role)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_ErrorNotFound() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 	err := suite.repository.DeleteMerchantUser(context.TODO(), role)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_ErrorDropCache() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex()}
 
 	cache := &mocks.CacheInterface{}
 	cache.On("Delete", fmt.Sprintf(cacheUserMerchants, role.UserId)).Return(errors.New("error"))
@@ -292,7 +291,7 @@ func (suite *UserRoleTestSuite) TestUserRole_DeleteMerchantUser_ErrorDropCache()
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetSystemAdmin_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), Role: pkg.RoleSystemAdmin}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), Role: billingpb.RoleSystemAdmin}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -303,7 +302,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetSystemAdmin_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetSystemAdmin_ErrorNotFound() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), Role: pkg.RoleSystemFinancial}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), Role: billingpb.RoleSystemFinancial}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -313,10 +312,10 @@ func (suite *UserRoleTestSuite) TestUserRole_GetSystemAdmin_ErrorNotFound() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantOwner_Ok() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
-		Role:       pkg.RoleMerchantOwner,
+		Role:       billingpb.RoleMerchantOwner,
 	}
 	err := suite.repository.AddMerchantUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
@@ -329,10 +328,10 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantOwner_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantOwner_ErrorNotFoundByRole() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
-		Role:       pkg.RoleMerchantAccounting,
+		Role:       billingpb.RoleMerchantAccounting,
 	}
 	err := suite.repository.AddMerchantUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
@@ -343,10 +342,10 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantOwner_ErrorNotFoundByRol
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantOwner_ErrorNotFoundByMerchant() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
-		Role:       pkg.RoleMerchantOwner,
+		Role:       billingpb.RoleMerchantOwner,
 	}
 	err := suite.repository.AddMerchantUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
@@ -363,7 +362,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantOwner_ErrorInvalidId() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_Ok() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
@@ -386,7 +385,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_OkByCache() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
@@ -402,7 +401,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_OkByCache() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_OkWithFailedToSetCache() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
@@ -425,7 +424,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_OkWithFailedToS
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_ErrorInvalidId() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
 		UserId:     "id",
@@ -440,7 +439,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantsForUser_ErrorInvalidId(
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetUsersForAdmin_Ok() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:     primitive.NewObjectID().Hex(),
 		UserId: primitive.NewObjectID().Hex(),
 	}
@@ -456,7 +455,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetUsersForAdmin_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetUsersForMerchant_Ok() {
-	role1 := &billing.UserRole{
+	role1 := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
@@ -464,7 +463,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetUsersForMerchant_Ok() {
 	err := suite.repository.AddMerchantUser(context.TODO(), role1)
 	assert.NoError(suite.T(), err)
 
-	role2 := &billing.UserRole{
+	role2 := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
@@ -486,7 +485,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetUsersForMerchant_ErrorInvalidId(
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByEmail_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), Email: "email"}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), Email: "email"}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -503,7 +502,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByEmail_ErrorNotFound()
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByEmail_Ok() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
 		Email:      "email",
@@ -531,7 +530,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByEmail_ErrorNotFoun
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByUserId_Ok() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -547,7 +546,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByUserId_ErrorInvalidId
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByUserId_ErrorNotFound() {
-	role := &billing.UserRole{Id: primitive.NewObjectID().Hex(), UserId: primitive.NewObjectID().Hex()}
+	role := &billingpb.UserRole{Id: primitive.NewObjectID().Hex(), UserId: primitive.NewObjectID().Hex()}
 	err := suite.repository.AddAdminUser(context.TODO(), role)
 	assert.NoError(suite.T(), err)
 
@@ -556,7 +555,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetAdminUserByUserId_ErrorNotFound(
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_Ok() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
@@ -572,7 +571,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_Ok() {
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_ErrorNotFoundByMerchantId() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),
@@ -585,7 +584,7 @@ func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_ErrorNotFou
 }
 
 func (suite *UserRoleTestSuite) TestUserRole_GetMerchantUserByUserId_ErrorNotFoundByUserId() {
-	role := &billing.UserRole{
+	role := &billingpb.UserRole{
 		Id:         primitive.NewObjectID().Hex(),
 		UserId:     primitive.NewObjectID().Hex(),
 		MerchantId: primitive.NewObjectID().Hex(),

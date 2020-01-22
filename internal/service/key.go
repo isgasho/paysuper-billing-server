@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg/errors"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,15 +18,15 @@ const collectionKey = "key"
 
 func (s *Service) UploadKeysFile(
 	ctx context.Context,
-	req *grpc.PlatformKeysFileRequest,
-	res *grpc.PlatformKeysFileResponse,
+	req *billingpb.PlatformKeysFileRequest,
+	res *billingpb.PlatformKeysFileResponse,
 ) error {
 	scanner := bufio.NewScanner(bytes.NewReader(req.File))
 	count, err := s.keyRepository.CountKeysByProductPlatform(ctx, req.KeyProductId, req.PlatformId)
 
 	if err != nil {
 		zap.S().Errorf(errors.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errors.KeyErrorNotFound
 		return nil
 	}
@@ -37,7 +35,7 @@ func (s *Service) UploadKeysFile(
 
 	// Process key by line
 	for scanner.Scan() {
-		key := &billing.Key{
+		key := &billingpb.Key{
 			Id:           primitive.NewObjectID().Hex(),
 			Code:         scanner.Text(),
 			KeyProductId: req.KeyProductId,
@@ -57,32 +55,32 @@ func (s *Service) UploadKeysFile(
 	if err = scanner.Err(); err != nil {
 		zap.S().Errorf(errors.KeyErrorFileProcess.Message, "err", err.Error())
 		res.Message = errors.KeyErrorFileProcess
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) GetAvailableKeysCount(
 	ctx context.Context,
-	req *grpc.GetPlatformKeyCountRequest,
-	res *grpc.GetPlatformKeyCountResponse,
+	req *billingpb.GetPlatformKeyCountRequest,
+	res *billingpb.GetPlatformKeyCountResponse,
 ) error {
 	keyProduct, err := s.keyProductRepository.GetById(ctx, req.KeyProductId)
 
 	if err != nil {
 		zap.S().Errorf(keyProductNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = keyProductNotFound
 		return nil
 	}
 
 	if keyProduct.MerchantId != req.MerchantId {
 		zap.S().Error(keyProductMerchantMismatch.Message, "keyProductId", req.KeyProductId)
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = keyProductMerchantMismatch
 		return nil
 	}
@@ -91,27 +89,27 @@ func (s *Service) GetAvailableKeysCount(
 
 	if err != nil {
 		zap.S().Errorf(errors.KeyErrorNotFound.Message, "err", err.Error(), "keyProductId", req.KeyProductId, "platformId", req.PlatformId)
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errors.KeyErrorNotFound
 		return nil
 	}
 
 	res.Count = int32(count)
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) GetKeyByID(
 	ctx context.Context,
-	req *grpc.KeyForOrderRequest,
-	res *grpc.GetKeyForOrderRequestResponse,
+	req *billingpb.KeyForOrderRequest,
+	res *billingpb.GetKeyForOrderRequestResponse,
 ) error {
 	key, err := s.keyRepository.GetById(ctx, req.KeyId)
 
 	if err != nil {
 		zap.S().Errorf(errors.KeyErrorNotFound.Message, "err", err.Error(), "keyId", req.KeyId)
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errors.KeyErrorNotFound
 		return nil
 	}
@@ -123,8 +121,8 @@ func (s *Service) GetKeyByID(
 
 func (s *Service) ReserveKeyForOrder(
 	ctx context.Context,
-	req *grpc.PlatformKeyReserveRequest,
-	res *grpc.PlatformKeyReserveResponse,
+	req *billingpb.PlatformKeyReserveRequest,
+	res *billingpb.PlatformKeyReserveResponse,
 ) error {
 	zap.S().Infow("[ReserveKeyForOrder] called", "order_id", req.OrderId, "platform_id", req.PlatformId, "KeyProductId", req.KeyProductId)
 	key, err := s.keyRepository.ReserveKey(ctx, req.KeyProductId, req.PlatformId, req.OrderId, req.Ttl)
@@ -137,7 +135,7 @@ func (s *Service) ReserveKeyForOrder(
 			"orderId", req.OrderId,
 			"ttl", req.Ttl,
 		)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errors.KeyErrorReserve
 		return nil
 	}
@@ -145,46 +143,46 @@ func (s *Service) ReserveKeyForOrder(
 	zap.S().Infow("[ReserveKeyForOrder] reserved key", "req.order_id", req.OrderId, "key.order_id", key.OrderId, "key.id", key.Id, "key.RedeemedAt", key.RedeemedAt, "key.KeyProductId", key.KeyProductId)
 
 	res.KeyId = key.Id
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) FinishRedeemKeyForOrder(
 	ctx context.Context,
-	req *grpc.KeyForOrderRequest,
-	res *grpc.GetKeyForOrderRequestResponse,
+	req *billingpb.KeyForOrderRequest,
+	res *billingpb.GetKeyForOrderRequestResponse,
 ) error {
 	key, err := s.keyRepository.FinishRedeemById(ctx, req.KeyId)
 
 	if err != nil {
 		zap.S().Errorf(errors.KeyErrorFinish.Message, "err", err, "keyId", req.KeyId)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errors.KeyErrorFinish
 		return nil
 	}
 
 	res.Key = key
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
 
 func (s *Service) CancelRedeemKeyForOrder(
 	ctx context.Context,
-	req *grpc.KeyForOrderRequest,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.KeyForOrderRequest,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 	_, err := s.keyRepository.CancelById(ctx, req.KeyId)
 
 	if err != nil {
 		zap.S().Errorf(errors.KeyErrorCanceled.Message, "err", err, "keyId", req.KeyId)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errors.KeyErrorCanceled
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	return nil
 }
@@ -212,13 +210,13 @@ func (s *Service) KeyDaemonProcess(ctx context.Context) (int, error) {
 }
 
 type KeyRepositoryInterface interface {
-	Insert(context.Context, *billing.Key) error
-	GetById(context.Context, string) (*billing.Key, error)
-	ReserveKey(context.Context, string, string, string, int32) (*billing.Key, error)
-	CancelById(context.Context, string) (*billing.Key, error)
-	FinishRedeemById(context.Context, string) (*billing.Key, error)
+	Insert(context.Context, *billingpb.Key) error
+	GetById(context.Context, string) (*billingpb.Key, error)
+	ReserveKey(context.Context, string, string, string, int32) (*billingpb.Key, error)
+	CancelById(context.Context, string) (*billingpb.Key, error)
+	FinishRedeemById(context.Context, string) (*billingpb.Key, error)
 	CountKeysByProductPlatform(context.Context, string, string) (int64, error)
-	FindUnfinished(context.Context) ([]*billing.Key, error)
+	FindUnfinished(context.Context) ([]*billingpb.Key, error)
 }
 
 func newKeyRepository(svc *Service) *Key {
@@ -226,7 +224,7 @@ func newKeyRepository(svc *Service) *Key {
 	return s
 }
 
-func (h *Key) Insert(ctx context.Context, key *billing.Key) error {
+func (h *Key) Insert(ctx context.Context, key *billingpb.Key) error {
 	_, err := h.svc.db.Collection(collectionKey).InsertOne(ctx, key)
 
 	if err != nil {
@@ -236,8 +234,8 @@ func (h *Key) Insert(ctx context.Context, key *billing.Key) error {
 	return nil
 }
 
-func (h *Key) GetById(ctx context.Context, id string) (*billing.Key, error) {
-	key := &billing.Key{}
+func (h *Key) GetById(ctx context.Context, id string) (*billingpb.Key, error) {
+	key := &billingpb.Key{}
 	oid, _ := primitive.ObjectIDFromHex(id)
 	filter := bson.M{"_id": oid}
 	err := h.svc.db.Collection(collectionKey).FindOne(ctx, filter).Decode(key)
@@ -255,8 +253,8 @@ func (h *Key) ReserveKey(
 	platformId string,
 	orderId string,
 	ttl int32,
-) (*billing.Key, error) {
-	var key *billing.Key
+) (*billingpb.Key, error) {
+	var key *billingpb.Key
 	duration := time.Second * time.Duration(ttl)
 	oid, _ := primitive.ObjectIDFromHex(keyProductId)
 	orderOid, _ := primitive.ObjectIDFromHex(orderId)
@@ -291,8 +289,8 @@ func (h *Key) ReserveKey(
 	return key, nil
 }
 
-func (h *Key) CancelById(ctx context.Context, id string) (*billing.Key, error) {
-	var key *billing.Key
+func (h *Key) CancelById(ctx context.Context, id string) (*billingpb.Key, error) {
+	var key *billingpb.Key
 	oid, _ := primitive.ObjectIDFromHex(id)
 	query := bson.M{"_id": oid}
 	update := bson.M{
@@ -316,8 +314,8 @@ func (h *Key) CancelById(ctx context.Context, id string) (*billing.Key, error) {
 	return key, nil
 }
 
-func (h *Key) FinishRedeemById(ctx context.Context, id string) (*billing.Key, error) {
-	var key *billing.Key
+func (h *Key) FinishRedeemById(ctx context.Context, id string) (*billingpb.Key, error) {
+	var key *billingpb.Key
 	oid, _ := primitive.ObjectIDFromHex(id)
 	query := bson.M{"_id": oid}
 	update := bson.M{
@@ -352,8 +350,8 @@ func (h *Key) CountKeysByProductPlatform(ctx context.Context, keyProductId strin
 	return h.svc.db.Collection(collectionKey).CountDocuments(ctx, query)
 }
 
-func (h *Key) FindUnfinished(ctx context.Context) ([]*billing.Key, error) {
-	var keys []*billing.Key
+func (h *Key) FindUnfinished(ctx context.Context) ([]*billingpb.Key, error) {
+	var keys []*billingpb.Key
 
 	query := bson.M{
 		"reserved_to": bson.M{

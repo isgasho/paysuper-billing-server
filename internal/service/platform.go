@@ -2,14 +2,13 @@ package service
 
 import (
 	"context"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"sort"
 )
 
-func (s *Service) GetPlatforms(ctx context.Context, req *grpc.ListPlatformsRequest, rsp *grpc.ListPlatformsResponse) error {
-	var platforms []*grpc.Platform
-	rsp.Status = pkg.ResponseStatusOk
+func (s *Service) GetPlatforms(ctx context.Context, req *billingpb.ListPlatformsRequest, rsp *billingpb.ListPlatformsResponse) error {
+	var platforms []*billingpb.Platform
+	rsp.Status = billingpb.ResponseStatusOk
 	var i int32
 	for _, pl := range availablePlatforms {
 		if i < req.Offset {
@@ -29,7 +28,7 @@ func (s *Service) GetPlatforms(ctx context.Context, req *grpc.ListPlatformsReque
 	})
 
 	rsp.Platforms = platforms
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
 }

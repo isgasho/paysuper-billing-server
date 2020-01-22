@@ -5,12 +5,10 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/jinzhu/now"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	curPkg "github.com/paysuper/paysuper-currencies/pkg"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
@@ -32,7 +30,7 @@ type turnoverQueryResItem struct {
 	Amount float64 `bson:"amount"`
 }
 
-func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyRequest, res *grpc.EmptyResponse) error {
+func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *billingpb.EmptyRequest, res *billingpb.EmptyResponse) error {
 	operatingCompanies, err := s.operatingCompany.GetAll(ctx)
 	if err != nil {
 		return err
@@ -43,7 +41,7 @@ func (s *Service) CalcAnnualTurnovers(ctx context.Context, req *grpc.EmptyReques
 		return err
 	}
 	for _, operatingCompany := range operatingCompanies {
-		var cnt []*billing.Country
+		var cnt []*billingpb.Country
 
 		if len(operatingCompany.PaymentCountries) == 0 {
 			cnt = countries.Countries
@@ -85,7 +83,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 
 	var (
 		targetCurrency = "EUR"
-		ratesType      = curPkg.RateTypeOxr
+		ratesType      = currenciespb.RateTypeOxr
 		ratesSource    = ""
 		currencyPolicy = pkg.VatCurrencyRatesPolicyOnDay
 		year           = now.BeginningOfYear()
@@ -109,7 +107,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 		}
 		VatPeriodMonth = country.VatPeriodMonth
 		currencyPolicy = country.VatCurrencyRatesPolicy
-		ratesType = curPkg.RateTypeCentralbanks
+		ratesType = currenciespb.RateTypeCentralbanks
 		ratesSource = country.VatCurrencyRatesSource
 	}
 
@@ -146,7 +144,7 @@ func (s *Service) calcAnnualTurnover(ctx context.Context, countryCode, operating
 		return err
 	}
 
-	at := &billing.AnnualTurnover{
+	at := &billingpb.AnnualTurnover{
 		Year:               int32(year.Year()),
 		Country:            countryCode,
 		Amount:             tools.FormatAmount(amount),
@@ -177,7 +175,7 @@ func (s *Service) getTurnover(
 		"operating_company_id": operatingCompanyId,
 		"is_production":        true,
 		"type":                 pkg.OrderTypeOrder,
-		"status":               constant.OrderPublicStatusProcessed,
+		"status":               recurringpb.OrderPublicStatusProcessed,
 		"payment_gross_revenue_origin": bson.M{
 			"$ne": nil,
 		},
@@ -263,11 +261,11 @@ func (s *Service) getTurnover(
 			continue
 		}
 
-		req := &currencies.ExchangeCurrencyByDateCommonRequest{
+		req := &currenciespb.ExchangeCurrencyByDateCommonRequest{
 			From:              v.Id,
 			To:                targetCurrency,
 			RateType:          ratesType,
-			ExchangeDirection: curPkg.ExchangeDirectionBuy,
+			ExchangeDirection: currenciespb.ExchangeDirectionBuy,
 			Source:            ratesSource,
 			Amount:            v.Amount,
 			Datetime:          toTimestamp,

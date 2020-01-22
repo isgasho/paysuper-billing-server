@@ -6,8 +6,8 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,7 +24,7 @@ func NewCountryRepository(db mongodb.SourceInterface, cache database.CacheInterf
 	return s
 }
 
-func (h *countryRepository) Insert(ctx context.Context, country *billing.Country) error {
+func (h *countryRepository) Insert(ctx context.Context, country *billingpb.Country) error {
 	_, err := h.db.Collection(CollectionCountry).InsertOne(ctx, country)
 
 	if err != nil {
@@ -50,11 +50,11 @@ func (h *countryRepository) Insert(ctx context.Context, country *billing.Country
 	return nil
 }
 
-func (h *countryRepository) MultipleInsert(ctx context.Context, country []*billing.Country) error {
+func (h *countryRepository) MultipleInsert(ctx context.Context, country []*billingpb.Country) error {
 	c := make([]interface{}, len(country))
 	for i, v := range country {
 		if v.VatThreshold == nil {
-			v.VatThreshold = &billing.CountryVatThreshold{
+			v.VatThreshold = &billingpb.CountryVatThreshold{
 				Year:  0,
 				World: 0,
 			}
@@ -89,7 +89,7 @@ func (h *countryRepository) MultipleInsert(ctx context.Context, country []*billi
 	return nil
 }
 
-func (h *countryRepository) Update(ctx context.Context, country *billing.Country) error {
+func (h *countryRepository) Update(ctx context.Context, country *billingpb.Country) error {
 	country.VatThreshold.Year = tools.FormatAmount(country.VatThreshold.Year)
 	country.VatThreshold.World = tools.FormatAmount(country.VatThreshold.World)
 
@@ -130,8 +130,8 @@ func (h *countryRepository) Update(ctx context.Context, country *billing.Country
 	return nil
 }
 
-func (h *countryRepository) GetByIsoCodeA2(ctx context.Context, code string) (*billing.Country, error) {
-	var c billing.Country
+func (h *countryRepository) GetByIsoCodeA2(ctx context.Context, code string) (*billingpb.Country, error) {
+	var c billingpb.Country
 	var key = fmt.Sprintf(cacheCountryCodeA2, code)
 
 	if err := h.cache.Get(key, c); err == nil {
@@ -164,8 +164,8 @@ func (h *countryRepository) GetByIsoCodeA2(ctx context.Context, code string) (*b
 	return &c, nil
 }
 
-func (h *countryRepository) FindByVatEnabled(ctx context.Context) (*billing.CountriesList, error) {
-	var c = &billing.CountriesList{}
+func (h *countryRepository) FindByVatEnabled(ctx context.Context) (*billingpb.CountriesList, error) {
+	var c = &billingpb.CountriesList{}
 	key := cacheCountriesWithVatEnabled
 
 	if err := h.cache.Get(key, c); err == nil {
@@ -216,8 +216,8 @@ func (h *countryRepository) FindByVatEnabled(ctx context.Context) (*billing.Coun
 	return c, nil
 }
 
-func (h *countryRepository) GetAll(ctx context.Context) (*billing.CountriesList, error) {
-	var c = &billing.CountriesList{}
+func (h *countryRepository) GetAll(ctx context.Context) (*billingpb.CountriesList, error) {
+	var c = &billingpb.CountriesList{}
 	key := cacheCountryAll
 
 	if err := h.cache.Get(key, c); err == nil {
@@ -263,8 +263,8 @@ func (h *countryRepository) GetAll(ctx context.Context) (*billing.CountriesList,
 	return c, nil
 }
 
-func (h *countryRepository) FindByHighRisk(ctx context.Context, isHighRiskOrder bool) (*billing.CountriesList, error) {
-	var c = &billing.CountriesList{}
+func (h *countryRepository) FindByHighRisk(ctx context.Context, isHighRiskOrder bool) (*billingpb.CountriesList, error) {
+	var c = &billingpb.CountriesList{}
 	var key = fmt.Sprintf(cacheCountryRisk, isHighRiskOrder)
 
 	if err := h.cache.Get(key, c); err == nil {
@@ -321,7 +321,7 @@ func (h *countryRepository) IsTariffRegionSupported(region string) bool {
 	return helper.Contains(pkg.SupportedTariffRegions, region)
 }
 
-func (h *countryRepository) updateCache(country *billing.Country) error {
+func (h *countryRepository) updateCache(country *billingpb.Country) error {
 	if country != nil {
 		if err := h.cache.Set(fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, 0); err != nil {
 			return err

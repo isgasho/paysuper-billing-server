@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,7 +20,7 @@ func NewRefundRepository(db mongodb.SourceInterface) RefundRepositoryInterface {
 	return s
 }
 
-func (h *refundRepository) Insert(ctx context.Context, refund *billing.Refund) error {
+func (h *refundRepository) Insert(ctx context.Context, refund *billingpb.Refund) error {
 	_, err := h.db.Collection(CollectionRefund).InsertOne(ctx, refund)
 
 	if err != nil {
@@ -37,7 +37,7 @@ func (h *refundRepository) Insert(ctx context.Context, refund *billing.Refund) e
 	return nil
 }
 
-func (h *refundRepository) Update(ctx context.Context, refund *billing.Refund) error {
+func (h *refundRepository) Update(ctx context.Context, refund *billingpb.Refund) error {
 	oid, err := primitive.ObjectIDFromHex(refund.Id)
 
 	if err != nil {
@@ -66,8 +66,8 @@ func (h *refundRepository) Update(ctx context.Context, refund *billing.Refund) e
 	return nil
 }
 
-func (h *refundRepository) GetById(ctx context.Context, id string) (*billing.Refund, error) {
-	var refund *billing.Refund
+func (h *refundRepository) GetById(ctx context.Context, id string) (*billingpb.Refund, error) {
+	var refund *billingpb.Refund
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
@@ -96,8 +96,8 @@ func (h *refundRepository) GetById(ctx context.Context, id string) (*billing.Ref
 	return refund, nil
 }
 
-func (h *refundRepository) FindByOrderUuid(ctx context.Context, id string, limit int64, offset int64) ([]*billing.Refund, error) {
-	var refunds []*billing.Refund
+func (h *refundRepository) FindByOrderUuid(ctx context.Context, id string, limit int64, offset int64) ([]*billingpb.Refund, error) {
+	var refunds []*billingpb.Refund
 
 	query := bson.M{"original_order.uuid": id}
 	opts := options.Find().

@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
-	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -85,11 +84,11 @@ func (suite *PriceTableTestSuite) TearDownTest() {
 }
 
 func (suite *PriceTableTestSuite) TestPriceTable_Insert_Ok() {
-	assert.NoError(suite.T(), suite.service.priceTable.Insert(context.TODO(), &billing.PriceTable{Id: primitive.NewObjectID().Hex()}))
+	assert.NoError(suite.T(), suite.service.priceTable.Insert(context.TODO(), &billingpb.PriceTable{Id: primitive.NewObjectID().Hex()}))
 }
 
 func (suite *PriceTableTestSuite) TestPriceTable_GetByRegion_Ok() {
-	table := &billing.PriceTable{Id: primitive.NewObjectID().Hex(), Currency: "TST"}
+	table := &billingpb.PriceTable{Id: primitive.NewObjectID().Hex(), Currency: "TST"}
 	assert.NoError(suite.T(), suite.service.priceTable.Insert(context.TODO(), table))
 
 	t, err := suite.service.priceTable.GetByRegion(context.TODO(), table.Currency)
@@ -107,18 +106,18 @@ func (suite *PriceTableTestSuite) TestPriceTable_GetRecommendedPriceTable_Ok() {
 	rep := &mocks.PriceTableServiceInterface{}
 	rep.
 		On("GetByRegion", mock.Anything, mock.Anything).
-		Return(&billing.PriceTable{Ranges: []*billing.PriceTableRange{{From: 0, To: 0, Position: 0}}}, nil)
+		Return(&billingpb.PriceTable{Ranges: []*billingpb.PriceTableRange{{From: 0, To: 0, Position: 0}}}, nil)
 	suite.service.priceTable = rep
 
-	res := grpc.RecommendedPriceTableResponse{}
-	err := suite.service.GetRecommendedPriceTable(context.TODO(), &grpc.RecommendedPriceTableRequest{}, &res)
+	res := billingpb.RecommendedPriceTableResponse{}
+	err := suite.service.GetRecommendedPriceTable(context.TODO(), &billingpb.RecommendedPriceTableRequest{}, &res)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), res.Ranges, 1)
 }
 
 func (suite *PriceTableTestSuite) TestPriceTable_GetRecommendedPriceTable_Ok_Empty() {
-	res := grpc.RecommendedPriceTableResponse{}
-	err := suite.service.GetRecommendedPriceTable(context.TODO(), &grpc.RecommendedPriceTableRequest{}, &res)
+	res := billingpb.RecommendedPriceTableResponse{}
+	err := suite.service.GetRecommendedPriceTable(context.TODO(), &billingpb.RecommendedPriceTableRequest{}, &res)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), res.Ranges, 0)
 }

@@ -7,10 +7,9 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -38,27 +37,27 @@ var (
 )
 
 type PaymentChannelCostSystemInterface interface {
-	MultipleInsert(ctx context.Context, obj []*billing.PaymentChannelCostSystem) error
-	Update(ctx context.Context, obj *billing.PaymentChannelCostSystem) error
-	GetById(ctx context.Context, id string) (*billing.PaymentChannelCostSystem, error)
-	Get(ctx context.Context, name, region, country, mccCode, operatingCompanyId string) (*billing.PaymentChannelCostSystem, error)
-	Delete(ctx context.Context, obj *billing.PaymentChannelCostSystem) error
-	GetAll(ctx context.Context) (*billing.PaymentChannelCostSystemList, error)
+	MultipleInsert(ctx context.Context, obj []*billingpb.PaymentChannelCostSystem) error
+	Update(ctx context.Context, obj *billingpb.PaymentChannelCostSystem) error
+	GetById(ctx context.Context, id string) (*billingpb.PaymentChannelCostSystem, error)
+	Get(ctx context.Context, name, region, country, mccCode, operatingCompanyId string) (*billingpb.PaymentChannelCostSystem, error)
+	Delete(ctx context.Context, obj *billingpb.PaymentChannelCostSystem) error
+	GetAll(ctx context.Context) (*billingpb.PaymentChannelCostSystemList, error)
 }
 
 func (s *Service) GetAllPaymentChannelCostSystem(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *grpc.PaymentChannelCostSystemListResponse,
+	req *billingpb.EmptyRequest,
+	res *billingpb.PaymentChannelCostSystemListResponse,
 ) error {
 	val, err := s.paymentChannelCostSystem.GetAll(ctx)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemGetAll
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = val
 
 	return nil
@@ -66,18 +65,18 @@ func (s *Service) GetAllPaymentChannelCostSystem(
 
 func (s *Service) GetPaymentChannelCostSystem(
 	ctx context.Context,
-	req *billing.PaymentChannelCostSystemRequest,
-	res *grpc.PaymentChannelCostSystemResponse,
+	req *billingpb.PaymentChannelCostSystemRequest,
+	res *billingpb.PaymentChannelCostSystemResponse,
 ) error {
 	val, err := s.paymentChannelCostSystem.Get(ctx, req.Name, req.Region, req.Country, req.MccCode, req.OperatingCompanyId)
 
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errorPaymentChannelSystemGet
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = val
 
 	return nil
@@ -85,8 +84,8 @@ func (s *Service) GetPaymentChannelCostSystem(
 
 func (s *Service) SetPaymentChannelCostSystem(
 	ctx context.Context,
-	req *billing.PaymentChannelCostSystem,
-	res *grpc.PaymentChannelCostSystemResponse,
+	req *billingpb.PaymentChannelCostSystem,
+	res *billingpb.PaymentChannelCostSystemResponse,
 ) error {
 	val, err := s.paymentChannelCostSystem.Get(
 		ctx,
@@ -98,7 +97,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	)
 
 	if err != nil && err.Error() != fmt.Sprintf(errorNotFound, collectionPaymentChannelCostSystem) {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemSetFailed
 		return nil
 	}
@@ -106,7 +105,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 		if err != nil {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorCountryNotFound
 			return nil
 		}
@@ -114,7 +113,7 @@ func (s *Service) SetPaymentChannelCostSystem(
 	} else {
 		exists := s.country.IsTariffRegionSupported(req.Region)
 		if !exists {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
 			return nil
 		}
@@ -122,24 +121,24 @@ func (s *Service) SetPaymentChannelCostSystem(
 
 	req.IsActive = true
 
-	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currenciespb.EmptyRequest{})
 	if err != nil {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemCurrency
 		return nil
 	}
 	if !helper.Contains(sCurr.Currencies, req.FixAmountCurrency) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemCurrency
 		return nil
 	}
 	if !helper.Contains(pkg.SupportedMccCodes, req.MccCode) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemMccCode
 		return nil
 	}
 	if !s.operatingCompany.Exists(ctx, req.OperatingCompanyId) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorPaymentChannelSystemOperatingCompanyNotExists
 		return nil
 	}
@@ -153,18 +152,18 @@ func (s *Service) SetPaymentChannelCostSystem(
 		err = s.paymentChannelCostSystem.Update(ctx, req)
 	}
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemSetFailed
 
 		if mongodb.IsDuplicate(err) {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorPaymentChannelSystemCostAlreadyExist
 		}
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = req
 
 	return nil
@@ -172,23 +171,23 @@ func (s *Service) SetPaymentChannelCostSystem(
 
 func (s *Service) DeletePaymentChannelCostSystem(
 	ctx context.Context,
-	req *billing.PaymentCostDeleteRequest,
-	res *grpc.ResponseError,
+	req *billingpb.PaymentCostDeleteRequest,
+	res *billingpb.ResponseError,
 ) error {
 	pc, err := s.paymentChannelCostSystem.GetById(ctx, req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.paymentChannelCostSystem.Delete(ctx, pc)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorPaymentChannelSystemDelete
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
@@ -197,7 +196,7 @@ func newPaymentChannelCostSystemService(svc *Service) *PaymentChannelCostSystem 
 	return s
 }
 
-func (h *PaymentChannelCostSystem) Insert(ctx context.Context, obj *billing.PaymentChannelCostSystem) error {
+func (h *PaymentChannelCostSystem) Insert(ctx context.Context, obj *billingpb.PaymentChannelCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.CreatedAt = ptypes.TimestampNow()
@@ -212,7 +211,7 @@ func (h *PaymentChannelCostSystem) Insert(ctx context.Context, obj *billing.Paym
 	return h.updateCaches(obj)
 }
 
-func (h PaymentChannelCostSystem) MultipleInsert(ctx context.Context, obj []*billing.PaymentChannelCostSystem) error {
+func (h PaymentChannelCostSystem) MultipleInsert(ctx context.Context, obj []*billingpb.PaymentChannelCostSystem) error {
 	c := make([]interface{}, len(obj))
 	for i, v := range obj {
 		if v.Id == "" {
@@ -241,7 +240,7 @@ func (h PaymentChannelCostSystem) MultipleInsert(ctx context.Context, obj []*bil
 	return nil
 }
 
-func (h PaymentChannelCostSystem) Update(ctx context.Context, obj *billing.PaymentChannelCostSystem) error {
+func (h PaymentChannelCostSystem) Update(ctx context.Context, obj *billingpb.PaymentChannelCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.UpdatedAt = ptypes.TimestampNow()
@@ -257,8 +256,8 @@ func (h PaymentChannelCostSystem) Update(ctx context.Context, obj *billing.Payme
 	return h.updateCaches(obj)
 }
 
-func (h PaymentChannelCostSystem) GetById(ctx context.Context, id string) (*billing.PaymentChannelCostSystem, error) {
-	var c billing.PaymentChannelCostSystem
+func (h PaymentChannelCostSystem) GetById(ctx context.Context, id string) (*billingpb.PaymentChannelCostSystem, error) {
+	var c billingpb.PaymentChannelCostSystem
 	key := fmt.Sprintf(cachePaymentChannelCostSystemKeyId, id)
 	err := h.svc.cacher.Get(key, c)
 
@@ -281,8 +280,8 @@ func (h PaymentChannelCostSystem) GetById(ctx context.Context, id string) (*bill
 func (h PaymentChannelCostSystem) Get(
 	ctx context.Context,
 	name, region, country, mccCode, operatingCompanyId string,
-) (*billing.PaymentChannelCostSystem, error) {
-	var c *billing.PaymentChannelCostSystem
+) (*billingpb.PaymentChannelCostSystem, error) {
+	var c *billingpb.PaymentChannelCostSystem
 	key := fmt.Sprintf(cachePaymentChannelCostSystemKey, name, region, country, mccCode, operatingCompanyId)
 	err := h.svc.cacher.Get(key, c)
 
@@ -375,7 +374,7 @@ func (h PaymentChannelCostSystem) Get(
 	return c, nil
 }
 
-func (h PaymentChannelCostSystem) Delete(ctx context.Context, obj *billing.PaymentChannelCostSystem) error {
+func (h PaymentChannelCostSystem) Delete(ctx context.Context, obj *billingpb.PaymentChannelCostSystem) error {
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = false
 
@@ -389,9 +388,9 @@ func (h PaymentChannelCostSystem) Delete(ctx context.Context, obj *billing.Payme
 	return h.updateCaches(obj)
 }
 
-func (h PaymentChannelCostSystem) GetAll(ctx context.Context) (*billing.PaymentChannelCostSystemList, error) {
-	var c = &billing.PaymentChannelCostSystemList{
-		Items: []*billing.PaymentChannelCostSystem{},
+func (h PaymentChannelCostSystem) GetAll(ctx context.Context) (*billingpb.PaymentChannelCostSystemList, error) {
+	var c = &billingpb.PaymentChannelCostSystemList{
+		Items: []*billingpb.PaymentChannelCostSystem{},
 	}
 	key := cachePaymentChannelCostSystemAll
 	err := h.svc.cacher.Get(key, c)
@@ -431,7 +430,7 @@ func (h PaymentChannelCostSystem) GetAll(ctx context.Context) (*billing.PaymentC
 	return c, nil
 }
 
-func (h PaymentChannelCostSystem) updateCaches(obj *billing.PaymentChannelCostSystem) (err error) {
+func (h PaymentChannelCostSystem) updateCaches(obj *billingpb.PaymentChannelCostSystem) (err error) {
 	groupKeys := []string{
 		fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, obj.Country, obj.MccCode, obj.OperatingCompanyId),
 		fmt.Sprintf(cachePaymentChannelCostSystemKey, obj.Name, obj.Region, "", obj.MccCode, obj.OperatingCompanyId),

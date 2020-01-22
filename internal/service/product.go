@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -36,10 +35,10 @@ var (
 	productNoPriceInCurrencyError          = newBillingServerErrorMsg("pd000019", "no product price in requested currency")
 )
 
-func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, res *grpc.Product) error {
+func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *billingpb.Product, res *billingpb.Product) error {
 	var (
 		err     error
-		product = &grpc.Product{}
+		product = &billingpb.Product{}
 		isNew   = req.Id == ""
 		now     = ptypes.TimestampNow()
 	)
@@ -136,13 +135,13 @@ func (s *Service) CreateOrUpdateProduct(ctx context.Context, req *grpc.Product, 
 	return nil
 }
 
-func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProductsForOrderRequest, res *grpc.ListProductsResponse) error {
+func (s *Service) GetProductsForOrder(ctx context.Context, req *billingpb.GetProductsForOrderRequest, res *billingpb.ListProductsResponse) error {
 	if len(req.Ids) == 0 {
 		zap.S().Errorf("Ids list is empty", "data", req)
 		return productErrorIdListEmpty
 	}
 
-	var found []*grpc.Product
+	var found []*billingpb.Product
 
 	for _, id := range req.Ids {
 		p, err := s.productService.GetById(ctx, id)
@@ -166,7 +165,7 @@ func (s *Service) GetProductsForOrder(ctx context.Context, req *grpc.GetProducts
 	return nil
 }
 
-func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsRequest, res *grpc.ListProductsResponse) error {
+func (s *Service) ListProducts(ctx context.Context, req *billingpb.ListProductsRequest, res *billingpb.ListProductsResponse) error {
 	var enabled int32
 
 	switch req.Enabled {
@@ -199,8 +198,8 @@ func (s *Service) ListProducts(ctx context.Context, req *grpc.ListProductsReques
 
 func (s *Service) GetProduct(
 	ctx context.Context,
-	req *grpc.RequestProduct,
-	rsp *grpc.GetProductResponse,
+	req *billingpb.RequestProduct,
+	rsp *billingpb.GetProductResponse,
 ) error {
 	product, err := s.productService.GetById(ctx, req.Id)
 
@@ -211,7 +210,7 @@ func (s *Service) GetProduct(
 			zap.Any(pkg.LogFieldRequest, req),
 		)
 
-		rsp.Status = pkg.ResponseStatusNotFound
+		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = productErrorNotFound
 
 		return nil
@@ -224,19 +223,19 @@ func (s *Service) GetProduct(
 			zap.Any(pkg.LogFieldRequest, req),
 		)
 
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = productErrorMerchantNotEqual
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = product
 
 	return nil
 }
 
-func (s *Service) DeleteProduct(ctx context.Context, req *grpc.RequestProduct, res *grpc.EmptyResponse) error {
+func (s *Service) DeleteProduct(ctx context.Context, req *billingpb.RequestProduct, res *billingpb.EmptyResponse) error {
 	product, err := s.productService.GetById(ctx, req.Id)
 
 	if err != nil {
@@ -262,7 +261,7 @@ func (s *Service) DeleteProduct(ctx context.Context, req *grpc.RequestProduct, r
 	return nil
 }
 
-func (s *Service) GetProductPrices(ctx context.Context, req *grpc.RequestProduct, res *grpc.ProductPricesResponse) error {
+func (s *Service) GetProductPrices(ctx context.Context, req *billingpb.RequestProduct, res *billingpb.ProductPricesResponse) error {
 	product, err := s.productService.GetById(ctx, req.Id)
 
 	if err != nil {
@@ -280,7 +279,7 @@ func (s *Service) GetProductPrices(ctx context.Context, req *grpc.RequestProduct
 	return nil
 }
 
-func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProductPricesRequest, res *grpc.ResponseError) error {
+func (s *Service) UpdateProductPrices(ctx context.Context, req *billingpb.UpdateProductPricesRequest, res *billingpb.ResponseError) error {
 	if len(req.Prices) == 0 {
 		zap.S().Errorf("List of product prices is empty", "data", req)
 		return productErrorListPrices
@@ -309,7 +308,7 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 
 	merchant, err := s.merchant.GetById(ctx, product.MerchantId)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 
 		return nil
@@ -319,14 +318,14 @@ func (s *Service) UpdateProductPrices(ctx context.Context, req *grpc.UpdateProdu
 
 	if len(payoutCurrency) == 0 {
 		zap.S().Errorw(merchantPayoutCurrencyMissed.Message, "data", req)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = merchantPayoutCurrencyMissed
 		return nil
 	}
 
-	_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: payoutCurrency})
+	_, err = product.GetPriceInCurrency(&billingpb.PriceGroup{Currency: payoutCurrency})
 	if err != nil {
-		_, err = product.GetPriceInCurrency(&billing.PriceGroup{Currency: grpc.VirtualCurrencyPriceGroup})
+		_, err = product.GetPriceInCurrency(&billingpb.PriceGroup{Currency: billingpb.VirtualCurrencyPriceGroup})
 	}
 
 	if err != nil {
@@ -360,10 +359,10 @@ func (s *Service) getProductsCountByProject(ctx context.Context, projectId strin
 }
 
 type ProductServiceInterface interface {
-	Upsert(ctx context.Context, product *grpc.Product) error
-	GetById(context.Context, string) (*grpc.Product, error)
+	Upsert(ctx context.Context, product *billingpb.Product) error
+	GetById(context.Context, string) (*billingpb.Product, error)
 	CountByProjectSku(context.Context, string, string) (int64, error)
-	List(context.Context, string, string, string, string, int64, int64, int32) (int64, []*grpc.Product)
+	List(context.Context, string, string, string, string, int64, int64, int32) (int64, []*billingpb.Product)
 }
 
 func newProductService(svc *Service) *Product {
@@ -371,7 +370,7 @@ func newProductService(svc *Service) *Product {
 	return s
 }
 
-func (h *Product) Upsert(ctx context.Context, p *grpc.Product) error {
+func (h *Product) Upsert(ctx context.Context, p *billingpb.Product) error {
 	oid, _ := primitive.ObjectIDFromHex(p.Id)
 	filter := bson.M{"_id": oid}
 	opts := options.Replace().SetUpsert(true)
@@ -388,8 +387,8 @@ func (h *Product) Upsert(ctx context.Context, p *grpc.Product) error {
 	return nil
 }
 
-func (h *Product) GetById(ctx context.Context, id string) (*grpc.Product, error) {
-	var c grpc.Product
+func (h *Product) GetById(ctx context.Context, id string) (*billingpb.Product, error) {
+	var c billingpb.Product
 	key := fmt.Sprintf(cacheProductId, id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
@@ -433,7 +432,7 @@ func (h *Product) List(
 	offset int64,
 	limit int64,
 	enabled int32,
-) (int64, []*grpc.Product) {
+) (int64, []*billingpb.Product) {
 	merchantOid, _ := primitive.ObjectIDFromHex(merchantId)
 	query := bson.M{"merchant_id": merchantOid, "deleted": false}
 
@@ -493,7 +492,7 @@ func (h *Product) List(
 		return 0, nil
 	}
 
-	var list []*grpc.Product
+	var list []*billingpb.Product
 	err = cursor.All(ctx, &list)
 
 	if err != nil {
@@ -509,7 +508,7 @@ func (h *Product) List(
 	return count, list
 }
 
-func (h *Product) updateCache(p *grpc.Product) error {
+func (h *Product) updateCache(p *billingpb.Product) error {
 	if err := h.svc.cacher.Set(fmt.Sprintf(cacheProductId, p.Id), p, 0); err != nil {
 		return err
 	}

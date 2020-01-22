@@ -2,17 +2,18 @@ package mocks
 
 import (
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/document-signer/pkg/proto"
-	"github.com/paysuper/paysuper-billing-server/pkg"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/document_signerpb"
+	"github.com/paysuper/paysuper-proto/go/document_signerpb/mocks"
 	mock2 "github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
 var (
-	CreateSignatureResponse = &proto.CreateSignatureResponse{
-		Status: pkg.ResponseStatusOk,
-		Item: &proto.CreateSignatureResponseItem{
+	CreateSignatureResponse = &document_signerpb.CreateSignatureResponse{
+		Status: billingpb.ResponseStatusOk,
+		Item: &document_signerpb.CreateSignatureResponseItem{
 			DetailsUrl:          "http:/127.0.0.1",
 			FilesUrl:            "http:/127.0.0.1",
 			SignatureRequestId:  primitive.NewObjectID().Hex(),
@@ -20,18 +21,18 @@ var (
 			PsSignatureId:       primitive.NewObjectID().Hex(),
 		},
 	}
-	GetSignatureUrlResponse = &proto.GetSignatureUrlResponse{
-		Status: pkg.ResponseStatusOk,
-		Item: &proto.GetSignatureUrlResponseEmbedded{
+	GetSignatureUrlResponse = &document_signerpb.GetSignatureUrlResponse{
+		Status: billingpb.ResponseStatusOk,
+		Item: &document_signerpb.GetSignatureUrlResponseEmbedded{
 			SignUrl: "http://127.0.0.1",
 		},
 	}
 )
 
-func NewDocumentSignerMockOk() proto.DocumentSignerService {
+func NewDocumentSignerMockOk() *mocks.DocumentSignerService {
 	GetSignatureUrlResponse.Item.ExpiresAt, _ = ptypes.TimestampProto(time.Now().Add(time.Duration(1 * time.Hour)))
 
-	ds := &DocumentSignerService{}
+	ds := &mocks.DocumentSignerService{}
 	ds.On("CreateSignature", mock2.Anything, mock2.Anything, mock2.Anything).
 		Return(CreateSignatureResponse, nil)
 	ds.On("GetSignatureUrl", mock2.Anything, mock2.Anything).Return(GetSignatureUrlResponse, nil)

@@ -2,8 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 )
 
 var (
@@ -13,17 +12,17 @@ var (
 
 func (s *Service) GetDashboardMainReport(
 	ctx context.Context,
-	req *grpc.GetDashboardMainRequest,
-	rsp *grpc.GetDashboardMainResponse,
+	req *billingpb.GetDashboardMainRequest,
+	rsp *billingpb.GetDashboardMainResponse,
 ) error {
 	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusNotFound
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		if err == merchantErrorUnknown {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = billingpb.ResponseStatusSystemError
 		}
 
 		return nil
@@ -32,13 +31,13 @@ func (s *Service) GetDashboardMainReport(
 	report, err := s.dashboardRepository.GetMainReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusSystemError
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = report
 
 	return nil
@@ -46,17 +45,17 @@ func (s *Service) GetDashboardMainReport(
 
 func (s *Service) GetDashboardRevenueDynamicsReport(
 	ctx context.Context,
-	req *grpc.GetDashboardMainRequest,
-	rsp *grpc.GetDashboardRevenueDynamicsReportResponse,
+	req *billingpb.GetDashboardMainRequest,
+	rsp *billingpb.GetDashboardRevenueDynamicsReportResponse,
 ) error {
 	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusNotFound
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		if err == merchantErrorUnknown {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = billingpb.ResponseStatusSystemError
 		}
 
 		return nil
@@ -65,13 +64,13 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 	report, err := s.dashboardRepository.GetRevenueDynamicsReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusSystemError
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = report
 
 	return nil
@@ -79,17 +78,17 @@ func (s *Service) GetDashboardRevenueDynamicsReport(
 
 func (s *Service) GetDashboardBaseReport(
 	ctx context.Context,
-	req *grpc.GetDashboardBaseReportRequest,
-	rsp *grpc.GetDashboardBaseReportResponse,
+	req *billingpb.GetDashboardBaseReportRequest,
+	rsp *billingpb.GetDashboardBaseReportResponse,
 ) error {
 	_, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusNotFound
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusNotFound
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		if err == merchantErrorUnknown {
-			rsp.Status = pkg.ResponseStatusSystemError
+			rsp.Status = billingpb.ResponseStatusSystemError
 		}
 
 		return nil
@@ -98,13 +97,13 @@ func (s *Service) GetDashboardBaseReport(
 	report, err := s.dashboardRepository.GetBaseReport(ctx, req.MerchantId, req.Period)
 
 	if err != nil {
-		rsp.Status = pkg.ResponseStatusSystemError
-		rsp.Message = err.(*grpc.ResponseErrorMessage)
+		rsp.Status = billingpb.ResponseStatusSystemError
+		rsp.Message = err.(*billingpb.ResponseErrorMessage)
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = report
 
 	return nil

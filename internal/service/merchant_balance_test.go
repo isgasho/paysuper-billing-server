@@ -7,14 +7,13 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/mongodb"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/golang/protobuf/ptypes"
-	casbinMocks "github.com/paysuper/casbin-server/pkg/mocks"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	reportingMocks "github.com/paysuper/paysuper-reporter/pkg/mocks"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
+	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
@@ -40,8 +39,8 @@ type MerchantBalanceTestSuite struct {
 	logObserver *zap.Logger
 	zapRecorder *observer.ObservedLogs
 
-	merchant  *billing.Merchant
-	merchant2 *billing.Merchant
+	merchant  *billingpb.Merchant
+	merchant2 *billingpb.Merchant
 }
 
 func Test_MerchantBalance(t *testing.T) {
@@ -143,15 +142,15 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Ok
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 0)
 
-	req := &grpc.GetMerchantBalanceRequest{
+	req := &billingpb.GetMerchantBalanceRequest{
 		MerchantId: suite.merchant.Id,
 	}
 
-	res := &grpc.GetMerchantBalanceResponse{}
+	res := &billingpb.GetMerchantBalanceResponse{}
 
 	err := suite.service.GetMerchantBalance(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), res.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), res.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), res.Item.Debit, float64(0))
@@ -179,15 +178,15 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Ok
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	req := &grpc.GetMerchantBalanceRequest{
+	req := &billingpb.GetMerchantBalanceRequest{
 		MerchantId: suite.merchant.Id,
 	}
 
-	res := &grpc.GetMerchantBalanceResponse{}
+	res := &billingpb.GetMerchantBalanceResponse{}
 
 	err = suite.service.GetMerchantBalance(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusOk)
 
 	// ugly cheat, because Nanos are slightly differs
 	// example:
@@ -209,14 +208,14 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Fa
 	count := suite.mbRecordsCount(merchantId, "")
 	assert.EqualValues(suite.T(), count, 0)
 
-	req := &grpc.GetMerchantBalanceRequest{
+	req := &billingpb.GetMerchantBalanceRequest{
 		MerchantId: merchantId,
 	}
 
-	res := &grpc.GetMerchantBalanceResponse{}
+	res := &billingpb.GetMerchantBalanceResponse{}
 	err := suite.service.GetMerchantBalance(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusSystemError, res.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusSystemError, res.Status)
 	assert.Equal(suite.T(), merchantErrorNotFound, res.Message)
 
 	count = suite.mbRecordsCount(merchantId, "")
@@ -227,15 +226,15 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_GetMerchantBalance_Fa
 	count := suite.mbRecordsCount(suite.merchant2.Id, suite.merchant2.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 0)
 
-	req := &grpc.GetMerchantBalanceRequest{
+	req := &billingpb.GetMerchantBalanceRequest{
 		MerchantId: suite.merchant2.Id,
 	}
 
-	res := &grpc.GetMerchantBalanceResponse{}
+	res := &billingpb.GetMerchantBalanceResponse{}
 
 	err := suite.service.GetMerchantBalance(context.TODO(), req, res)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, pkg.ResponseStatusSystemError)
+	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusSystemError)
 	assert.Equal(suite.T(), res.Message, errorMerchantPayoutCurrencyNotSet)
 
 	count = suite.mbRecordsCount(suite.merchant2.Id, suite.merchant2.GetPayoutCurrency())
@@ -269,16 +268,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 
 func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance_Ok() {
 
-	report := &billing.RoyaltyReport{
+	report := &billingpb.RoyaltyReport{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
-		Totals: &billing.RoyaltyReportTotals{
+		Totals: &billingpb.RoyaltyReportTotals{
 			TransactionsCount: 10,
 			PayoutAmount:      1234.5,
 			VatAmount:         10,
 			FeeAmount:         5,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
+		Status:         billingpb.RoyaltyReportStatusAccepted,
 		CreatedAt:      ptypes.TimestampNow(),
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
@@ -291,7 +290,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
-	payout := &billing.PayoutDocument{
+	payout := &billingpb.PayoutDocument{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{primitive.NewObjectID().Hex()},
@@ -312,11 +311,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 	err = suite.service.payoutDocument.Insert(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
 
-	ae1 := &billing.AccountingEntry{
+	ae1 := &billingpb.AccountingEntry{
 		Id:     primitive.NewObjectID().Hex(),
 		Type:   pkg.AccountingEntryTypeMerchantRollingReserveCreate,
 		Object: pkg.ObjectTypeBalanceTransaction,
-		Source: &billing.AccountingEntrySource{
+		Source: &billingpb.AccountingEntrySource{
 			Type: "merchant",
 			Id:   suite.merchant.Id,
 		},
@@ -326,11 +325,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_updateMerchantBalance
 		CreatedAt:  ptypes.TimestampNow(),
 	}
 
-	ae2 := &billing.AccountingEntry{
+	ae2 := &billingpb.AccountingEntry{
 		Id:     primitive.NewObjectID().Hex(),
 		Type:   pkg.AccountingEntryTypeMerchantRollingReserveRelease,
 		Object: pkg.ObjectTypeBalanceTransaction,
-		Source: &billing.AccountingEntrySource{
+		Source: &billingpb.AccountingEntrySource{
 			Type: "merchant",
 			Id:   suite.merchant.Id,
 		},
@@ -365,7 +364,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_getRollingReserveForB
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
-	payout := &billing.PayoutDocument{
+	payout := &billingpb.PayoutDocument{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{primitive.NewObjectID().Hex()},
@@ -396,16 +395,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 0)
 
-	report := &billing.RoyaltyReport{
+	report := &billingpb.RoyaltyReport{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
-		Totals: &billing.RoyaltyReportTotals{
+		Totals: &billingpb.RoyaltyReportTotals{
 			TransactionsCount: 10,
 			PayoutAmount:      1234.5,
 			VatAmount:         10,
 			FeeAmount:         5,
 		},
-		Status:         pkg.RoyaltyReportStatusPending,
+		Status:         billingpb.RoyaltyReportStatusPending,
 		CreatedAt:      ptypes.TimestampNow(),
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
@@ -415,16 +414,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	_, err := suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
-	req1 := &grpc.MerchantReviewRoyaltyReportRequest{
+	req1 := &billingpb.MerchantReviewRoyaltyReportRequest{
 		ReportId:   report.Id,
 		IsAccepted: true,
 		Ip:         "127.0.0.1",
 		MerchantId: suite.merchant.Id,
 	}
-	rsp1 := &grpc.ResponseError{}
+	rsp1 := &billingpb.ResponseError{}
 	err = suite.service.MerchantReviewRoyaltyReport(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
 	// control
@@ -432,11 +431,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
+	mbReq := &billingpb.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
+	mbRes := &billingpb.GetMerchantBalanceResponse{}
 	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), mbRes.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), 1234.5, mbRes.Item.Debit)
@@ -451,16 +450,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 0)
 
-	report := &billing.RoyaltyReport{
+	report := &billingpb.RoyaltyReport{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
-		Totals: &billing.RoyaltyReportTotals{
+		Totals: &billingpb.RoyaltyReportTotals{
 			TransactionsCount: 100,
 			PayoutAmount:      alreadyPaidRoyalty,
 			VatAmount:         100,
 			FeeAmount:         50,
 		},
-		Status:         pkg.RoyaltyReportStatusAccepted,
+		Status:         billingpb.RoyaltyReportStatusAccepted,
 		CreatedAt:      ptypes.TimestampNow(),
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
@@ -474,7 +473,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
-	payout := &billing.PayoutDocument{
+	payout := &billingpb.PayoutDocument{
 		Id:                 primitive.NewObjectID().Hex(),
 		MerchantId:         suite.merchant.Id,
 		SourceId:           []string{report.Id},
@@ -495,29 +494,29 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	err = suite.service.payoutDocument.Insert(ctx, payout, "127.0.0.1", payoutChangeSourceAdmin)
 	assert.NoError(suite.T(), err)
 
-	req3 := &grpc.UpdatePayoutDocumentRequest{
+	req3 := &billingpb.UpdatePayoutDocumentRequest{
 		PayoutDocumentId: payout.Id,
 		Status:           pkg.PayoutDocumentStatusPaid,
 		Transaction:      "transaction123",
 		Ip:               "192.168.1.1",
 	}
 
-	res3 := &grpc.PayoutDocumentResponse{}
+	res3 := &billingpb.PayoutDocumentResponse{}
 
 	err = suite.service.UpdatePayoutDocument(context.TODO(), req3, res3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res3.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), res3.Status, billingpb.ResponseStatusOk)
 
 	// control
 
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
+	mbReq := &billingpb.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
+	mbRes := &billingpb.GetMerchantBalanceResponse{}
 	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), mbRes.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), mbRes.Item.Debit, float64(10432))
@@ -532,7 +531,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 0)
 
-	req4 := &grpc.CreateAccountingEntryRequest{
+	req4 := &billingpb.CreateAccountingEntryRequest{
 		Type:       pkg.AccountingEntryTypeMerchantRollingReserveCreate,
 		MerchantId: suite.merchant.Id,
 		Amount:     150,
@@ -541,10 +540,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		Date:       time.Now().Unix(),
 		Reason:     "unit test",
 	}
-	rsp4 := &grpc.CreateAccountingEntryResponse{}
+	rsp4 := &billingpb.CreateAccountingEntryResponse{}
 	err := suite.service.CreateAccountingEntry(context.TODO(), req4, rsp4)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp4.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp4.Status)
 	assert.Empty(suite.T(), rsp4.Message)
 	assert.NotNil(suite.T(), rsp4.Item)
 
@@ -553,11 +552,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
+	mbReq := &billingpb.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
+	mbRes := &billingpb.GetMerchantBalanceResponse{}
 	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), mbRes.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), mbRes.Item.Debit, float64(0))
@@ -572,7 +571,7 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count := suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 0)
 
-	req5 := &grpc.CreateAccountingEntryRequest{
+	req5 := &billingpb.CreateAccountingEntryRequest{
 		Type:       pkg.AccountingEntryTypeMerchantRollingReserveRelease,
 		MerchantId: suite.merchant.Id,
 		Amount:     50,
@@ -581,10 +580,10 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 		Date:       time.Now().Unix(),
 		Reason:     "unit test",
 	}
-	rsp5 := &grpc.CreateAccountingEntryResponse{}
+	rsp5 := &billingpb.CreateAccountingEntryResponse{}
 	err := suite.service.CreateAccountingEntry(context.TODO(), req5, rsp5)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp5.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp5.Status)
 	assert.Empty(suite.T(), rsp5.Message)
 	assert.NotNil(suite.T(), rsp5.Item)
 
@@ -593,11 +592,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
+	mbReq := &billingpb.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
+	mbRes := &billingpb.GetMerchantBalanceResponse{}
 	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), mbRes.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), mbRes.Item.Debit, float64(0))
@@ -615,16 +614,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
-	report := &billing.RoyaltyReport{
+	report := &billingpb.RoyaltyReport{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
-		Totals: &billing.RoyaltyReportTotals{
+		Totals: &billingpb.RoyaltyReportTotals{
 			TransactionsCount: 10,
 			PayoutAmount:      1000,
 			VatAmount:         10,
 			FeeAmount:         5,
 		},
-		Status:         pkg.RoyaltyReportStatusPending,
+		Status:         billingpb.RoyaltyReportStatusPending,
 		CreatedAt:      ptypes.TimestampNow(),
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
@@ -634,8 +633,8 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	_, err = suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
-	req6 := &grpc.EmptyRequest{}
-	rsp6 := &grpc.EmptyResponse{}
+	req6 := &billingpb.EmptyRequest{}
+	rsp6 := &billingpb.EmptyResponse{}
 	err = suite.service.AutoAcceptRoyaltyReports(context.TODO(), req6, rsp6)
 	assert.NoError(suite.T(), err)
 
@@ -644,11 +643,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
+	mbReq := &billingpb.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
+	mbRes := &billingpb.GetMerchantBalanceResponse{}
 	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), mbRes.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), mbRes.Item.Debit, float64(1000))
@@ -666,16 +665,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	date, err := ptypes.TimestampProto(time.Now().Add(time.Hour * -480))
 	assert.NoError(suite.T(), err, "Generate PayoutDocument date failed")
 
-	report := &billing.RoyaltyReport{
+	report := &billingpb.RoyaltyReport{
 		Id:         primitive.NewObjectID().Hex(),
 		MerchantId: suite.merchant.Id,
-		Totals: &billing.RoyaltyReportTotals{
+		Totals: &billingpb.RoyaltyReportTotals{
 			TransactionsCount: 10,
 			PayoutAmount:      500,
 			VatAmount:         10,
 			FeeAmount:         5,
 		},
-		Status:         pkg.RoyaltyReportStatusPending,
+		Status:         billingpb.RoyaltyReportStatusPending,
 		CreatedAt:      ptypes.TimestampNow(),
 		PeriodFrom:     ptypes.TimestampNow(),
 		PeriodTo:       ptypes.TimestampNow(),
@@ -685,16 +684,16 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	_, err = suite.service.db.Collection(collectionRoyaltyReport).InsertOne(ctx, report)
 	assert.NoError(suite.T(), err)
 
-	req7 := &grpc.ChangeRoyaltyReportRequest{
+	req7 := &billingpb.ChangeRoyaltyReportRequest{
 		ReportId:   report.Id,
-		Status:     pkg.RoyaltyReportStatusAccepted,
+		Status:     billingpb.RoyaltyReportStatusAccepted,
 		Ip:         "127.0.0.1",
 		MerchantId: suite.merchant.Id,
 	}
-	rsp7 := &grpc.ResponseError{}
+	rsp7 := &billingpb.ResponseError{}
 	err = suite.service.ChangeRoyaltyReport(context.TODO(), req7, rsp7)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp7.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp7.Status)
 	assert.Empty(suite.T(), rsp7.Message)
 
 	// control
@@ -702,11 +701,11 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 	count = suite.mbRecordsCount(suite.merchant.Id, suite.merchant.GetPayoutCurrency())
 	assert.EqualValues(suite.T(), count, 1)
 
-	mbReq := &grpc.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
-	mbRes := &grpc.GetMerchantBalanceResponse{}
+	mbReq := &billingpb.GetMerchantBalanceRequest{MerchantId: suite.merchant.Id}
+	mbRes := &billingpb.GetMerchantBalanceResponse{}
 	err = suite.service.GetMerchantBalance(context.TODO(), mbReq, mbRes)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), mbRes.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), mbRes.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), mbRes.Item.MerchantId, suite.merchant.Id)
 	assert.Equal(suite.T(), mbRes.Item.Currency, suite.merchant.GetPayoutCurrency())
 	assert.Equal(suite.T(), mbRes.Item.Debit, float64(500))
