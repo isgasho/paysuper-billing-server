@@ -16,7 +16,6 @@ import (
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
@@ -715,18 +714,15 @@ func (suite *MerchantBalanceTestSuite) TestMerchantBalance_UpdateBalanceTriggeri
 }
 
 func (suite *MerchantBalanceTestSuite) mbRecordsCount(merchantId, currency string) int64 {
-	oid, err := primitive.ObjectIDFromHex(merchantId)
-	assert.NoError(suite.T(), err)
-	query := bson.M{
-		"merchant_id": oid,
-		"currency":    currency,
-	}
-	count, err := suite.service.db.Collection(collectionMerchantBalances).CountDocuments(ctx, query)
+	count, err := suite.service.merchantBalanceRepository.CountByIdAndCurrency(ctx, merchantId, currency)
+
 	if err == nil {
 		return count
 	}
+
 	if err == mongo.ErrNoDocuments {
 		return 0
 	}
+
 	return -1
 }
