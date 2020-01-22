@@ -975,7 +975,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   billingpb.ProjectStatusInProduction,
 		MerchantId:               merchant.Id,
 		VatPayer:                 billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -996,7 +996,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   billingpb.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 		VatPayer:                 billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1033,7 +1033,7 @@ func (suite *OrderTestSuite) SetupTest() {
 			},
 		},
 		VatPayer: billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1055,7 +1055,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   billingpb.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 		VatPayer:                 billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1076,7 +1076,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:                   billingpb.ProjectStatusDraft,
 		MerchantId:               merchant.Id,
 		VatPayer:                 billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1096,7 +1096,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:             billingpb.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
 		VatPayer:           billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1116,7 +1116,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		Status:             billingpb.ProjectStatusInProduction,
 		MerchantId:         merchant1.Id,
 		VatPayer:           billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1136,7 +1136,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "project incorrect payment Method id secret key",
 		Status:             billingpb.ProjectStatusInProduction,
 		VatPayer:           billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1156,7 +1156,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "test project 1 secret key",
 		Status:             billingpb.ProjectStatusInProduction,
 		VatPayer:           billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -1176,7 +1176,7 @@ func (suite *OrderTestSuite) SetupTest() {
 		SecretKey:          "test project 2 secret key",
 		Status:             billingpb.ProjectStatusDeleted,
 		VatPayer:           billingpb.VatPayerBuyer,
-		RedirectSettings: &billing.ProjectRedirectSettings{
+		RedirectSettings: &billingpb.ProjectRedirectSettings{
 			Mode:  pkg.ProjectRedirectModeAny,
 			Usage: pkg.ProjectRedirectUsageAny,
 		},
@@ -8849,64 +8849,64 @@ func (suite *OrderTestSuite) TestOrder_OrderReceipt_Ok() {
 }
 
 func (suite *OrderTestSuite) TestOrder_GetPaymentFormRenderingDataByOrderCreatedByToken_WithButtonCaption_Ok() {
-	req1 := &grpc.TokenRequest{
-		User: &billing.TokenUser{
+	req1 := &billingpb.TokenRequest{
+		User: &billingpb.TokenUser{
 			Id: primitive.NewObjectID().Hex(),
-			Email: &billing.TokenUserEmailValue{
+			Email: &billingpb.TokenUserEmailValue{
 				Value: "test@unit.test",
 			},
-			Phone: &billing.TokenUserPhoneValue{
+			Phone: &billingpb.TokenUserPhoneValue{
 				Value: "1234567890",
 			},
-			Name: &billing.TokenUserValue{
+			Name: &billingpb.TokenUserValue{
 				Value: "Unit Test",
 			},
-			Ip: &billing.TokenUserIpValue{
+			Ip: &billingpb.TokenUserIpValue{
 				Value: "127.0.0.1",
 			},
-			Locale: &billing.TokenUserLocaleValue{
+			Locale: &billingpb.TokenUserLocaleValue{
 				Value: "ru",
 			},
-			Address: &billing.OrderBillingAddress{
+			Address: &billingpb.OrderBillingAddress{
 				Country:    "RU",
 				City:       "St.Petersburg",
 				PostalCode: "190000",
 				State:      "SPE",
 			},
 		},
-		Settings: &billing.TokenSettings{
+		Settings: &billingpb.TokenSettings{
 			ProjectId:     suite.project.Id,
 			Currency:      "RUB",
 			Amount:        100,
 			Description:   "test payment",
-			Type:          billing.OrderType_simple,
+			Type:          pkg.OrderType_simple,
 			ButtonCaption: "button caption",
 		},
 	}
-	rsp1 := &grpc.TokenResponse{}
+	rsp1 := &billingpb.TokenResponse{}
 	err := suite.service.CreateToken(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotEmpty(suite.T(), rsp1.Token)
 
-	req2 := &billing.OrderCreateRequest{
+	req2 := &billingpb.OrderCreateRequest{
 		Token: rsp1.Token,
 	}
-	rsp2 := &grpc.OrderCreateProcessResponse{}
+	rsp2 := &billingpb.OrderCreateProcessResponse{}
 	err = suite.service.OrderCreateProcess(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp2.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp2.Status, billingpb.ResponseStatusOk)
 	assert.NotEmpty(suite.T(), rsp2.Item.Id)
 
-	req3 := &grpc.PaymentFormJsonDataRequest{
+	req3 := &billingpb.PaymentFormJsonDataRequest{
 		OrderId: rsp2.Item.Uuid,
 		Ip:      "127.0.0.1",
 	}
-	rsp3 := &grpc.PaymentFormJsonDataResponse{}
+	rsp3 := &billingpb.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Message)
 	assert.Equal(suite.T(), rsp3.Item.Id, rsp2.Item.Uuid)
 	assert.NotNil(suite.T(), rsp3.Item.Project.RedirectSettings)
@@ -8918,63 +8918,63 @@ func (suite *OrderTestSuite) TestOrder_GetPaymentFormRenderingDataByOrderCreated
 }
 
 func (suite *OrderTestSuite) TestOrder_GetPaymentFormRenderingDataByOrderCreatedByToken_WithoutButtonCaption_Ok() {
-	req1 := &grpc.TokenRequest{
-		User: &billing.TokenUser{
+	req1 := &billingpb.TokenRequest{
+		User: &billingpb.TokenUser{
 			Id: primitive.NewObjectID().Hex(),
-			Email: &billing.TokenUserEmailValue{
+			Email: &billingpb.TokenUserEmailValue{
 				Value: "test@unit.test",
 			},
-			Phone: &billing.TokenUserPhoneValue{
+			Phone: &billingpb.TokenUserPhoneValue{
 				Value: "1234567890",
 			},
-			Name: &billing.TokenUserValue{
+			Name: &billingpb.TokenUserValue{
 				Value: "Unit Test",
 			},
-			Ip: &billing.TokenUserIpValue{
+			Ip: &billingpb.TokenUserIpValue{
 				Value: "127.0.0.1",
 			},
-			Locale: &billing.TokenUserLocaleValue{
+			Locale: &billingpb.TokenUserLocaleValue{
 				Value: "ru",
 			},
-			Address: &billing.OrderBillingAddress{
+			Address: &billingpb.OrderBillingAddress{
 				Country:    "RU",
 				City:       "St.Petersburg",
 				PostalCode: "190000",
 				State:      "SPE",
 			},
 		},
-		Settings: &billing.TokenSettings{
+		Settings: &billingpb.TokenSettings{
 			ProjectId:   suite.project.Id,
 			Currency:    "RUB",
 			Amount:      100,
 			Description: "test payment",
-			Type:        billing.OrderType_simple,
+			Type:        pkg.OrderType_simple,
 		},
 	}
-	rsp1 := &grpc.TokenResponse{}
+	rsp1 := &billingpb.TokenResponse{}
 	err := suite.service.CreateToken(context.TODO(), req1, rsp1)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp1.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 	assert.NotEmpty(suite.T(), rsp1.Token)
 
-	req2 := &billing.OrderCreateRequest{
+	req2 := &billingpb.OrderCreateRequest{
 		Token: rsp1.Token,
 	}
-	rsp2 := &grpc.OrderCreateProcessResponse{}
+	rsp2 := &billingpb.OrderCreateProcessResponse{}
 	err = suite.service.OrderCreateProcess(context.TODO(), req2, rsp2)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp2.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp2.Status, billingpb.ResponseStatusOk)
 	assert.NotEmpty(suite.T(), rsp2.Item.Id)
 
-	req3 := &grpc.PaymentFormJsonDataRequest{
+	req3 := &billingpb.PaymentFormJsonDataRequest{
 		OrderId: rsp2.Item.Uuid,
 		Ip:      "127.0.0.1",
 	}
-	rsp3 := &grpc.PaymentFormJsonDataResponse{}
+	rsp3 := &billingpb.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req3, rsp3)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp3.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp3.Status)
 	assert.Empty(suite.T(), rsp3.Message)
 	assert.Equal(suite.T(), rsp3.Item.Id, rsp2.Item.Uuid)
 	assert.NotNil(suite.T(), rsp3.Item.Project.RedirectSettings)
@@ -8986,26 +8986,26 @@ func (suite *OrderTestSuite) TestOrder_GetPaymentFormRenderingDataByOrderCreated
 }
 
 func (suite *OrderTestSuite) TestOrder_GetPaymentFormRenderingDataByOrder_Ok() {
-	req1 := &billing.OrderCreateRequest{
+	req1 := &billingpb.OrderCreateRequest{
 		Amount:    100,
 		Currency:  "RUB",
 		Type:      "simple",
 		ProjectId: suite.project.Id,
 	}
-	rsp1 := &grpc.OrderCreateProcessResponse{}
+	rsp1 := &billingpb.OrderCreateProcessResponse{}
 	err := suite.service.OrderCreateProcess(context.TODO(), req1, rsp1)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp1.Status, pkg.ResponseStatusOk)
+	assert.Equal(suite.T(), rsp1.Status, billingpb.ResponseStatusOk)
 	assert.NotEmpty(suite.T(), rsp1.Item.Id)
 
-	req2 := &grpc.PaymentFormJsonDataRequest{
+	req2 := &billingpb.PaymentFormJsonDataRequest{
 		OrderId: rsp1.Item.Uuid,
 		Ip:      "127.0.0.1",
 	}
-	rsp2 := &grpc.PaymentFormJsonDataResponse{}
+	rsp2 := &billingpb.PaymentFormJsonDataResponse{}
 	err = suite.service.PaymentFormJsonDataProcess(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), pkg.ResponseStatusOk, rsp2.Status)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 	assert.Equal(suite.T(), rsp2.Item.Id, rsp1.Item.Uuid)
 	assert.NotNil(suite.T(), rsp2.Item.Project.RedirectSettings)
