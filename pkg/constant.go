@@ -230,6 +230,12 @@ const (
 	DefaultPaymentMethodFee               = float64(5)
 	DefaultPaymentMethodPerTransactionFee = float64(0)
 	DefaultPaymentMethodCurrency          = ""
+
+	ProjectRedirectModeAny        = "any"
+	ProjectRedirectModeDisable    = "disable"
+	ProjectRedirectModeSuccessful = "successful"
+	ProjectRedirectModeFail       = "fail"
+	ProjectRedirectUsageAny       = "any"
 )
 
 var (

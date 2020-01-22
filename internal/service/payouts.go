@@ -37,6 +37,8 @@ const (
 	payoutChangeSourceAdmin    = "admin"
 
 	payoutArrivalInDays = 5
+
+	payoutEmailSubjectTemplate = "New payout invoice #%s from PaySuper"
 )
 
 var (
@@ -667,6 +669,7 @@ func (s *Service) PayoutDocumentPdfUploaded(
 			"merchant_greeting":      merchant.GetAuthorizedName(),
 			"payouts_url":            s.cfg.GetPayoutsUrl(),
 			"operating_company_name": operatingCompany.Name,
+			"email_subject":          fmt.Sprintf(payoutEmailSubjectTemplate, pd.Id),
 		},
 		To: merchant.GetAuthorizedEmail(),
 		Attachments: []*postmarkpb.PayloadAttachment{
