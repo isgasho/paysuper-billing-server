@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -190,19 +190,19 @@ func (suite *UserProfileTestSuite) TestUserProfile_GetByUserId_Ok() {
 	assert.Equal(suite.T(), profile.Email.Email, profile2.Email.Email)
 }
 
-func (suite *UserProfileTestSuite) getUserProfileTemplate() *grpc.UserProfile {
-	return &grpc.UserProfile{
+func (suite *UserProfileTestSuite) getUserProfileTemplate() *billingpb.UserProfile {
+	return &billingpb.UserProfile{
 		Id:     primitive.NewObjectID().Hex(),
 		UserId: primitive.NewObjectID().Hex(),
-		Email: &grpc.UserProfileEmail{
+		Email: &billingpb.UserProfileEmail{
 			Email: "test@unit.test",
 		},
-		Personal: &grpc.UserProfilePersonal{
+		Personal: &billingpb.UserProfilePersonal{
 			FirstName: "Unit test",
 			LastName:  "Unit Test",
 			Position:  "test",
 		},
-		Help: &grpc.UserProfileHelp{
+		Help: &billingpb.UserProfileHelp{
 			ProductPromotionAndDevelopment: false,
 			ReleasedGamePromotion:          true,
 			InternationalSales:             true,

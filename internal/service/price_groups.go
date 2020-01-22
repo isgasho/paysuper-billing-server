@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	our "github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	curPkg "github.com/paysuper/paysuper-currencies/pkg"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	"math"
@@ -21,8 +19,8 @@ var (
 
 func (s *Service) GetPriceGroup(
 	ctx context.Context,
-	req *billing.GetPriceGroupRequest,
-	res *billing.PriceGroup,
+	req *billingpb.GetPriceGroupRequest,
+	res *billingpb.PriceGroup,
 ) error {
 	pg, err := s.priceGroupRepository.GetById(ctx, req.Id)
 	if err != nil {
@@ -42,11 +40,11 @@ func (s *Service) GetPriceGroup(
 
 func (s *Service) UpdatePriceGroup(
 	ctx context.Context,
-	req *billing.PriceGroup,
-	res *billing.PriceGroup,
+	req *billingpb.PriceGroup,
+	res *billingpb.PriceGroup,
 ) error {
 
-	pg := &billing.PriceGroup{
+	pg := &billingpb.PriceGroup{
 		Currency:      req.Currency,
 		Region:        req.Region,
 		InflationRate: req.InflationRate,
@@ -90,8 +88,8 @@ func (s *Service) UpdatePriceGroup(
 
 func (s *Service) GetPriceGroupByCountry(
 	ctx context.Context,
-	req *grpc.PriceGroupByCountryRequest,
-	res *billing.PriceGroup,
+	req *billingpb.PriceGroupByCountryRequest,
+	res *billingpb.PriceGroup,
 ) error {
 	country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 
@@ -114,8 +112,8 @@ func (s *Service) GetPriceGroupByCountry(
 
 func (s *Service) GetPriceGroupCurrencies(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *grpc.PriceGroupCurrenciesResponse,
+	req *billingpb.EmptyRequest,
+	res *billingpb.PriceGroupCurrenciesResponse,
 ) error {
 	regions, err := s.priceGroupRepository.GetAll(ctx)
 
@@ -138,8 +136,8 @@ func (s *Service) GetPriceGroupCurrencies(
 
 func (s *Service) GetPriceGroupCurrencyByRegion(
 	ctx context.Context,
-	req *grpc.PriceGroupByRegionRequest,
-	res *grpc.PriceGroupCurrenciesResponse,
+	req *billingpb.PriceGroupByRegionRequest,
+	res *billingpb.PriceGroupCurrenciesResponse,
 ) error {
 	region, err := s.priceGroupRepository.GetByRegion(ctx, req.Region)
 
@@ -155,7 +153,7 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 		return err
 	}
 
-	regions := []*billing.PriceGroup{region}
+	regions := []*billingpb.PriceGroup{region}
 	list := s.makePriceGroupCurrencyList(regions, countries)
 	res.Region = list
 
@@ -164,8 +162,8 @@ func (s *Service) GetPriceGroupCurrencyByRegion(
 
 func (s *Service) GetRecommendedPriceByPriceGroup(
 	ctx context.Context,
-	req *grpc.RecommendedPriceRequest,
-	res *grpc.RecommendedPriceResponse,
+	req *billingpb.RecommendedPriceRequest,
+	res *billingpb.RecommendedPriceResponse,
 ) error {
 	regions, err := s.priceGroupRepository.GetAll(ctx)
 
@@ -191,7 +189,7 @@ func (s *Service) GetRecommendedPriceByPriceGroup(
 			return err
 		}
 
-		res.RecommendedPrice = append(res.RecommendedPrice, &billing.RecommendedPrice{
+		res.RecommendedPrice = append(res.RecommendedPrice, &billingpb.RecommendedPrice{
 			Amount:   price,
 			Region:   region.Region,
 			Currency: region.Currency,
@@ -201,12 +199,12 @@ func (s *Service) GetRecommendedPriceByPriceGroup(
 	return nil
 }
 
-func (s *Service) getPriceTableRange(pt *billing.PriceTable, amount float64) *billing.PriceTableRange {
-	var rng *billing.PriceTableRange
+func (s *Service) getPriceTableRange(pt *billingpb.PriceTable, amount float64) *billingpb.PriceTableRange {
+	var rng *billingpb.PriceTableRange
 
 	for _, item := range pt.Ranges {
 		if item.From < amount && item.To >= amount {
-			rng = &billing.PriceTableRange{
+			rng = &billingpb.PriceTableRange{
 				From:     item.From,
 				To:       item.To,
 				Position: item.Position,
@@ -220,7 +218,7 @@ func (s *Service) getPriceTableRange(pt *billing.PriceTable, amount float64) *bi
 	delta := item.To - item.From
 	step := math.Ceil((amount - item.To) / delta)
 
-	return &billing.PriceTableRange{
+	return &billingpb.PriceTableRange{
 		From:     item.From + (delta * step),
 		To:       item.To + (delta * step),
 		Position: int32(len(pt.Ranges) + int(step) - 1),
@@ -229,8 +227,8 @@ func (s *Service) getPriceTableRange(pt *billing.PriceTable, amount float64) *bi
 
 func (s *Service) getRecommendedPriceForRegion(
 	ctx context.Context,
-	region *billing.PriceGroup,
-	rng *billing.PriceTableRange,
+	region *billingpb.PriceGroup,
+	rng *billingpb.PriceTableRange,
 	amount float64,
 ) (float64, error) {
 	table, err := s.priceTable.GetByRegion(ctx, region.Region)
@@ -239,7 +237,7 @@ func (s *Service) getRecommendedPriceForRegion(
 		return 0, err
 	}
 
-	regionRange := &billing.PriceTableRange{Position: rng.Position}
+	regionRange := &billingpb.PriceTableRange{Position: rng.Position}
 
 	if int(rng.Position) >= len(table.Ranges) {
 		item := table.Ranges[len(table.Ranges)-1]
@@ -269,8 +267,8 @@ func (s *Service) getRecommendedPriceForRegion(
 
 func (s *Service) GetRecommendedPriceByConversion(
 	ctx context.Context,
-	req *grpc.RecommendedPriceRequest,
-	res *grpc.RecommendedPriceResponse,
+	req *billingpb.RecommendedPriceRequest,
+	res *billingpb.RecommendedPriceResponse,
 ) error {
 	regions, err := s.priceGroupRepository.GetAll(ctx)
 
@@ -287,7 +285,7 @@ func (s *Service) GetRecommendedPriceByConversion(
 			return err
 		}
 
-		res.RecommendedPrice = append(res.RecommendedPrice, &billing.RecommendedPrice{
+		res.RecommendedPrice = append(res.RecommendedPrice, &billingpb.RecommendedPrice{
 			Amount:   s.calculatePriceWithFraction(region.Fraction, amount),
 			Region:   region.Region,
 			Currency: region.Currency,
@@ -297,9 +295,9 @@ func (s *Service) GetRecommendedPriceByConversion(
 	return nil
 }
 
-func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceGroupByRegionRequest, rsp *grpc.GetPriceGroupByRegionResponse) error {
+func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *billingpb.GetPriceGroupByRegionRequest, rsp *billingpb.GetPriceGroupByRegionResponse) error {
 	group, err := s.priceGroupRepository.GetByRegion(ctx, req.Region)
-	rsp.Status = our.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	if err != nil {
 		zap.L().Error(
@@ -307,7 +305,7 @@ func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceG
 			zap.Error(err),
 			zap.Any("region", req.Region),
 		)
-		rsp.Status = our.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = priceGroupErrorNotFound
 		return nil
 	}
@@ -318,12 +316,12 @@ func (s *Service) GetPriceGroupByRegion(ctx context.Context, req *grpc.GetPriceG
 }
 
 func (s *Service) getPriceInCurrencyByAmount(ctx context.Context, targetCurrency string, originalCurrency string, amount float64) (float64, error) {
-	req := &currencies.ExchangeCurrencyCurrentCommonRequest{
+	req := &currenciespb.ExchangeCurrencyCurrentCommonRequest{
 		Amount:            amount,
 		From:              originalCurrency,
 		To:                targetCurrency,
-		RateType:          curPkg.RateTypeOxr,
-		ExchangeDirection: curPkg.ExchangeDirectionSell,
+		RateType:          currenciespb.RateTypeOxr,
+		ExchangeDirection: currenciespb.ExchangeDirectionSell,
 	}
 	res, err := s.curService.ExchangeCurrencyCurrentCommon(ctx, req)
 
@@ -334,14 +332,14 @@ func (s *Service) getPriceInCurrencyByAmount(ctx context.Context, targetCurrency
 	return res.ExchangedAmount, nil
 }
 
-func (s *Service) makePriceGroupCurrencyList(regions []*billing.PriceGroup, countries *billing.CountriesList) []*grpc.PriceGroupRegions {
-	curr := map[string]*grpc.PriceGroupRegions{}
+func (s *Service) makePriceGroupCurrencyList(regions []*billingpb.PriceGroup, countries *billingpb.CountriesList) []*billingpb.PriceGroupRegions {
+	curr := map[string]*billingpb.PriceGroupRegions{}
 
 	for _, region := range regions {
 		if curr[region.Currency] == nil {
-			curr[region.Currency] = &grpc.PriceGroupRegions{
+			curr[region.Currency] = &billingpb.PriceGroupRegions{
 				Currency: region.Currency,
-				Regions:  []*grpc.PriceGroupRegion{},
+				Regions:  []*billingpb.PriceGroupRegion{},
 			}
 		}
 
@@ -354,14 +352,14 @@ func (s *Service) makePriceGroupCurrencyList(regions []*billing.PriceGroup, coun
 
 		curr[region.Currency].Regions = append(
 			curr[region.Currency].Regions,
-			&grpc.PriceGroupRegion{
+			&billingpb.PriceGroupRegion{
 				Region:  region.Region,
 				Country: c,
 			},
 		)
 	}
 
-	var list []*grpc.PriceGroupRegions
+	var list []*billingpb.PriceGroupRegions
 	for _, entry := range curr {
 		list = append(list, entry)
 	}

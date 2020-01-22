@@ -5,7 +5,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -54,10 +54,10 @@ func (suite *CountryTestSuite) TestCountry_NewRefundRepository_Ok() {
 }
 
 func (suite *RefundTestSuite) TestRefund_Insert_Ok() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 	}
@@ -71,10 +71,10 @@ func (suite *RefundTestSuite) TestRefund_Insert_Ok() {
 
 // TODO: Use the DB mock for return error on insert entry
 func (suite *RefundTestSuite) TestRefund_Insert_DatabaseError() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 		CreatedAt: &timestamp.Timestamp{Seconds: -100000000000000},
@@ -92,10 +92,10 @@ func (suite *RefundTestSuite) TestRefund_Insert_DontHaveDbErrorButDontInserted()
 }
 
 func (suite *RefundTestSuite) TestRefund_Update_Ok() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 		Reason: "test1",
@@ -120,10 +120,10 @@ func (suite *RefundTestSuite) TestRefund_Update_Ok() {
 
 // TODO: Use the DB mock for return error on insert entry
 func (suite *RefundTestSuite) TestRefund_Update_Error() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 	}
@@ -137,10 +137,10 @@ func (suite *RefundTestSuite) TestRefund_Update_Error() {
 
 // TODO: Use the DB mock for to skip really updating the entry to DB
 func (suite *RefundTestSuite) TestRefund_Update_DontHaveDbErrorButDontUpdated() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 		Reason: "test1",
@@ -165,10 +165,10 @@ func (suite *RefundTestSuite) TestRefund_Update_DontHaveDbErrorButDontUpdated() 
 }
 
 func (suite *RefundTestSuite) TestRefund_GetById_Ok() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id:   primitive.NewObjectID().Hex(),
 			Uuid: "uuid",
 		},
@@ -180,7 +180,7 @@ func (suite *RefundTestSuite) TestRefund_GetById_Ok() {
 		ExternalId:     primitive.NewObjectID().Hex(),
 		IsChargeback:   true,
 		SalesTax:       3,
-		PayerData: &billing.RefundPayerData{
+		PayerData: &billingpb.RefundPayerData{
 			Country: "CTR",
 			State:   "state",
 		},
@@ -196,10 +196,10 @@ func (suite *RefundTestSuite) TestRefund_GetById_Ok() {
 }
 
 func (suite *RefundTestSuite) TestRefund_GetById_ErrorNotFound() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id:   primitive.NewObjectID().Hex(),
 			Uuid: "uuid",
 		},
@@ -211,7 +211,7 @@ func (suite *RefundTestSuite) TestRefund_GetById_ErrorNotFound() {
 		ExternalId:     primitive.NewObjectID().Hex(),
 		IsChargeback:   true,
 		SalesTax:       3,
-		PayerData: &billing.RefundPayerData{
+		PayerData: &billingpb.RefundPayerData{
 			Country: "CTR",
 			State:   "state",
 		},
@@ -227,10 +227,10 @@ func (suite *RefundTestSuite) TestRefund_GetById_ErrorNotFound() {
 }
 
 func (suite *RefundTestSuite) TestRefund_FindByOrderId_Ok() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id:   primitive.NewObjectID().Hex(),
 			Uuid: "uuid",
 		},
@@ -242,7 +242,7 @@ func (suite *RefundTestSuite) TestRefund_FindByOrderId_Ok() {
 		ExternalId:     primitive.NewObjectID().Hex(),
 		IsChargeback:   true,
 		SalesTax:       3,
-		PayerData: &billing.RefundPayerData{
+		PayerData: &billingpb.RefundPayerData{
 			Country: "CTR",
 			State:   "state",
 		},
@@ -259,10 +259,10 @@ func (suite *RefundTestSuite) TestRefund_FindByOrderId_Ok() {
 }
 
 func (suite *RefundTestSuite) TestRefund_FindByOrderId_Empty() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id:   primitive.NewObjectID().Hex(),
 			Uuid: "uuid",
 		},
@@ -274,7 +274,7 @@ func (suite *RefundTestSuite) TestRefund_FindByOrderId_Empty() {
 		ExternalId:     primitive.NewObjectID().Hex(),
 		IsChargeback:   true,
 		SalesTax:       3,
-		PayerData: &billing.RefundPayerData{
+		PayerData: &billingpb.RefundPayerData{
 			Country: "CTR",
 			State:   "state",
 		},
@@ -290,10 +290,10 @@ func (suite *RefundTestSuite) TestRefund_FindByOrderId_Empty() {
 }
 
 func (suite *RefundTestSuite) TestRefund_CountByOrderUuid_Ok() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 	}
@@ -306,10 +306,10 @@ func (suite *RefundTestSuite) TestRefund_CountByOrderUuid_Ok() {
 }
 
 func (suite *RefundTestSuite) TestRefund_CountByOrderUuid_Empty() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 	}
@@ -322,10 +322,10 @@ func (suite *RefundTestSuite) TestRefund_CountByOrderUuid_Empty() {
 }
 
 func (suite *RefundTestSuite) TestRefund_GetAmountByOrderId_Ok() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 		Status: pkg.RefundStatusCompleted,
@@ -340,10 +340,10 @@ func (suite *RefundTestSuite) TestRefund_GetAmountByOrderId_Ok() {
 }
 
 func (suite *RefundTestSuite) TestRefund_GetAmountByOrderId_SkipRejectStatus() {
-	refund := &billing.Refund{
+	refund := &billingpb.Refund{
 		Id:        primitive.NewObjectID().Hex(),
 		CreatorId: primitive.NewObjectID().Hex(),
-		OriginalOrder: &billing.RefundOrder{
+		OriginalOrder: &billingpb.RefundOrder{
 			Id: primitive.NewObjectID().Hex(),
 		},
 		Status: pkg.RefundStatusRejected,

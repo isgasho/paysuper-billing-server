@@ -7,7 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -101,7 +101,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_Insert_ErrorDb() {
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_MultipleInsert_Ok() {
-	groups := []*billing.PriceGroup{suite.getPriceGroupTemplate()}
+	groups := []*billingpb.PriceGroup{suite.getPriceGroupTemplate()}
 
 	cache := &mocks.CacheInterface{}
 	key := fmt.Sprintf(cachePriceGroupId, groups[0].Id)
@@ -122,7 +122,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_MultipleInsert_Ok() {
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_MultipleInsert_ErrorDb() {
-	groups := []*billing.PriceGroup{suite.getPriceGroupTemplate()}
+	groups := []*billingpb.PriceGroup{suite.getPriceGroupTemplate()}
 	groups[0].CreatedAt = &timestamp.Timestamp{Seconds: -100000000000000}
 	err := suite.repository.MultipleInsert(context.TODO(), groups)
 	assert.Error(suite.T(), err)
@@ -280,7 +280,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetById_OkByCache() {
 	cache.On("Set", key, mock.Anything, time.Duration(0)).Return(nil)
 	cache.On("Set", fmt.Sprintf(cachePriceGroupRegion, group.Region), mock.Anything, time.Duration(0)).Return(nil)
 	cache.On("Delete", cachePriceGroupAll).Return(nil)
-	cache.On("Get", key, billing.PriceGroup{}).Return(nil)
+	cache.On("Get", key, billingpb.PriceGroup{}).Return(nil)
 	suite.repository.cache = cache
 
 	err := suite.repository.Insert(context.TODO(), group)
@@ -288,7 +288,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetById_OkByCache() {
 
 	group2, err := suite.repository.GetById(context.TODO(), group.Id)
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.PriceGroup{}, group2)
+	assert.IsType(suite.T(), &billingpb.PriceGroup{}, group2)
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetById_SkipInactive() {
@@ -395,7 +395,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetByRegion_OkByCache() {
 	cache.On("Set", fmt.Sprintf(cachePriceGroupId, group.Id), mock.Anything, time.Duration(0)).Return(nil)
 	cache.On("Set", fmt.Sprintf(cachePriceGroupRegion, group.Region), mock.Anything, time.Duration(0)).Return(nil)
 	cache.On("Delete", cachePriceGroupAll).Return(nil)
-	cache.On("Get", fmt.Sprintf(cachePriceGroupRegion, group.Region), billing.PriceGroup{}).Return(nil)
+	cache.On("Get", fmt.Sprintf(cachePriceGroupRegion, group.Region), billingpb.PriceGroup{}).Return(nil)
 	suite.repository.cache = cache
 
 	err := suite.repository.Insert(context.TODO(), group)
@@ -403,7 +403,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetByRegion_OkByCache() {
 
 	group2, err := suite.repository.GetByRegion(context.TODO(), group.Region)
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.PriceGroup{}, group2)
+	assert.IsType(suite.T(), &billingpb.PriceGroup{}, group2)
 }
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetByRegion_SkipInactive() {
@@ -426,7 +426,7 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_GetByRegion_SkipInactive() {
 
 func (suite *PriceGroupTestSuite) TestPriceGroup_GetAll_OkByCache() {
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", cachePriceGroupAll, []*billing.PriceGroup{}).Return(nil)
+	cache.On("Get", cachePriceGroupAll, []*billingpb.PriceGroup{}).Return(nil)
 	suite.repository.cache = cache
 
 	_, err := suite.repository.GetAll(context.TODO())
@@ -598,8 +598,8 @@ func (suite *PriceGroupTestSuite) TestPriceGroup_updateCache_Ok() {
 	assert.NoError(suite.T(), suite.repository.updateCache(group))
 }
 
-func (suite *PriceGroupTestSuite) getPriceGroupTemplate() *billing.PriceGroup {
-	return &billing.PriceGroup{
+func (suite *PriceGroupTestSuite) getPriceGroupTemplate() *billingpb.PriceGroup {
+	return &billingpb.PriceGroup{
 		Id:       primitive.NewObjectID().Hex(),
 		Currency: "USD",
 		Region:   "",

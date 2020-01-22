@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -53,9 +53,9 @@ func (suite *CountryTestSuite) TestCountry_NewOrderRepository_Ok() {
 }
 
 func (suite *OrderTestSuite) TestOrder_Insert_Ok() {
-	order := &billing.Order{
+	order := &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			MerchantId: primitive.NewObjectID().Hex(),
 		},
@@ -70,9 +70,9 @@ func (suite *OrderTestSuite) TestOrder_Insert_Ok() {
 
 // TODO: Use the DB mock for return error on insert entry
 func (suite *OrderTestSuite) TestOrder_Insert_Error() {
-	order := &billing.Order{
+	order := &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			MerchantId: primitive.NewObjectID().Hex(),
 		},
@@ -90,9 +90,9 @@ func (suite *OrderTestSuite) TestOrder_Insert_DontHaveDbErrorButDontInserted() {
 }
 
 func (suite *OrderTestSuite) TestOrder_Update_Ok() {
-	order := &billing.Order{
+	order := &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			MerchantId: primitive.NewObjectID().Hex(),
 		},
@@ -118,9 +118,9 @@ func (suite *OrderTestSuite) TestOrder_Update_Ok() {
 
 // TODO: Use the DB mock for return error on insert entry
 func (suite *OrderTestSuite) TestOrder_Update_Error() {
-	order := &billing.Order{
+	order := &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			MerchantId: primitive.NewObjectID().Hex(),
 		},
@@ -136,9 +136,9 @@ func (suite *OrderTestSuite) TestOrder_Update_Error() {
 
 // TODO: Use the DB mock for to skip really updating the entry to DB
 func (suite *OrderTestSuite) TestOrder_Update_DontHaveDbErrorButDontUpdated() {
-	order := &billing.Order{
+	order := &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:         primitive.NewObjectID().Hex(),
 			MerchantId: primitive.NewObjectID().Hex(),
 		},
@@ -221,7 +221,7 @@ func (suite *OrderTestSuite) TestOrder_GetByUuid_Error() {
 
 func (suite *OrderTestSuite) TestOrder_GetByRefundReceiptNumber_Ok() {
 	order := suite.getOrderTemplate()
-	order.Refund = &billing.OrderNotificationRefund{ReceiptNumber: "number"}
+	order.Refund = &billingpb.OrderNotificationRefund{ReceiptNumber: "number"}
 	err := suite.repository.Insert(context.TODO(), order)
 	assert.NoError(suite.T(), err)
 
@@ -250,7 +250,7 @@ func (suite *OrderTestSuite) TestOrder_GetByRefundReceiptNumber_Error() {
 
 func (suite *OrderTestSuite) TestOrder_GetByProjectOrderId_Ok() {
 	order := suite.getOrderTemplate()
-	order.Refund = &billing.OrderNotificationRefund{ReceiptNumber: "number"}
+	order.Refund = &billingpb.OrderNotificationRefund{ReceiptNumber: "number"}
 	err := suite.repository.Insert(context.TODO(), order)
 	assert.NoError(suite.T(), err)
 
@@ -287,10 +287,10 @@ func (suite *OrderTestSuite) TestOrder_GetByProjectOrderId_ErrorNotFound_Invalid
 	assert.Nil(suite.T(), order2)
 }
 
-func (suite *OrderTestSuite) getOrderTemplate() *billing.Order {
-	return &billing.Order{
+func (suite *OrderTestSuite) getOrderTemplate() *billingpb.Order {
+	return &billingpb.Order{
 		Id: primitive.NewObjectID().Hex(),
-		Project: &billing.ProjectOrder{
+		Project: &billingpb.ProjectOrder{
 			Id:                      primitive.NewObjectID().Hex(),
 			MerchantId:              primitive.NewObjectID().Hex(),
 			Status:                  1,
@@ -361,7 +361,7 @@ func (suite *OrderTestSuite) getOrderTemplate() *billing.Order {
 		UserAddressDataRequired:     true,
 		VatPayer:                    "VatPayer",
 		VirtualCurrencyAmount:       0,
-		Items:                       []*billing.OrderItem{},
+		Items:                       []*billingpb.OrderItem{},
 		UpdatedAt:                   &timestamp.Timestamp{Seconds: 100},
 		CreatedAt:                   &timestamp.Timestamp{Seconds: 100},
 		CanceledAt:                  &timestamp.Timestamp{Seconds: 100},

@@ -3,22 +3,22 @@ package mocks
 import (
 	"context"
 	"github.com/micro/go-micro/client"
-	"github.com/paysuper/paysuper-tax-service/proto"
+	"github.com/paysuper/paysuper-proto/go/taxpb"
 )
 
 type TaxServiceOkMock struct{}
 
-func NewTaxServiceOkMock() tax_service.TaxService {
+func NewTaxServiceOkMock() taxpb.TaxService {
 	return &TaxServiceOkMock{}
 }
 
 func (m *TaxServiceOkMock) GetRate(
 	ctx context.Context,
-	in *tax_service.GeoIdentity,
+	in *taxpb.GeoIdentity,
 	opts ...client.CallOption,
-) (*tax_service.TaxRate, error) {
+) (*taxpb.TaxRate, error) {
 	if in.Country == "US" {
-		return &tax_service.TaxRate{
+		return &taxpb.TaxRate{
 			Id:      1,
 			Zip:     "98001",
 			Country: "US",
@@ -27,7 +27,7 @@ func (m *TaxServiceOkMock) GetRate(
 			Rate:    0.19,
 		}, nil
 	}
-	return &tax_service.TaxRate{
+	return &taxpb.TaxRate{
 		Id:      0,
 		Zip:     "190000",
 		Country: "RU",
@@ -40,24 +40,24 @@ func (m *TaxServiceOkMock) GetRate(
 
 func (m *TaxServiceOkMock) GetRates(
 	ctx context.Context,
-	in *tax_service.GetRatesRequest,
+	in *taxpb.GetRatesRequest,
 	opts ...client.CallOption,
-) (*tax_service.GetRatesResponse, error) {
-	return &tax_service.GetRatesResponse{}, nil
+) (*taxpb.GetRatesResponse, error) {
+	return &taxpb.GetRatesResponse{}, nil
 }
 
 func (m *TaxServiceOkMock) CreateOrUpdate(
 	ctx context.Context,
-	in *tax_service.TaxRate,
+	in *taxpb.TaxRate,
 	opts ...client.CallOption,
-) (*tax_service.TaxRate, error) {
-	return &tax_service.TaxRate{}, nil
+) (*taxpb.TaxRate, error) {
+	return &taxpb.TaxRate{}, nil
 }
 
 func (m *TaxServiceOkMock) DeleteRateById(
 	ctx context.Context,
-	in *tax_service.DeleteRateRequest,
+	in *taxpb.DeleteRateRequest,
 	opts ...client.CallOption,
-) (*tax_service.DeleteRateResponse, error) {
-	return &tax_service.DeleteRateResponse{}, nil
+) (*taxpb.DeleteRateResponse, error) {
+	return &taxpb.DeleteRateResponse{}, nil
 }

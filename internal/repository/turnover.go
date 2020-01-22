@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
@@ -21,7 +21,7 @@ func NewTurnoverRepository(db mongodb.SourceInterface, cache database.CacheInter
 	return s
 }
 
-func (r *turnoverRepository) Upsert(ctx context.Context, turnover *billing.AnnualTurnover) error {
+func (r *turnoverRepository) Upsert(ctx context.Context, turnover *billingpb.AnnualTurnover) error {
 	filter := bson.M{
 		"year":                 turnover.Year,
 		"country":              turnover.Country,
@@ -57,8 +57,8 @@ func (r *turnoverRepository) Upsert(ctx context.Context, turnover *billing.Annua
 	return nil
 }
 
-func (r *turnoverRepository) Get(ctx context.Context, operatingCompanyId, country string, year int) (*billing.AnnualTurnover, error) {
-	data := &billing.AnnualTurnover{}
+func (r *turnoverRepository) Get(ctx context.Context, operatingCompanyId, country string, year int) (*billingpb.AnnualTurnover, error) {
+	data := &billingpb.AnnualTurnover{}
 	key := fmt.Sprintf(cacheTurnoverKey, operatingCompanyId, country, year)
 
 	if err := r.cache.Get(key, data); err == nil {

@@ -7,10 +7,9 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -40,27 +39,27 @@ var (
 )
 
 type MoneyBackCostSystemInterface interface {
-	MultipleInsert(obj []*billing.MoneyBackCostSystem) error
-	Update(obj *billing.MoneyBackCostSystem) error
+	MultipleInsert(obj []*billingpb.MoneyBackCostSystem) error
+	Update(obj *billingpb.MoneyBackCostSystem) error
 	Get(name, payoutCurrency, undoReason, region, country, mccCode, operatingCompanyId string, paymentStage int32) (c []*internalPkg.MoneyBackCostSystemSet, err error)
-	GetById(id string) (*billing.MoneyBackCostSystem, error)
-	Delete(obj *billing.MoneyBackCostSystem) error
-	GetAll() (*billing.MoneyBackCostSystemList, error)
+	GetById(id string) (*billingpb.MoneyBackCostSystem, error)
+	Delete(obj *billingpb.MoneyBackCostSystem) error
+	GetAll() (*billingpb.MoneyBackCostSystemList, error)
 }
 
 func (s *Service) GetAllMoneyBackCostSystem(
 	ctx context.Context,
-	req *grpc.EmptyRequest,
-	res *grpc.MoneyBackCostSystemListResponse,
+	req *billingpb.EmptyRequest,
+	res *billingpb.MoneyBackCostSystemListResponse,
 ) error {
 	val, err := s.moneyBackCostSystem.GetAll(ctx)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemGetAll
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = val
 
 	return nil
@@ -68,17 +67,17 @@ func (s *Service) GetAllMoneyBackCostSystem(
 
 func (s *Service) GetMoneyBackCostSystem(
 	ctx context.Context,
-	req *billing.MoneyBackCostSystemRequest,
-	res *grpc.MoneyBackCostSystemResponse,
+	req *billingpb.MoneyBackCostSystemRequest,
+	res *billingpb.MoneyBackCostSystemResponse,
 ) error {
 	val, err := s.getMoneyBackCostSystem(ctx, req)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errorMoneybackSystemGet
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = val
 
 	return nil
@@ -86,15 +85,15 @@ func (s *Service) GetMoneyBackCostSystem(
 
 func (s *Service) SetMoneyBackCostSystem(
 	ctx context.Context,
-	req *billing.MoneyBackCostSystem,
-	res *grpc.MoneyBackCostSystemResponse,
+	req *billingpb.MoneyBackCostSystem,
+	res *billingpb.MoneyBackCostSystemResponse,
 ) error {
 	var err error
 
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 		if err != nil {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorCountryNotFound
 			return nil
 		}
@@ -102,35 +101,35 @@ func (s *Service) SetMoneyBackCostSystem(
 	} else {
 		exists := s.country.IsTariffRegionSupported(req.Region)
 		if !exists {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
 			return nil
 		}
 	}
 
-	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currenciespb.EmptyRequest{})
 	if err != nil {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackSystemCurrency
 		return nil
 	}
 	if !helper.Contains(sCurr.Currencies, req.PayoutCurrency) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackSystemCurrency
 		return nil
 	}
 	if !helper.Contains(sCurr.Currencies, req.FixAmountCurrency) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackSystemCurrency
 		return nil
 	}
 	if !helper.Contains(pkg.SupportedMccCodes, req.MccCode) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackSystemMccCode
 		return nil
 	}
 	if !s.operatingCompany.Exists(ctx, req.OperatingCompanyId) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackSystemOperatingCompanyNotExists
 		return nil
 	}
@@ -141,7 +140,7 @@ func (s *Service) SetMoneyBackCostSystem(
 	if req.Id != "" {
 		val, err := s.moneyBackCostSystem.GetById(ctx, req.Id)
 		if err != nil {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorMoneybackSystemSetFailed
 			return nil
 		}
@@ -154,18 +153,18 @@ func (s *Service) SetMoneyBackCostSystem(
 		err = s.moneyBackCostSystem.Insert(ctx, req)
 	}
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemSetFailed
 
 		if mongodb.IsDuplicate(err) {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorMoneybackCostAlreadyExist
 		}
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = req
 
 	return nil
@@ -173,29 +172,29 @@ func (s *Service) SetMoneyBackCostSystem(
 
 func (s *Service) DeleteMoneyBackCostSystem(
 	ctx context.Context,
-	req *billing.PaymentCostDeleteRequest,
-	res *grpc.ResponseError,
+	req *billingpb.PaymentCostDeleteRequest,
+	res *billingpb.ResponseError,
 ) error {
 	pc, err := s.moneyBackCostSystem.GetById(ctx, req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.moneyBackCostSystem.Delete(ctx, pc)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMoneybackSystemDelete
 		return nil
 	}
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
 func (s *Service) getMoneyBackCostSystem(
 	ctx context.Context,
-	req *billing.MoneyBackCostSystemRequest,
-) (*billing.MoneyBackCostSystem, error) {
+	req *billingpb.MoneyBackCostSystemRequest,
+) (*billingpb.MoneyBackCostSystem, error) {
 	val, err := s.moneyBackCostSystem.Get(
 		ctx,
 		req.Name,
@@ -241,7 +240,7 @@ func newMoneyBackCostSystemService(svc *Service) *MoneyBackCostSystem {
 	return s
 }
 
-func (h *MoneyBackCostSystem) Insert(ctx context.Context, obj *billing.MoneyBackCostSystem) error {
+func (h *MoneyBackCostSystem) Insert(ctx context.Context, obj *billingpb.MoneyBackCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.CreatedAt = ptypes.TimestampNow()
@@ -264,7 +263,7 @@ func (h *MoneyBackCostSystem) Insert(ctx context.Context, obj *billing.MoneyBack
 	return h.updateCaches(obj)
 }
 
-func (h MoneyBackCostSystem) MultipleInsert(ctx context.Context, obj []*billing.MoneyBackCostSystem) error {
+func (h MoneyBackCostSystem) MultipleInsert(ctx context.Context, obj []*billingpb.MoneyBackCostSystem) error {
 	c := make([]interface{}, len(obj))
 
 	for i, v := range obj {
@@ -295,7 +294,7 @@ func (h MoneyBackCostSystem) MultipleInsert(ctx context.Context, obj []*billing.
 	return nil
 }
 
-func (h MoneyBackCostSystem) Update(ctx context.Context, obj *billing.MoneyBackCostSystem) error {
+func (h MoneyBackCostSystem) Update(ctx context.Context, obj *billingpb.MoneyBackCostSystem) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.UpdatedAt = ptypes.TimestampNow()
@@ -414,8 +413,8 @@ func (h MoneyBackCostSystem) Get(
 	return c, nil
 }
 
-func (h MoneyBackCostSystem) GetById(ctx context.Context, id string) (*billing.MoneyBackCostSystem, error) {
-	var c billing.MoneyBackCostSystem
+func (h MoneyBackCostSystem) GetById(ctx context.Context, id string) (*billingpb.MoneyBackCostSystem, error) {
+	var c billingpb.MoneyBackCostSystem
 	key := fmt.Sprintf(cacheMoneyBackCostSystemKeyId, id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
@@ -434,7 +433,7 @@ func (h MoneyBackCostSystem) GetById(ctx context.Context, id string) (*billing.M
 	return &c, nil
 }
 
-func (h MoneyBackCostSystem) Delete(ctx context.Context, obj *billing.MoneyBackCostSystem) error {
+func (h MoneyBackCostSystem) Delete(ctx context.Context, obj *billingpb.MoneyBackCostSystem) error {
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = false
 
@@ -448,8 +447,8 @@ func (h MoneyBackCostSystem) Delete(ctx context.Context, obj *billing.MoneyBackC
 	return h.updateCaches(obj)
 }
 
-func (h MoneyBackCostSystem) GetAll(ctx context.Context) (*billing.MoneyBackCostSystemList, error) {
-	var c = &billing.MoneyBackCostSystemList{}
+func (h MoneyBackCostSystem) GetAll(ctx context.Context) (*billingpb.MoneyBackCostSystemList, error) {
+	var c = &billingpb.MoneyBackCostSystemList{}
 	key := cacheMoneyBackCostSystemAll
 	err := h.svc.cacher.Get(key, c)
 
@@ -475,7 +474,7 @@ func (h MoneyBackCostSystem) GetAll(ctx context.Context) (*billing.MoneyBackCost
 	return c, nil
 }
 
-func (h MoneyBackCostSystem) updateCaches(obj *billing.MoneyBackCostSystem) (err error) {
+func (h MoneyBackCostSystem) updateCaches(obj *billingpb.MoneyBackCostSystem) (err error) {
 	groupKeys := []string{
 		fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId),
 		fmt.Sprintf(cacheMoneyBackCostSystemKey, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, "", obj.PaymentStage, obj.MccCode, obj.OperatingCompanyId),

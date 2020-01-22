@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -171,12 +171,12 @@ func (suite *TurnoverTestSuite) TestTurnover_Get_ReturnByCache() {
 	key := fmt.Sprintf(cacheTurnoverKey, turnover.OperatingCompanyId, turnover.Country, turnover.Year)
 
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", key, &billing.AnnualTurnover{}).Return(nil)
+	cache.On("Get", key, &billingpb.AnnualTurnover{}).Return(nil)
 	suite.repository.cache = cache
 
 	turnover2, err := suite.repository.Get(context.TODO(), turnover.OperatingCompanyId, turnover.Country, int(turnover.Year))
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.AnnualTurnover{}, turnover2)
+	assert.IsType(suite.T(), &billingpb.AnnualTurnover{}, turnover2)
 }
 
 func (suite *TurnoverTestSuite) TestTurnover_Get_SkipSetToCacheError() {
@@ -185,7 +185,7 @@ func (suite *TurnoverTestSuite) TestTurnover_Get_SkipSetToCacheError() {
 
 	cache := &mocks.CacheInterface{}
 	cache.On("Set", key, turnover, time.Duration(0)).Times(1).Return(nil)
-	cache.On("Get", key, &billing.AnnualTurnover{}).Return(errors.New("error"))
+	cache.On("Get", key, &billingpb.AnnualTurnover{}).Return(errors.New("error"))
 	cache.On("Set", key, mock.Anything, time.Duration(0)).Times(2).Return(errors.New("error"))
 	suite.repository.cache = cache
 
@@ -236,8 +236,8 @@ func (suite *TurnoverTestSuite) TestTurnover_CountAll_DbError() {
 	assert.Equal(suite.T(), int64(0), cnt)
 }
 
-func (suite *TurnoverTestSuite) getTurnoverTemplate() *billing.AnnualTurnover {
-	return &billing.AnnualTurnover{
+func (suite *TurnoverTestSuite) getTurnoverTemplate() *billingpb.AnnualTurnover {
+	return &billingpb.AnnualTurnover{
 		Currency:           "USD",
 		Country:            "US",
 		OperatingCompanyId: primitive.NewObjectID().Hex(),

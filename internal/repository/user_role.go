@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -21,7 +21,7 @@ func NewUserRoleRepository(db mongodb.SourceInterface, cache database.CacheInter
 	return s
 }
 
-func (h *userRoleRepository) AddMerchantUser(ctx context.Context, role *billing.UserRole) error {
+func (h *userRoleRepository) AddMerchantUser(ctx context.Context, role *billingpb.UserRole) error {
 	_, err := h.db.Collection(collectionMerchantUsersTable).InsertOne(ctx, role)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (h *userRoleRepository) AddMerchantUser(ctx context.Context, role *billing.
 	return nil
 }
 
-func (h *userRoleRepository) AddAdminUser(ctx context.Context, role *billing.UserRole) error {
+func (h *userRoleRepository) AddAdminUser(ctx context.Context, role *billingpb.UserRole) error {
 	_, err := h.db.Collection(collectionAdminUsersTable).InsertOne(ctx, role)
 
 	if err != nil {
@@ -55,7 +55,7 @@ func (h *userRoleRepository) AddAdminUser(ctx context.Context, role *billing.Use
 	return nil
 }
 
-func (h *userRoleRepository) UpdateMerchantUser(ctx context.Context, role *billing.UserRole) error {
+func (h *userRoleRepository) UpdateMerchantUser(ctx context.Context, role *billingpb.UserRole) error {
 	oid, err := primitive.ObjectIDFromHex(role.Id)
 
 	if err != nil {
@@ -97,7 +97,7 @@ func (h *userRoleRepository) UpdateMerchantUser(ctx context.Context, role *billi
 	return nil
 }
 
-func (h *userRoleRepository) UpdateAdminUser(ctx context.Context, role *billing.UserRole) error {
+func (h *userRoleRepository) UpdateAdminUser(ctx context.Context, role *billingpb.UserRole) error {
 	oid, err := primitive.ObjectIDFromHex(role.Id)
 
 	if err != nil {
@@ -127,8 +127,8 @@ func (h *userRoleRepository) UpdateAdminUser(ctx context.Context, role *billing.
 	return nil
 }
 
-func (h *userRoleRepository) GetAdminUserById(ctx context.Context, id string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetAdminUserById(ctx context.Context, id string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	oid, err := primitive.ObjectIDFromHex(id)
 
@@ -158,8 +158,8 @@ func (h *userRoleRepository) GetAdminUserById(ctx context.Context, id string) (*
 	return user, nil
 }
 
-func (h *userRoleRepository) GetMerchantUserById(ctx context.Context, id string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetMerchantUserById(ctx context.Context, id string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	oid, err := primitive.ObjectIDFromHex(id)
 
@@ -189,7 +189,7 @@ func (h *userRoleRepository) GetMerchantUserById(ctx context.Context, id string)
 	return user, nil
 }
 
-func (h *userRoleRepository) DeleteAdminUser(ctx context.Context, role *billing.UserRole) error {
+func (h *userRoleRepository) DeleteAdminUser(ctx context.Context, role *billingpb.UserRole) error {
 	oid, err := primitive.ObjectIDFromHex(role.Id)
 
 	if err != nil {
@@ -218,7 +218,7 @@ func (h *userRoleRepository) DeleteAdminUser(ctx context.Context, role *billing.
 	return nil
 }
 
-func (h *userRoleRepository) DeleteMerchantUser(ctx context.Context, role *billing.UserRole) error {
+func (h *userRoleRepository) DeleteMerchantUser(ctx context.Context, role *billingpb.UserRole) error {
 	oid, err := primitive.ObjectIDFromHex(role.Id)
 
 	if err != nil {
@@ -259,10 +259,10 @@ func (h *userRoleRepository) DeleteMerchantUser(ctx context.Context, role *billi
 	return nil
 }
 
-func (h *userRoleRepository) GetSystemAdmin(ctx context.Context) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetSystemAdmin(ctx context.Context) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
-	query := bson.M{"role": pkg.RoleSystemAdmin}
+	query := bson.M{"role": billingpb.RoleSystemAdmin}
 	err := h.db.Collection(collectionAdminUsersTable).FindOne(ctx, query).Decode(&user)
 
 	if err != nil {
@@ -278,8 +278,8 @@ func (h *userRoleRepository) GetSystemAdmin(ctx context.Context) (*billing.UserR
 	return user, nil
 }
 
-func (h *userRoleRepository) GetMerchantOwner(ctx context.Context, merchantId string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetMerchantOwner(ctx context.Context, merchantId string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	oid, err := primitive.ObjectIDFromHex(merchantId)
 
@@ -293,7 +293,7 @@ func (h *userRoleRepository) GetMerchantOwner(ctx context.Context, merchantId st
 		return nil, err
 	}
 
-	query := bson.M{"merchant_id": oid, "role": pkg.RoleMerchantOwner}
+	query := bson.M{"merchant_id": oid, "role": billingpb.RoleMerchantOwner}
 	err = h.db.Collection(collectionMerchantUsersTable).FindOne(ctx, query).Decode(&user)
 
 	if err != nil {
@@ -309,8 +309,8 @@ func (h *userRoleRepository) GetMerchantOwner(ctx context.Context, merchantId st
 	return user, nil
 }
 
-func (h *userRoleRepository) GetMerchantsForUser(ctx context.Context, userId string) ([]*billing.UserRole, error) {
-	var users []*billing.UserRole
+func (h *userRoleRepository) GetMerchantsForUser(ctx context.Context, userId string) ([]*billingpb.UserRole, error) {
+	var users []*billingpb.UserRole
 
 	if err := h.cache.Get(fmt.Sprintf(cacheUserMerchants, userId), users); err == nil {
 		return users, nil
@@ -368,8 +368,8 @@ func (h *userRoleRepository) GetMerchantsForUser(ctx context.Context, userId str
 	return users, nil
 }
 
-func (h *userRoleRepository) GetUsersForAdmin(ctx context.Context) ([]*billing.UserRole, error) {
-	var users []*billing.UserRole
+func (h *userRoleRepository) GetUsersForAdmin(ctx context.Context) ([]*billingpb.UserRole, error) {
+	var users []*billingpb.UserRole
 
 	cursor, err := h.db.Collection(collectionAdminUsersTable).Find(ctx, bson.M{})
 
@@ -397,8 +397,8 @@ func (h *userRoleRepository) GetUsersForAdmin(ctx context.Context) ([]*billing.U
 	return users, nil
 }
 
-func (h *userRoleRepository) GetUsersForMerchant(ctx context.Context, merchantId string) ([]*billing.UserRole, error) {
-	var users []*billing.UserRole
+func (h *userRoleRepository) GetUsersForMerchant(ctx context.Context, merchantId string) ([]*billingpb.UserRole, error) {
+	var users []*billingpb.UserRole
 
 	oid, err := primitive.ObjectIDFromHex(merchantId)
 
@@ -441,8 +441,8 @@ func (h *userRoleRepository) GetUsersForMerchant(ctx context.Context, merchantId
 	return users, nil
 }
 
-func (h *userRoleRepository) GetAdminUserByEmail(ctx context.Context, email string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetAdminUserByEmail(ctx context.Context, email string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	query := bson.M{"email": email}
 	err := h.db.Collection(collectionAdminUsersTable).FindOne(ctx, query).Decode(&user)
@@ -460,8 +460,8 @@ func (h *userRoleRepository) GetAdminUserByEmail(ctx context.Context, email stri
 	return user, nil
 }
 
-func (h *userRoleRepository) GetMerchantUserByEmail(ctx context.Context, merchantId string, email string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetMerchantUserByEmail(ctx context.Context, merchantId string, email string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	oid, err := primitive.ObjectIDFromHex(merchantId)
 
@@ -485,8 +485,8 @@ func (h *userRoleRepository) GetMerchantUserByEmail(ctx context.Context, merchan
 	return user, nil
 }
 
-func (h *userRoleRepository) GetAdminUserByUserId(ctx context.Context, userId string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetAdminUserByUserId(ctx context.Context, userId string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	oid, _ := primitive.ObjectIDFromHex(userId)
 	query := bson.M{"user_id": oid}
@@ -505,8 +505,8 @@ func (h *userRoleRepository) GetAdminUserByUserId(ctx context.Context, userId st
 	return user, nil
 }
 
-func (h *userRoleRepository) GetMerchantUserByUserId(ctx context.Context, merchantId string, id string) (*billing.UserRole, error) {
-	var user *billing.UserRole
+func (h *userRoleRepository) GetMerchantUserByUserId(ctx context.Context, merchantId string, id string) (*billingpb.UserRole, error) {
+	var user *billingpb.UserRole
 
 	oid, err := primitive.ObjectIDFromHex(id)
 

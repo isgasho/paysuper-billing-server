@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"github.com/ProtocolONE/geoip-service/pkg/proto"
 	"github.com/go-redis/redis"
-	casbinProto "github.com/paysuper/casbin-server/pkg/generated/api/proto/casbinpb"
-	documentSignerProto "github.com/paysuper/document-signer/pkg/proto"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/repository"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
 	"github.com/paysuper/paysuper-i18n"
-	recurringRep "github.com/paysuper/paysuper-recurring-repository/pkg/proto/repository"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
-	reporterProto "github.com/paysuper/paysuper-reporter/pkg/proto"
-	"github.com/paysuper/paysuper-tax-service/proto"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/casbinpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	"github.com/paysuper/paysuper-proto/go/document_signerpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
+	"github.com/paysuper/paysuper-proto/go/reporterpb"
+	"github.com/paysuper/paysuper-proto/go/taxpb"
+	httpTools "github.com/paysuper/paysuper-tools/http"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
@@ -57,12 +57,12 @@ type Service struct {
 	cfg                        *config.Config
 	ctx                        context.Context
 	geo                        proto.GeoIpService
-	rep                        recurringRep.RepositoryService
-	tax                        tax_service.TaxService
+	rep                        recurringpb.RepositoryService
+	tax                        taxpb.TaxService
 	broker                     rabbitmq.BrokerInterface
 	redis                      redis.Cmdable
 	cacher                     database.CacheInterface
-	curService                 currencies.CurrencyratesService
+	curService                 currenciespb.CurrencyRatesService
 	smtpCl                     gomail.SendCloser
 	supportedCurrencies        []string
 	currenciesPrecision        map[string]int32
@@ -82,7 +82,7 @@ type Service struct {
 	payoutCostSystem           *PayoutCostSystem
 	priceTable                 PriceTableServiceInterface
 	productService             ProductServiceInterface
-	documentSigner             documentSignerProto.DocumentSignerService
+	documentSigner             document_signerpb.DocumentSignerService
 	merchantTariffRates        MerchantTariffRatesInterface
 	keyRepository              KeyRepositoryInterface
 	dashboardRepository        DashboardRepositoryInterface
@@ -90,12 +90,12 @@ type Service struct {
 	centrifugoPaymentForm      CentrifugoInterface
 	centrifugoDashboard        CentrifugoInterface
 	formatter                  paysuper_i18n.Formatter
-	reporterService            reporterProto.ReporterService
+	reporterService            reporterpb.ReporterService
 	postmarkBroker             rabbitmq.BrokerInterface
 	paylinkService             PaylinkServiceInterface
 	operatingCompany           OperatingCompanyInterface
 	paymentMinLimitSystem      PaymentMinLimitSystemInterface
-	casbinService              casbinProto.CasbinService
+	casbinService              casbinpb.CasbinService
 	country                    repository.CountryRepositoryInterface
 	refundRepository           repository.RefundRepositoryInterface
 	orderRepository            repository.OrderRepositoryInterface
@@ -106,38 +106,38 @@ type Service struct {
 	priceGroupRepository       repository.PriceGroupRepositoryInterface
 }
 
-func newBillingServerResponseError(status int32, message *grpc.ResponseErrorMessage) *grpc.ResponseError {
-	return &grpc.ResponseError{
+func newBillingServerResponseError(status int32, message *billingpb.ResponseErrorMessage) *billingpb.ResponseError {
+	return &billingpb.ResponseError{
 		Status:  status,
 		Message: message,
 	}
 }
 
-func newBillingServerErrorMsg(code, msg string, details ...string) *grpc.ResponseErrorMessage {
+func newBillingServerErrorMsg(code, msg string, details ...string) *billingpb.ResponseErrorMessage {
 	var det string
 	if len(details) > 0 && details[0] != "" {
 		det = details[0]
 	} else {
 		det = ""
 	}
-	return &grpc.ResponseErrorMessage{Code: code, Message: msg, Details: det}
+	return &billingpb.ResponseErrorMessage{Code: code, Message: msg, Details: det}
 }
 
 func NewBillingService(
 	db mongodb.SourceInterface,
 	cfg *config.Config,
 	geo proto.GeoIpService,
-	rep recurringRep.RepositoryService,
-	tax tax_service.TaxService,
+	rep recurringpb.RepositoryService,
+	tax taxpb.TaxService,
 	broker rabbitmq.BrokerInterface,
 	redis redis.Cmdable,
 	cache database.CacheInterface,
-	curService currencies.CurrencyratesService,
-	documentSigner documentSignerProto.DocumentSignerService,
-	reporterService reporterProto.ReporterService,
+	curService currenciespb.CurrencyRatesService,
+	documentSigner document_signerpb.DocumentSignerService,
+	reporterService reporterpb.ReporterService,
 	formatter paysuper_i18n.Formatter,
 	postmarkBroker rabbitmq.BrokerInterface,
-	casbinService casbinProto.CasbinService,
+	casbinService casbinpb.CasbinService,
 ) *Service {
 	return &Service{
 		db:              db,
@@ -178,8 +178,8 @@ func (s *Service) Init() (err error) {
 	s.keyRepository = newKeyRepository(s)
 	s.dashboardRepository = newDashboardRepository(s)
 	s.keyProductRepository = newKeyProductRepository(s)
-	s.centrifugoPaymentForm = newCentrifugo(s.cfg.CentrifugoPaymentForm, tools.NewLoggedHttpClient(zap.S()))
-	s.centrifugoDashboard = newCentrifugo(s.cfg.CentrifugoDashboard, tools.NewLoggedHttpClient(zap.S()))
+	s.centrifugoPaymentForm = newCentrifugo(s.cfg.CentrifugoPaymentForm, httpTools.NewLoggedHttpClient(zap.S()))
+	s.centrifugoDashboard = newCentrifugo(s.cfg.CentrifugoDashboard, httpTools.NewLoggedHttpClient(zap.S()))
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)
 	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
@@ -193,7 +193,7 @@ func (s *Service) Init() (err error) {
 	s.turnoverRepository = repository.NewTurnoverRepository(s.db, s.cacher)
 	s.priceGroupRepository = repository.NewPriceGroupRepository(s.db, s.cacher)
 
-	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currencies.EmptyRequest{})
+	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
 		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
@@ -207,7 +207,7 @@ func (s *Service) Init() (err error) {
 
 	s.supportedCurrencies = sCurr.Currencies
 
-	cp, err := s.curService.GetCurrenciesPrecision(context.TODO(), &currencies.EmptyRequest{})
+	cp, err := s.curService.GetCurrenciesPrecision(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
 		zap.S().Error(
 			pkg.ErrorGrpcServiceCallFailed,
@@ -241,7 +241,7 @@ func (s *Service) logError(msg string, data []interface{}) {
 	zap.S().Errorw(msg, data...)
 }
 
-func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, _ *grpc.EmptyResponse) error {
+func (s *Service) UpdateOrder(ctx context.Context, req *billingpb.Order, _ *billingpb.EmptyResponse) error {
 	err := s.updateOrder(ctx, req)
 
 	if err != nil {
@@ -251,7 +251,7 @@ func (s *Service) UpdateOrder(ctx context.Context, req *billing.Order, _ *grpc.E
 	return nil
 }
 
-func (s *Service) UpdateMerchant(ctx context.Context, req *billing.Merchant, _ *grpc.EmptyResponse) error {
+func (s *Service) UpdateMerchant(ctx context.Context, req *billingpb.Merchant, _ *billingpb.EmptyResponse) error {
 	err := s.merchant.Update(ctx, req)
 
 	if err != nil {
@@ -303,10 +303,10 @@ func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {
 	return query
 }
 
-func (s *Service) getDefaultPaymentMethodCommissions() *billing.MerchantPaymentMethodCommissions {
-	return &billing.MerchantPaymentMethodCommissions{
+func (s *Service) getDefaultPaymentMethodCommissions() *billingpb.MerchantPaymentMethodCommissions {
+	return &billingpb.MerchantPaymentMethodCommissions{
 		Fee: DefaultPaymentMethodFee,
-		PerTransaction: &billing.MerchantPaymentMethodPerTransactionCommission{
+		PerTransaction: &billingpb.MerchantPaymentMethodPerTransactionCommission{
 			Fee:      DefaultPaymentMethodPerTransactionFee,
 			Currency: DefaultPaymentMethodCurrency,
 		},
@@ -315,12 +315,12 @@ func (s *Service) getDefaultPaymentMethodCommissions() *billing.MerchantPaymentM
 
 func (s *Service) CheckProjectRequestSignature(
 	ctx context.Context,
-	req *grpc.CheckProjectRequestSignatureRequest,
-	rsp *grpc.CheckProjectRequestSignatureResponse,
+	req *billingpb.CheckProjectRequestSignatureRequest,
+	rsp *billingpb.CheckProjectRequestSignatureResponse,
 ) error {
 	p := &OrderCreateRequestProcessor{
 		Service: s,
-		request: &billing.OrderCreateRequest{ProjectId: req.ProjectId},
+		request: &billingpb.OrderCreateRequest{ProjectId: req.ProjectId},
 		checked: &orderCreateRequestProcessorChecked{},
 		ctx:     ctx,
 	}
@@ -329,8 +329,8 @@ func (s *Service) CheckProjectRequestSignature(
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
-		if e, ok := err.(*grpc.ResponseErrorMessage); ok {
-			rsp.Status = pkg.ResponseStatusBadData
+		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			rsp.Status = billingpb.ResponseStatusBadData
 			rsp.Message = e
 			return nil
 		}
@@ -338,13 +338,13 @@ func (s *Service) CheckProjectRequestSignature(
 	}
 
 	if p.checked.project.SecretKey != req.Signature {
-		rsp.Status = pkg.ResponseStatusBadData
+		rsp.Status = billingpb.ResponseStatusBadData
 		rsp.Message = orderErrorSignatureInvalid
 
 		return nil
 	}
 
-	rsp.Status = pkg.ResponseStatusOk
+	rsp.Status = billingpb.ResponseStatusOk
 
 	return nil
 }

@@ -7,10 +7,9 @@ import (
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	internalPkg "github.com/paysuper/paysuper-billing-server/internal/pkg"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-currencies/pkg/proto/currencies"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/currenciespb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -40,27 +39,27 @@ var (
 )
 
 type MoneyBackCostMerchantInterface interface {
-	MultipleInsert(obj []*billing.MoneyBackCostMerchant) error
-	Update(obj *billing.MoneyBackCostMerchant) error
-	Get(merchantId, name, payoutCurrency, undoReason, region, country, mccCode string, paymentStage int32) (*billing.MoneyBackCostMerchantList, error)
-	GetById(id string) (*billing.MoneyBackCostMerchant, error)
-	Delete(obj *billing.MoneyBackCostMerchant) error
-	GetAllForMerchant(merchantId string) (*billing.MoneyBackCostMerchantList, error)
+	MultipleInsert(obj []*billingpb.MoneyBackCostMerchant) error
+	Update(obj *billingpb.MoneyBackCostMerchant) error
+	Get(merchantId, name, payoutCurrency, undoReason, region, country, mccCode string, paymentStage int32) (*billingpb.MoneyBackCostMerchantList, error)
+	GetById(id string) (*billingpb.MoneyBackCostMerchant, error)
+	Delete(obj *billingpb.MoneyBackCostMerchant) error
+	GetAllForMerchant(merchantId string) (*billingpb.MoneyBackCostMerchantList, error)
 }
 
 func (s *Service) GetAllMoneyBackCostMerchant(
 	ctx context.Context,
-	req *billing.MoneyBackCostMerchantListRequest,
-	res *grpc.MoneyBackCostMerchantListResponse,
+	req *billingpb.MoneyBackCostMerchantListRequest,
+	res *billingpb.MoneyBackCostMerchantListResponse,
 ) error {
 	val, err := s.moneyBackCostMerchant.GetAllForMerchant(ctx, req.MerchantId)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMoneybackMerchantGetAll
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = val
 
 	return nil
@@ -68,17 +67,17 @@ func (s *Service) GetAllMoneyBackCostMerchant(
 
 func (s *Service) GetMoneyBackCostMerchant(
 	ctx context.Context,
-	req *billing.MoneyBackCostMerchantRequest,
-	res *grpc.MoneyBackCostMerchantResponse,
+	req *billingpb.MoneyBackCostMerchantRequest,
+	res *billingpb.MoneyBackCostMerchantResponse,
 ) error {
 	val, err := s.getMoneyBackCostMerchant(ctx, req)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errorMoneybackMerchantGet
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = val
 
 	return nil
@@ -86,14 +85,14 @@ func (s *Service) GetMoneyBackCostMerchant(
 
 func (s *Service) SetMoneyBackCostMerchant(
 	ctx context.Context,
-	req *billing.MoneyBackCostMerchant,
-	res *grpc.MoneyBackCostMerchantResponse,
+	req *billingpb.MoneyBackCostMerchant,
+	res *billingpb.MoneyBackCostMerchantResponse,
 ) error {
 
 	var err error
 
 	if _, err := s.merchant.GetById(ctx, req.MerchantId); err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 		return nil
 	}
@@ -101,7 +100,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 	if req.Country != "" {
 		country, err := s.country.GetByIsoCodeA2(ctx, req.Country)
 		if err != nil {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorCountryNotFound
 			return nil
 		}
@@ -109,30 +108,30 @@ func (s *Service) SetMoneyBackCostMerchant(
 	} else {
 		exists := s.country.IsTariffRegionSupported(req.Region)
 		if !exists {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorCountryRegionNotExists
 			return nil
 		}
 	}
 
-	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currencies.EmptyRequest{})
+	sCurr, err := s.curService.GetSettlementCurrencies(ctx, &currenciespb.EmptyRequest{})
 	if err != nil {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
 	if !helper.Contains(sCurr.Currencies, req.PayoutCurrency) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
 	if !helper.Contains(sCurr.Currencies, req.FixAmountCurrency) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantCurrency
 		return nil
 	}
 	if !helper.Contains(pkg.SupportedMccCodes, req.MccCode) {
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = errorMoneybackMerchantMccCode
 		return nil
 	}
@@ -143,7 +142,7 @@ func (s *Service) SetMoneyBackCostMerchant(
 	if req.Id != "" {
 		val, err := s.moneyBackCostMerchant.GetById(ctx, req.Id)
 		if err != nil {
-			res.Status = pkg.ResponseStatusNotFound
+			res.Status = billingpb.ResponseStatusNotFound
 			res.Message = errorMoneybackMerchantSetFailed
 			return nil
 		}
@@ -158,18 +157,18 @@ func (s *Service) SetMoneyBackCostMerchant(
 	}
 
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMoneybackMerchantSetFailed
 
 		if mongodb.IsDuplicate(err) {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = errorMoneybackMerchantCostAlreadyExist
 		}
 
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	res.Item = req
 
 	return nil
@@ -177,30 +176,30 @@ func (s *Service) SetMoneyBackCostMerchant(
 
 func (s *Service) DeleteMoneyBackCostMerchant(
 	ctx context.Context,
-	req *billing.PaymentCostDeleteRequest,
-	res *grpc.ResponseError,
+	req *billingpb.PaymentCostDeleteRequest,
+	res *billingpb.ResponseError,
 ) error {
 	pc, err := s.moneyBackCostMerchant.GetById(ctx, req.Id)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = errorCostRateNotFound
 		return nil
 	}
 	err = s.moneyBackCostMerchant.Delete(ctx, pc)
 	if err != nil {
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMoneybackMerchantDelete
 		return nil
 	}
 
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	return nil
 }
 
 func (s *Service) getMoneyBackCostMerchant(
 	ctx context.Context,
-	req *billing.MoneyBackCostMerchantRequest,
-) (*billing.MoneyBackCostMerchant, error) {
+	req *billingpb.MoneyBackCostMerchantRequest,
+) (*billingpb.MoneyBackCostMerchant, error) {
 	val, err := s.moneyBackCostMerchant.Get(
 		ctx,
 		req.MerchantId,
@@ -246,7 +245,7 @@ func newMoneyBackCostMerchantService(svc *Service) *MoneyBackCostMerchant {
 	return s
 }
 
-func (h *MoneyBackCostMerchant) Insert(ctx context.Context, obj *billing.MoneyBackCostMerchant) error {
+func (h *MoneyBackCostMerchant) Insert(ctx context.Context, obj *billingpb.MoneyBackCostMerchant) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.IsActive = true
@@ -260,7 +259,7 @@ func (h *MoneyBackCostMerchant) Insert(ctx context.Context, obj *billing.MoneyBa
 	return h.updateCaches(obj)
 }
 
-func (h MoneyBackCostMerchant) MultipleInsert(ctx context.Context, obj []*billing.MoneyBackCostMerchant) error {
+func (h MoneyBackCostMerchant) MultipleInsert(ctx context.Context, obj []*billingpb.MoneyBackCostMerchant) error {
 	c := make([]interface{}, len(obj))
 
 	for i, v := range obj {
@@ -288,7 +287,7 @@ func (h MoneyBackCostMerchant) MultipleInsert(ctx context.Context, obj []*billin
 	return nil
 }
 
-func (h MoneyBackCostMerchant) Update(ctx context.Context, obj *billing.MoneyBackCostMerchant) error {
+func (h MoneyBackCostMerchant) Update(ctx context.Context, obj *billingpb.MoneyBackCostMerchant) error {
 	obj.FixAmount = tools.FormatAmount(obj.FixAmount)
 	obj.Percent = tools.ToPrecise(obj.Percent)
 	obj.IsActive = true
@@ -397,8 +396,8 @@ func (h MoneyBackCostMerchant) Get(
 	return c, nil
 }
 
-func (h MoneyBackCostMerchant) GetById(ctx context.Context, id string) (*billing.MoneyBackCostMerchant, error) {
-	var c billing.MoneyBackCostMerchant
+func (h MoneyBackCostMerchant) GetById(ctx context.Context, id string) (*billingpb.MoneyBackCostMerchant, error) {
+	var c billingpb.MoneyBackCostMerchant
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, id)
 
 	if err := h.svc.cacher.Get(key, c); err == nil {
@@ -417,7 +416,7 @@ func (h MoneyBackCostMerchant) GetById(ctx context.Context, id string) (*billing
 	return &c, nil
 }
 
-func (h MoneyBackCostMerchant) Delete(ctx context.Context, obj *billing.MoneyBackCostMerchant) error {
+func (h MoneyBackCostMerchant) Delete(ctx context.Context, obj *billingpb.MoneyBackCostMerchant) error {
 	obj.UpdatedAt = ptypes.TimestampNow()
 	obj.IsActive = false
 
@@ -440,8 +439,8 @@ func (h MoneyBackCostMerchant) Delete(ctx context.Context, obj *billing.MoneyBac
 func (h MoneyBackCostMerchant) GetAllForMerchant(
 	ctx context.Context,
 	merchantId string,
-) (*billing.MoneyBackCostMerchantList, error) {
-	item := new(billing.MoneyBackCostMerchantList)
+) (*billingpb.MoneyBackCostMerchantList, error) {
+	item := new(billingpb.MoneyBackCostMerchantList)
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantAll, merchantId)
 
 	if err := h.svc.cacher.Get(key, item); err == nil {
@@ -491,7 +490,7 @@ func (h MoneyBackCostMerchant) GetAllForMerchant(
 	return item, nil
 }
 
-func (h MoneyBackCostMerchant) updateCaches(obj *billing.MoneyBackCostMerchant) (err error) {
+func (h MoneyBackCostMerchant) updateCaches(obj *billingpb.MoneyBackCostMerchant) (err error) {
 	groupKeys := []string{
 		fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, obj.Country, obj.PaymentStage, obj.MccCode),
 		fmt.Sprintf(cacheMoneyBackCostMerchantKey, obj.MerchantId, obj.Name, obj.PayoutCurrency, obj.UndoReason, obj.Region, "", obj.PaymentStage, obj.MccCode),

@@ -8,7 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -133,12 +133,12 @@ func (suite *ZipCodeTestSuite) TestZipCode_GetByZipAndCountry_ReturnByCache() {
 	key := fmt.Sprintf(cacheZipCodeByZipAndCountry, zipCode.Zip, zipCode.Country)
 
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", key, &billing.ZipCode{}).Return(nil)
+	cache.On("Get", key, &billingpb.ZipCode{}).Return(nil)
 	suite.repository.cache = cache
 
 	zipCode2, err := suite.repository.GetByZipAndCountry(context.TODO(), zipCode.Zip, zipCode.Country)
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.ZipCode{}, zipCode2)
+	assert.IsType(suite.T(), &billingpb.ZipCode{}, zipCode2)
 }
 
 func (suite *ZipCodeTestSuite) TestZipCode_GetByZipAndCountry_SkipSetToCacheError() {
@@ -147,7 +147,7 @@ func (suite *ZipCodeTestSuite) TestZipCode_GetByZipAndCountry_SkipSetToCacheErro
 
 	cache := &mocks.CacheInterface{}
 	cache.On("Set", key, zipCode, time.Duration(0)).Times(1).Return(nil)
-	cache.On("Get", key, &billing.ZipCode{}).Return(errors.New("error"))
+	cache.On("Get", key, &billingpb.ZipCode{}).Return(errors.New("error"))
 	cache.On("Set", key, mock.Anything, time.Duration(0)).Times(2).Return(errors.New("error"))
 	suite.repository.cache = cache
 
@@ -337,12 +337,12 @@ func (suite *ZipCodeTestSuite) TestZipCode_CountByZip_ErrorDb() {
 	assert.Equal(suite.T(), int64(0), cnt)
 }
 
-func (suite *ZipCodeTestSuite) getZipCodeTemplate() *billing.ZipCode {
-	return &billing.ZipCode{
+func (suite *ZipCodeTestSuite) getZipCodeTemplate() *billingpb.ZipCode {
+	return &billingpb.ZipCode{
 		Zip:     "98001",
 		Country: "US",
 		City:    "Washington",
-		State: &billing.ZipCodeState{
+		State: &billingpb.ZipCodeState{
 			Code: "NJ",
 			Name: "New Jersey",
 		},

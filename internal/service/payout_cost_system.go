@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-recurring-repository/tools"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	tools "github.com/paysuper/paysuper-tools/number"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -20,7 +20,7 @@ func newPayoutCostSystemService(svc *Service) *PayoutCostSystem {
 	return s
 }
 
-func (h *PayoutCostSystem) Set(ctx context.Context, obj *billing.PayoutCostSystem) error {
+func (h *PayoutCostSystem) Set(ctx context.Context, obj *billingpb.PayoutCostSystem) error {
 	// disable all previous settings
 	filter := bson.M{"is_active": true}
 	update := bson.M{"$set": bson.M{"is_active": false}}
@@ -49,8 +49,8 @@ func (h *PayoutCostSystem) Set(ctx context.Context, obj *billing.PayoutCostSyste
 	return nil
 }
 
-func (h PayoutCostSystem) Get(ctx context.Context) (*billing.PayoutCostSystem, error) {
-	var c billing.PayoutCostSystem
+func (h PayoutCostSystem) Get(ctx context.Context) (*billingpb.PayoutCostSystem, error) {
+	var c billingpb.PayoutCostSystem
 
 	if err := h.svc.cacher.Get(cachePayoutCostSystemKey, c); err == nil {
 		return &c, nil

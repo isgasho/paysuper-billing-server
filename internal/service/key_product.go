@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/grpc"
-	"github.com/paysuper/paysuper-recurring-repository/pkg/constant"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
+	"github.com/paysuper/paysuper-proto/go/recurringpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -47,7 +46,7 @@ var (
 	keyProductNotPublished                  = newBillingServerErrorMsg("kp000023", "key product is not published")
 )
 
-var availablePlatforms = map[string]*grpc.Platform{
+var availablePlatforms = map[string]*billingpb.Platform{
 	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.png", Order: 1},
 	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.png", Order: 2},
 	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.png", Order: 3},
@@ -61,21 +60,21 @@ var availablePlatforms = map[string]*grpc.Platform{
 
 func (s *Service) CreateOrUpdateKeyProduct(
 	ctx context.Context,
-	req *grpc.CreateOrUpdateKeyProductRequest,
-	res *grpc.KeyProductResponse,
+	req *billingpb.CreateOrUpdateKeyProductRequest,
+	res *billingpb.KeyProductResponse,
 ) error {
 	var (
 		err     error
 		isNew   = len(req.Id) == 0
 		now     = ptypes.TimestampNow()
-		product = &grpc.KeyProduct{}
+		product = &billingpb.KeyProduct{}
 	)
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	project, err := s.project.GetById(ctx, req.ProjectId)
 
 	if err != nil {
 		zap.S().Errorw("internal error when getting project", "err", err)
-		res.Status = pkg.ResponseStatusSystemError
+		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = keyProductInternalError
 		return nil
 	}
@@ -94,18 +93,18 @@ func (s *Service) CreateOrUpdateKeyProduct(
 		product.ProjectId = req.ProjectId
 		product.Sku = req.Sku
 	} else {
-		productResponse := &grpc.KeyProductResponse{}
-		err = s.GetKeyProduct(ctx, &grpc.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, productResponse)
+		productResponse := &billingpb.KeyProductResponse{}
+		err = s.GetKeyProduct(ctx, &billingpb.RequestKeyProductMerchant{Id: req.Id, MerchantId: req.MerchantId}, productResponse)
 		if err != nil {
 			zap.S().Errorf("internal error when getting product", "err", err)
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = keyProductInternalError
 			return nil
 		}
 
 		product = productResponse.Product
 
-		if productResponse.Status != pkg.ResponseStatusOk {
+		if productResponse.Status != billingpb.ResponseStatusOk {
 			zap.S().Errorf("failed to fetch key product", "message", productResponse.Message, "req", req)
 			res.Status = productResponse.Status
 			res.Message = productResponse.Message
@@ -181,7 +180,7 @@ func (s *Service) CreateOrUpdateKeyProduct(
 
 	merchant, err := s.merchant.GetById(ctx, product.MerchantId)
 	if err != nil {
-		res.Status = pkg.ResponseStatusNotFound
+		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 
 		return nil
@@ -241,14 +240,14 @@ func (s *Service) CreateOrUpdateKeyProduct(
 			pr, err := s.priceGroupRepository.GetByRegion(ctx, price.Region)
 			if err != nil {
 				zap.S().Errorw("Failed to get price group for region", "price", price)
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = keyProductInternalError
 				return nil
 			}
 
 			if pr.Currency != price.Currency {
 				zap.S().Errorw("Currency is mismatch for specified region", "price", price)
-				res.Status = pkg.ResponseStatusBadData
+				res.Status = billingpb.ResponseStatusBadData
 				res.Message = keyProductPlatformPriceMismatchCurrency
 				res.Message.Details = fmt.Sprintf("price with regin `%s` should have currency `%s` but have `%s`", price.Region, pr.Currency, price.Currency)
 				return nil
@@ -300,20 +299,20 @@ func (s *Service) CreateOrUpdateKeyProduct(
 
 func (s *Service) GetKeyProducts(
 	ctx context.Context,
-	req *grpc.ListKeyProductsRequest,
-	res *grpc.ListKeyProductsResponse,
+	req *billingpb.ListKeyProductsRequest,
+	res *billingpb.ListKeyProductsResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
 
 	if merchant == nil || err != nil {
 		if err != nil {
-			res.Status = pkg.ResponseStatusSystemError
+			res.Status = billingpb.ResponseStatusSystemError
 			res.Message = keyProductInternalError
 			res.Message.Details = err.Error()
 			return nil
 		}
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = keyProductMerchantNotFound
 		return nil
 	}
@@ -348,7 +347,7 @@ func (s *Service) GetKeyProducts(
 		return nil
 	}
 
-	var items []*grpc.KeyProduct
+	var items []*billingpb.KeyProduct
 
 	res.Limit = req.Limit
 	res.Offset = req.Offset
@@ -392,15 +391,15 @@ func (s *Service) GetKeyProducts(
 
 	for _, item := range items {
 		for _, platform := range item.Platforms {
-			keysRsp := &grpc.GetPlatformKeyCountResponse{}
-			err := s.GetAvailableKeysCount(ctx, &grpc.GetPlatformKeyCountRequest{PlatformId: platform.Id, MerchantId: item.MerchantId, KeyProductId: item.Id}, keysRsp)
+			keysRsp := &billingpb.GetPlatformKeyCountResponse{}
+			err := s.GetAvailableKeysCount(ctx, &billingpb.GetPlatformKeyCountRequest{PlatformId: platform.Id, MerchantId: item.MerchantId, KeyProductId: item.Id}, keysRsp)
 			if err != nil {
 				zap.S().Errorw("Query to find count keys for platform failed", "err", err.Error(), "platform", platform.Id, "product.id", item.Id)
 				res.Status = http.StatusInternalServerError
 				res.Message = keyProductInternalError
 				return nil
 			}
-			if keysRsp.Status != pkg.ResponseStatusOk {
+			if keysRsp.Status != billingpb.ResponseStatusOk {
 				zap.S().Errorw("Query to find count keys for platform failed", "message", keysRsp.Message, "platform", platform.Id, "product.id", item.Id)
 				res.Status = keysRsp.Status
 				res.Message = keysRsp.Message
@@ -417,10 +416,10 @@ func (s *Service) GetKeyProducts(
 
 func (s *Service) GetKeyProductInfo(
 	ctx context.Context,
-	req *grpc.GetKeyProductInfoRequest,
-	res *grpc.GetKeyProductInfoResponse,
+	req *billingpb.GetKeyProductInfoRequest,
+	res *billingpb.GetKeyProductInfoResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	product, err := s.getKeyProductById(ctx, req.KeyProductId)
 
 	if err != nil {
@@ -439,12 +438,12 @@ func (s *Service) GetKeyProductInfo(
 
 	if !product.Enabled {
 		zap.S().Error("Product is disabled", "data", req)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = keyProductRetrieveError
 		return nil
 	}
 
-	res.KeyProduct = &grpc.KeyProductInfo{
+	res.KeyProduct = &billingpb.KeyProductInfo{
 		Id:        product.Id,
 		Images:    []string{getImageByLanguage(req.Language, product.Cover)},
 		ProjectId: product.ProjectId,
@@ -468,7 +467,7 @@ func (s *Service) GetKeyProductInfo(
 		return keyProductInternalError
 	}
 
-	priceGroup := &billing.PriceGroup{}
+	priceGroup := &billingpb.PriceGroup{}
 	globalIsFallback := false
 	if req.Currency != "" {
 		priceGroup, err = s.priceGroupRepository.GetByRegion(ctx, req.Currency)
@@ -479,7 +478,7 @@ func (s *Service) GetKeyProductInfo(
 		}
 	} else {
 		if req.Country != "" {
-			err = s.GetPriceGroupByCountry(ctx, &grpc.PriceGroupByCountryRequest{Country: req.Country}, priceGroup)
+			err = s.GetPriceGroupByCountry(ctx, &billingpb.PriceGroupByCountryRequest{Country: req.Country}, priceGroup)
 			if err != nil {
 				zap.S().Error("could not get price group by country", "country", req.Country)
 				priceGroup = defaultPriceGroup
@@ -488,7 +487,7 @@ func (s *Service) GetKeyProductInfo(
 		}
 	}
 
-	platforms := make([]*grpc.PlatformPriceInfo, len(product.Platforms))
+	platforms := make([]*billingpb.PlatformPriceInfo, len(product.Platforms))
 	for i, p := range product.Platforms {
 		currency := priceGroup.Currency
 		region := priceGroup.Region
@@ -502,16 +501,16 @@ func (s *Service) GetKeyProductInfo(
 			amount, err = product.GetPriceInCurrencyAndPlatform(defaultPriceGroup, p.Id)
 			if err != nil {
 				zap.S().Error("could not get price in currency and platform for default price group", "price_group", defaultPriceGroup, "platform", p.Id)
-				res.Status = pkg.ResponseStatusSystemError
+				res.Status = billingpb.ResponseStatusSystemError
 				res.Message = keyProductInternalError
 				return nil
 			}
 		}
 
-		platforms[i] = &grpc.PlatformPriceInfo{
+		platforms[i] = &billingpb.PlatformPriceInfo{
 			Name: p.Name,
 			Id:   p.Id,
-			Price: &grpc.ProductPriceInfo{
+			Price: &billingpb.ProductPriceInfo{
 				Amount:     amount,
 				Currency:   currency,
 				Region:     region,
@@ -521,8 +520,8 @@ func (s *Service) GetKeyProductInfo(
 	}
 
 	sort.Slice(platforms, func(i, j int) bool {
-		platform1 := &grpc.Platform{}
-		platform2 := &grpc.Platform{}
+		platform1 := &billingpb.Platform{}
+		platform2 := &billingpb.Platform{}
 		ok := false
 		if platform1, ok = availablePlatforms[platforms[i].Id]; !ok {
 			return false
@@ -540,15 +539,15 @@ func (s *Service) GetKeyProductInfo(
 
 func (s *Service) GetKeyProduct(
 	ctx context.Context,
-	req *grpc.RequestKeyProductMerchant,
-	res *grpc.KeyProductResponse,
+	req *billingpb.RequestKeyProductMerchant,
+	res *billingpb.KeyProductResponse,
 ) error {
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 	product, err := s.getKeyProductById(ctx, req.Id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = keyProductNotFound
 			return nil
 		}
@@ -571,7 +570,7 @@ func (s *Service) GetKeyProduct(
 	return nil
 }
 
-func (s *Service) getKeyProductById(ctx context.Context, id string) (*grpc.KeyProduct, error) {
+func (s *Service) getKeyProductById(ctx context.Context, id string) (*billingpb.KeyProduct, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 
 	if err != nil {
@@ -579,22 +578,22 @@ func (s *Service) getKeyProductById(ctx context.Context, id string) (*grpc.KeyPr
 	}
 
 	query := bson.M{"_id": oid, "deleted": false}
-	product := new(grpc.KeyProduct)
+	product := new(billingpb.KeyProduct)
 	err = s.db.Collection(collectionKeyProduct).FindOne(ctx, query).Decode(product)
 	return product, err
 }
 
 func (s *Service) DeleteKeyProduct(
 	ctx context.Context,
-	req *grpc.RequestKeyProductMerchant,
-	res *grpc.EmptyResponseWithStatus,
+	req *billingpb.RequestKeyProductMerchant,
+	res *billingpb.EmptyResponseWithStatus,
 ) error {
 	product, err := s.getKeyProductById(ctx, req.Id)
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = keyProductNotFound
 			return nil
 		}
@@ -637,15 +636,15 @@ func (s *Service) DeleteKeyProduct(
 
 func (s *Service) PublishKeyProduct(
 	ctx context.Context,
-	req *grpc.PublishKeyProductRequest,
-	res *grpc.KeyProductResponse,
+	req *billingpb.PublishKeyProductRequest,
+	res *billingpb.KeyProductResponse,
 ) error {
 	product, err := s.getKeyProductById(ctx, req.KeyProductId)
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = keyProductNotFound
 			return nil
 		}
@@ -690,8 +689,8 @@ func (s *Service) PublishKeyProduct(
 
 func (s *Service) GetKeyProductsForOrder(
 	ctx context.Context,
-	req *grpc.GetKeyProductsForOrderRequest,
-	res *grpc.ListKeyProductsResponse,
+	req *billingpb.GetKeyProductsForOrderRequest,
+	res *billingpb.ListKeyProductsResponse,
 ) error {
 	if len(req.Ids) == 0 {
 		zap.S().Errorf("Ids list is empty", "data", req)
@@ -735,7 +734,7 @@ func (s *Service) GetKeyProductsForOrder(
 		return nil
 	}
 
-	var found []*grpc.KeyProduct
+	var found []*billingpb.KeyProduct
 	err = cursor.All(ctx, &found)
 
 	if err != nil {
@@ -757,14 +756,14 @@ func (s *Service) GetKeyProductsForOrder(
 	return nil
 }
 
-func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInOrderRequest, res *grpc.ChangeCodeInOrderResponse) error {
-	res.Status = pkg.ResponseStatusOk
+func (s *Service) ChangeCodeInOrder(ctx context.Context, req *billingpb.ChangeCodeInOrderRequest, res *billingpb.ChangeCodeInOrderResponse) error {
+	res.Status = billingpb.ResponseStatusOk
 
 	order, err := s.getOrderByUuid(ctx, req.OrderId)
 	if err != nil {
 		zap.S().Error("Query to get order failed", "err", err.Error(), "data", req)
-		if messageErr, ok := err.(*grpc.ResponseErrorMessage); ok {
-			res.Status = pkg.ResponseStatusBadData
+		if messageErr, ok := err.(*billingpb.ResponseErrorMessage); ok {
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = messageErr
 			return nil
 		}
@@ -774,15 +773,15 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		return nil
 	}
 
-	if order.GetPublicStatus() != constant.OrderPublicStatusProcessed {
+	if order.GetPublicStatus() != recurringpb.OrderPublicStatusProcessed {
 		zap.S().Error("Trying to change order what has not been processed.", "status", order.GetPublicStatus(), "data", req)
-		res.Status = pkg.ResponseStatusBadData
+		res.Status = billingpb.ResponseStatusBadData
 		res.Message = keyProductOrderIsNotProcessedError
 		return nil
 	}
 
-	rsp := &grpc.PlatformKeyReserveResponse{}
-	err = s.ReserveKeyForOrder(ctx, &grpc.PlatformKeyReserveRequest{
+	rsp := &billingpb.PlatformKeyReserveResponse{}
+	err = s.ReserveKeyForOrder(ctx, &billingpb.PlatformKeyReserveRequest{
 		OrderId:      order.Id,
 		KeyProductId: req.KeyProductId,
 		PlatformId:   order.PlatformId,
@@ -798,15 +797,15 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		return nil
 	}
 
-	if rsp.Status != pkg.ResponseStatusOk {
+	if rsp.Status != billingpb.ResponseStatusOk {
 		zap.S().Error("Reserving key for order is failed", "data", req)
 		res.Status = rsp.Status
 		res.Message = rsp.Message
 		return nil
 	}
 
-	keyRsp := &grpc.GetKeyForOrderRequestResponse{}
-	keyReq := &grpc.KeyForOrderRequest{KeyId: rsp.KeyId}
+	keyRsp := &billingpb.GetKeyForOrderRequestResponse{}
+	keyReq := &billingpb.KeyForOrderRequest{KeyId: rsp.KeyId}
 	err = s.FinishRedeemKeyForOrder(ctx, keyReq, keyRsp)
 	if err != nil {
 		zap.S().Error("Finishing reserving key for order is failed", "err", err.Error(), "data", keyReq)
@@ -814,7 +813,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		res.Message = keyProductInternalError
 		res.Message.Details = err.Error()
 
-		cancelRsp := &grpc.EmptyResponseWithStatus{}
+		cancelRsp := &billingpb.EmptyResponseWithStatus{}
 		err = s.CancelRedeemKeyForOrder(ctx, keyReq, cancelRsp)
 		if err != nil {
 			zap.S().Error("Cancelling reserving key for order is failed", "err", err.Error(), "data", keyReq)
@@ -823,7 +822,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 		return nil
 	}
 
-	if keyRsp.Status != pkg.ResponseStatusOk {
+	if keyRsp.Status != billingpb.ResponseStatusOk {
 		zap.S().Error("Can't finish redeeming key for order", "response", keyRsp, "data", keyReq)
 		res.Status = keyRsp.Status
 		res.Message = keyRsp.Message
@@ -831,7 +830,7 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 	}
 
 	s.sendMailWithCode(ctx, order, keyRsp.Key)
-	order.PrivateStatus = constant.OrderStatusItemReplaced
+	order.PrivateStatus = recurringpb.OrderStatusItemReplaced
 
 	err = s.updateOrder(ctx, order)
 	if err != nil {
@@ -850,15 +849,15 @@ func (s *Service) ChangeCodeInOrder(ctx context.Context, req *grpc.ChangeCodeInO
 
 func (s *Service) UnPublishKeyProduct(
 	ctx context.Context,
-	req *grpc.UnPublishKeyProductRequest,
-	res *grpc.KeyProductResponse,
+	req *billingpb.UnPublishKeyProductRequest,
+	res *billingpb.KeyProductResponse,
 ) error {
 	product, err := s.getKeyProductById(ctx, req.KeyProductId)
-	res.Status = pkg.ResponseStatusOk
+	res.Status = billingpb.ResponseStatusOk
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			res.Status = pkg.ResponseStatusBadData
+			res.Status = billingpb.ResponseStatusBadData
 			res.Message = keyProductNotFound
 			return nil
 		}
@@ -908,7 +907,7 @@ func (s *Service) UnPublishKeyProduct(
 	return nil
 }
 
-func getImageByLanguage(lng string, collection *billing.ImageCollection) string {
+func getImageByLanguage(lng string, collection *billingpb.ImageCollection) string {
 	if collection == nil || collection.Images == nil {
 		return ""
 	}
@@ -971,8 +970,8 @@ func getImageByLanguage(lng string, collection *billing.ImageCollection) string 
 }
 
 type KeyProductRepositoryInterface interface {
-	GetById(context.Context, string) (*grpc.KeyProduct, error)
-	Update(context.Context, *grpc.KeyProduct) error
+	GetById(context.Context, string) (*billingpb.KeyProduct, error)
+	Update(context.Context, *billingpb.KeyProduct) error
 }
 
 func newKeyProductRepository(svc *Service) *KeyProductRepository {
@@ -980,17 +979,17 @@ func newKeyProductRepository(svc *Service) *KeyProductRepository {
 	return s
 }
 
-func (h *KeyProductRepository) GetById(ctx context.Context, id string) (*grpc.KeyProduct, error) {
+func (h *KeyProductRepository) GetById(ctx context.Context, id string) (*billingpb.KeyProduct, error) {
 	oid, _ := primitive.ObjectIDFromHex(id)
 	query := bson.M{"_id": oid, "deleted": false}
 
-	product := &grpc.KeyProduct{}
+	product := &billingpb.KeyProduct{}
 	err := h.svc.db.Collection(collectionKeyProduct).FindOne(ctx, query).Decode(product)
 
 	return product, err
 }
 
-func (h *KeyProductRepository) Update(ctx context.Context, keyProduct *grpc.KeyProduct) error {
+func (h *KeyProductRepository) Update(ctx context.Context, keyProduct *billingpb.KeyProduct) error {
 	oid, _ := primitive.ObjectIDFromHex(keyProduct.Id)
 	filter := bson.M{"_id": oid}
 	_, err := h.svc.db.Collection(collectionKeyProduct).ReplaceOne(ctx, filter, keyProduct)

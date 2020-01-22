@@ -7,8 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
-	"github.com/paysuper/paysuper-billing-server/pkg"
-	"github.com/paysuper/paysuper-billing-server/pkg/proto/billing"
+	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -112,7 +111,7 @@ func (suite *CountryTestSuite) TestCountry_MultipleInsert_Ok() {
 	suite.repository.cache = cache
 
 	country.VatThreshold = nil
-	list := []*billing.Country{country}
+	list := []*billingpb.Country{country}
 	err := suite.repository.MultipleInsert(context.TODO(), list)
 	assert.NoError(suite.T(), err)
 
@@ -125,7 +124,7 @@ func (suite *CountryTestSuite) TestCountry_MultipleInsert_Ok() {
 func (suite *CountryTestSuite) TestCountry_MultipleInsert_ErrorDb() {
 	country := suite.getCountryTemplate()
 	country.CreatedAt = &timestamp.Timestamp{Seconds: -100000000000000}
-	list := []*billing.Country{country}
+	list := []*billingpb.Country{country}
 	err := suite.repository.MultipleInsert(context.TODO(), list)
 	assert.Error(suite.T(), err)
 }
@@ -137,7 +136,7 @@ func (suite *CountryTestSuite) TestCountry_MultipleInsert_ErrorCache() {
 	cache.On("Delete", cacheCountryAll).Return(errors.New("error"))
 	suite.repository.cache = cache
 
-	list := []*billing.Country{country}
+	list := []*billingpb.Country{country}
 	err := suite.repository.MultipleInsert(context.TODO(), list)
 	assert.Error(suite.T(), err)
 }
@@ -248,7 +247,7 @@ func (suite *CountryTestSuite) TestCountry_GetByIsoCodeA2_SkipGetByCacheError() 
 	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
 	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
 	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
-	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), billing.Country{}).Return(errors.New("error"))
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), billingpb.Country{}).Return(errors.New("error"))
 	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Times(2).Return(nil)
 	suite.repository.cache = cache
 
@@ -264,12 +263,12 @@ func (suite *CountryTestSuite) TestCountry_GetByIsoCodeA2_ReturnByCache() {
 	country := suite.getCountryTemplate()
 
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), billing.Country{}).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), billingpb.Country{}).Return(nil)
 	suite.repository.cache = cache
 
 	country2, err := suite.repository.GetByIsoCodeA2(context.TODO(), country.IsoCodeA2)
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.Country{}, country2)
+	assert.IsType(suite.T(), &billingpb.Country{}, country2)
 }
 
 func (suite *CountryTestSuite) TestCountry_GetByIsoCodeA2_SkipSetToCacheError() {
@@ -282,7 +281,7 @@ func (suite *CountryTestSuite) TestCountry_GetByIsoCodeA2_SkipSetToCacheError() 
 	cache.On("Delete", cacheCountriesWithVatEnabled).Return(nil)
 	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, false)).Return(nil)
 	cache.On("Delete", fmt.Sprintf(cacheCountryRisk, true)).Return(nil)
-	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), billing.Country{}).Return(errors.New("error"))
+	cache.On("Get", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), billingpb.Country{}).Return(errors.New("error"))
 	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), mock.Anything, time.Duration(0)).Times(2).Return(errors.New("error"))
 	suite.repository.cache = cache
 
@@ -296,23 +295,23 @@ func (suite *CountryTestSuite) TestCountry_GetByIsoCodeA2_SkipSetToCacheError() 
 
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_ReturnByCache() {
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", cacheCountriesWithVatEnabled, &billing.CountriesList{}).Return(nil)
+	cache.On("Get", cacheCountriesWithVatEnabled, &billingpb.CountriesList{}).Return(nil)
 	suite.repository.cache = cache
 
 	list, err := suite.repository.FindByVatEnabled(context.TODO())
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.CountriesList{}, list)
+	assert.IsType(suite.T(), &billingpb.CountriesList{}, list)
 }
 
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_ErrorSetCache() {
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", cacheCountriesWithVatEnabled, &billing.CountriesList{}).Return(errors.New("error"))
-	cache.On("Set", cacheCountriesWithVatEnabled, &billing.CountriesList{}, time.Duration(0)).Return(errors.New("error"))
+	cache.On("Get", cacheCountriesWithVatEnabled, &billingpb.CountriesList{}).Return(errors.New("error"))
+	cache.On("Set", cacheCountriesWithVatEnabled, &billingpb.CountriesList{}, time.Duration(0)).Return(errors.New("error"))
 	suite.repository.cache = cache
 
 	list, err := suite.repository.FindByVatEnabled(context.TODO())
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.CountriesList{}, list)
+	assert.IsType(suite.T(), &billingpb.CountriesList{}, list)
 }
 
 func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_SkipVatDisable() {
@@ -435,23 +434,23 @@ func (suite *CountryTestSuite) TestCountry_FindByVatEnabled_Ok() {
 
 func (suite *CountryTestSuite) TestCountry_GetAll_ReturnByCache() {
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", cacheCountryAll, &billing.CountriesList{}).Return(nil)
+	cache.On("Get", cacheCountryAll, &billingpb.CountriesList{}).Return(nil)
 	suite.repository.cache = cache
 
 	list, err := suite.repository.GetAll(context.TODO())
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.CountriesList{}, list)
+	assert.IsType(suite.T(), &billingpb.CountriesList{}, list)
 }
 
 func (suite *CountryTestSuite) TestCountry_GetAll_ErrorSetCache() {
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", cacheCountryAll, &billing.CountriesList{}).Return(errors.New("error"))
-	cache.On("Set", cacheCountryAll, &billing.CountriesList{}, time.Duration(0)).Return(errors.New("error"))
+	cache.On("Get", cacheCountryAll, &billingpb.CountriesList{}).Return(errors.New("error"))
+	cache.On("Set", cacheCountryAll, &billingpb.CountriesList{}, time.Duration(0)).Return(errors.New("error"))
 	suite.repository.cache = cache
 
 	list, err := suite.repository.GetAll(context.TODO())
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.CountriesList{}, list)
+	assert.IsType(suite.T(), &billingpb.CountriesList{}, list)
 }
 
 func (suite *CountryTestSuite) TestCountry_GetAll_EmptyList() {
@@ -490,24 +489,24 @@ func (suite *CountryTestSuite) TestCountry_GetAll_NotEmptyList() {
 func (suite *CountryTestSuite) TestCountry_FindByHighRisk_ReturnByCache() {
 	isHighRiskOrder := true
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", fmt.Sprintf(cacheCountryRisk, isHighRiskOrder), &billing.CountriesList{}).Return(nil)
+	cache.On("Get", fmt.Sprintf(cacheCountryRisk, isHighRiskOrder), &billingpb.CountriesList{}).Return(nil)
 	suite.repository.cache = cache
 
 	list, err := suite.repository.FindByHighRisk(context.TODO(), isHighRiskOrder)
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.CountriesList{}, list)
+	assert.IsType(suite.T(), &billingpb.CountriesList{}, list)
 }
 
 func (suite *CountryTestSuite) TestCountry_FindByHighRisk_ErrorSetCache() {
 	isHighRiskOrder := true
 	cache := &mocks.CacheInterface{}
-	cache.On("Get", fmt.Sprintf(cacheCountryRisk, isHighRiskOrder), &billing.CountriesList{}).Return(errors.New("error"))
-	cache.On("Set", fmt.Sprintf(cacheCountryRisk, isHighRiskOrder), &billing.CountriesList{}, time.Duration(0)).Return(errors.New("error"))
+	cache.On("Get", fmt.Sprintf(cacheCountryRisk, isHighRiskOrder), &billingpb.CountriesList{}).Return(errors.New("error"))
+	cache.On("Set", fmt.Sprintf(cacheCountryRisk, isHighRiskOrder), &billingpb.CountriesList{}, time.Duration(0)).Return(errors.New("error"))
 	suite.repository.cache = cache
 
 	list, err := suite.repository.FindByHighRisk(context.TODO(), isHighRiskOrder)
 	assert.NoError(suite.T(), err)
-	assert.IsType(suite.T(), &billing.CountriesList{}, list)
+	assert.IsType(suite.T(), &billingpb.CountriesList{}, list)
 }
 
 func (suite *CountryTestSuite) TestCountry_FindByHighRisk_NotEmptyListHighRisk() {
@@ -568,27 +567,27 @@ func (suite *CountryTestSuite) TestCountry_IsTariffRegionSupported_False() {
 }
 
 func (suite *CountryTestSuite) TestCountry_IsTariffRegionSupported_True_TariffRegionRussiaAndCis() {
-	isSupported := suite.repository.IsTariffRegionSupported(pkg.TariffRegionRussiaAndCis)
+	isSupported := suite.repository.IsTariffRegionSupported(billingpb.TariffRegionRussiaAndCis)
 	assert.True(suite.T(), isSupported)
 }
 
 func (suite *CountryTestSuite) TestCountry_IsTariffRegionSupported_True_TariffRegionEurope() {
-	isSupported := suite.repository.IsTariffRegionSupported(pkg.TariffRegionEurope)
+	isSupported := suite.repository.IsTariffRegionSupported(billingpb.TariffRegionEurope)
 	assert.True(suite.T(), isSupported)
 }
 
 func (suite *CountryTestSuite) TestCountry_IsTariffRegionSupported_True_TariffRegionLatAm() {
-	isSupported := suite.repository.IsTariffRegionSupported(pkg.TariffRegionLatAm)
+	isSupported := suite.repository.IsTariffRegionSupported(billingpb.TariffRegionLatAm)
 	assert.True(suite.T(), isSupported)
 }
 
 func (suite *CountryTestSuite) TestCountry_IsTariffRegionSupported_True_TariffRegionWorldwide() {
-	isSupported := suite.repository.IsTariffRegionSupported(pkg.TariffRegionWorldwide)
+	isSupported := suite.repository.IsTariffRegionSupported(billingpb.TariffRegionWorldwide)
 	assert.True(suite.T(), isSupported)
 }
 
 func (suite *CountryTestSuite) TestCountry_updateCache_Error_Set_cacheCountryCodeA2() {
-	country := &billing.Country{IsoCodeA2: "test"}
+	country := &billingpb.Country{IsoCodeA2: "test"}
 	cache := &mocks.CacheInterface{}
 	cache.On("Set", fmt.Sprintf(cacheCountryCodeA2, country.IsoCodeA2), country, time.Duration(0)).Return(errors.New("error"))
 	suite.repository.cache = cache
@@ -665,21 +664,21 @@ func (suite *CountryTestSuite) TestCountry_updateCache_Ok() {
 	assert.NoError(suite.T(), err)
 }
 
-func (suite *CountryTestSuite) getCountryTemplate() *billing.Country {
-	return &billing.Country{
+func (suite *CountryTestSuite) getCountryTemplate() *billingpb.Country {
+	return &billingpb.Country{
 		Id:                      primitive.NewObjectID().Hex(),
 		Currency:                "RUB",
-		Region:                  pkg.TariffRegionRussiaAndCis,
+		Region:                  billingpb.TariffRegionRussiaAndCis,
 		ChangeAllowed:           true,
 		HighRiskChangeAllowed:   true,
 		HighRiskPaymentsAllowed: true,
 		PaymentsAllowed:         true,
 		IsoCodeA2:               "RU",
-		PayerTariffRegion:       pkg.TariffRegionRussiaAndCis,
+		PayerTariffRegion:       billingpb.TariffRegionRussiaAndCis,
 		PriceGroupId:            primitive.NewObjectID().Hex(),
 		VatEnabled:              true,
 		VatCurrency:             "RU",
 		VatPeriodMonth:          0,
-		VatThreshold:            &billing.CountryVatThreshold{World: float64(1), Year: float64(2)},
+		VatThreshold:            &billingpb.CountryVatThreshold{World: float64(1), Year: float64(2)},
 	}
 }
