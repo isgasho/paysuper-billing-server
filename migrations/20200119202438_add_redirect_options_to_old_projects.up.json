@@ -1,0 +1,63 @@
+[
+  {
+    "update": "project",
+    "updates": [
+      {
+        "q": {"url_redirect_fail":  "", "url_redirect_success": ""},
+        "u": {
+          "$set": {
+            "redirect_settings": {
+              "mode": "disable",
+              "delay": 0,
+              "usage": "any",
+              "button_caption": ""
+            }
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {"url_redirect_fail":  {"$ne":  ""}, "url_redirect_success": ""},
+        "u": {
+          "$set": {
+            "redirect_settings": {
+              "mode": "fail",
+              "delay": 0,
+              "usage": "any",
+              "button_caption": ""
+            }
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {"url_redirect_fail":  "", "url_redirect_success": {"$ne":  ""}},
+        "u": {
+          "$set": {
+            "redirect_settings": {
+              "mode": "successful",
+              "delay": 0,
+              "usage": "any",
+              "button_caption": ""
+            }
+          }
+        },
+        "multi": true
+      },
+      {
+        "q": {"url_redirect_fail":  {"$ne":  ""}, "url_redirect_success": {"$ne":  ""}},
+        "u": {
+          "$set": {
+            "redirect_settings": {
+              "mode": "any",
+              "delay": 0,
+              "usage": "any",
+              "button_caption": ""
+            }
+          }
+        },
+        "multi": true
+      }
+    ]
+  }
+]

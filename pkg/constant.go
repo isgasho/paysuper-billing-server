@@ -226,6 +226,12 @@ const (
 	OrderType_key            = "key"
 	OrderType_product        = "product"
 	OrderTypeVirtualCurrency = "virtual_currency"
+
+	ProjectRedirectModeAny        = "any"
+	ProjectRedirectModeDisable    = "disable"
+	ProjectRedirectModeSuccessful = "successful"
+	ProjectRedirectModeFail       = "fail"
+	ProjectRedirectUsageAny       = "any"
 )
 
 var (

@@ -453,6 +453,7 @@ func (suite *TokenTestSuite) TestToken_CreateToken_NewCustomer_Ok() {
 			Amount:    100,
 			Currency:  "RUB",
 			Type:      pkg.OrderType_simple,
+			ButtonCaption: "unit test",
 		},
 	}
 	rsp := &billingpb.TokenResponse{}

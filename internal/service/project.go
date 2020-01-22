@@ -35,6 +35,13 @@ var (
 	projectErrorShortDescriptionDefaultLangRequired              = newBillingServerErrorMsg("pr000012", "project short description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorFullDescriptionDefaultLangRequired               = newBillingServerErrorMsg("pr000013", "project full description in \""+DefaultLanguage+"\" locale is required")
 	projectErrorVatPayerUnknown                                  = newBillingServerErrorMsg("pr000014", "project vat payer unknown")
+	projectErrorRedirectModeSuccessfulUrlIsRequired              = newBillingServerErrorMsg("pr000015", "redirect url for user's redirect after payment successful ending for selected redirect mode is required")
+	projectErrorRedirectModeFailUrlIsRequired                    = newBillingServerErrorMsg("pr000016", "redirect url for user's redirect after failed payment for selected redirect mode is required")
+	projectErrorRedirectModeBothRedirectUrlsIsRequired           = newBillingServerErrorMsg("pr000017", "redirect urls for user's redirect after payment completed for selected redirect mode is required")
+	projectErrorButtonCaptionAllowedOnlyForAfterRedirect         = newBillingServerErrorMsg("pr000018", "caption for redirect button can't be set with non zero delay for auto redirect")
+	projectErrorRedirectModeIsRequired                           = newBillingServerErrorMsg("pr000019", "redirect mode must be selected")
+	projectErrorRedirectUsageIsRequired                          = newBillingServerErrorMsg("pr000020", "type of redirect usage must be selected")
+	projectErrorRedirectSettingsIsRequired                       = newBillingServerErrorMsg("pr000021", "redirect settings is required")
 )
 
 func (s *Service) ChangeProject(
@@ -157,8 +164,32 @@ func (s *Service) ChangeProject(
 	}
 
 	if project == nil {
+		if req.RedirectSettings == nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = projectErrorRedirectSettingsIsRequired
+			return nil
+		}
+
+		err = s.validateRedirectSettings(req)
+
+		if err != nil {
+			rsp.Status = pkg.ResponseStatusBadData
+			rsp.Message = err.(*grpc.ResponseErrorMessage)
+			return nil
+		}
+
 		project, err = s.createProject(ctx, req)
 	} else {
+		if req.RedirectSettings != nil {
+			err = s.validateRedirectSettings(req)
+
+			if err != nil {
+				rsp.Status = pkg.ResponseStatusBadData
+				rsp.Message = err.(*grpc.ResponseErrorMessage)
+				return nil
+			}
+		}
+
 		err = s.updateProject(ctx, req, project)
 	}
 
@@ -278,6 +309,7 @@ func (s *Service) ListProjects(
 				"localizations":               "$localizations",
 				"virtual_currency":            "$virtual_currency",
 				"vat_payer":                   "$vat_payer",
+				"redirect_settings":           "$redirect_settings",
 			},
 		},
 		{"$skip": req.Offset},
@@ -402,6 +434,7 @@ func (s *Service) createProject(ctx context.Context, req *billingpb.Project) (*b
 		Currencies:               req.Currencies,
 		VirtualCurrency:          req.VirtualCurrency,
 		VatPayer:                 req.VatPayer,
+		RedirectSettings:         req.RedirectSettings,
 		CreatedAt:                ptypes.TimestampNow(),
 		UpdatedAt:                ptypes.TimestampNow(),
 	}
@@ -451,6 +484,10 @@ func (s *Service) updateProject(ctx context.Context, req *billingpb.Project, pro
 	project.VirtualCurrency = req.VirtualCurrency
 	project.VatPayer = req.VatPayer
 	project.Cover = req.Cover
+
+	if req.RedirectSettings != nil {
+		project.RedirectSettings = req.RedirectSettings
+	}
 
 	if err := s.project.Update(ctx, project); err != nil {
 		return projectErrorUnknown
@@ -513,6 +550,37 @@ func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billingpb.Proj
 	if virtualCurrency.MinPurchaseValue > 0 && virtualCurrency.MaxPurchaseValue > 0 &&
 		virtualCurrency.MinPurchaseValue > virtualCurrency.MaxPurchaseValue {
 		return projectErrorVirtualCurrencyLimitsIncorrect
+	}
+
+	return nil
+}
+
+// Validate redirect settings for project in request to project create or update
+func (s *Service) validateRedirectSettings(req *billing.Project) error {
+	settings := req.RedirectSettings
+
+	if settings.Mode == "" {
+		return projectErrorRedirectModeIsRequired
+	}
+
+	if settings.Usage == "" {
+		return projectErrorRedirectUsageIsRequired
+	}
+
+	if settings.Mode == pkg.ProjectRedirectModeSuccessful && req.UrlRedirectSuccess == "" {
+		return projectErrorRedirectModeSuccessfulUrlIsRequired
+	}
+
+	if settings.Mode == pkg.ProjectRedirectModeFail && req.UrlRedirectFail == "" {
+		return projectErrorRedirectModeFailUrlIsRequired
+	}
+
+	if settings.Mode == pkg.ProjectRedirectModeAny && (req.UrlRedirectFail == "" || req.UrlRedirectSuccess == "") {
+		return projectErrorRedirectModeBothRedirectUrlsIsRequired
+	}
+
+	if settings.Delay > 0 && settings.ButtonCaption != "" {
+		return projectErrorButtonCaptionAllowedOnlyForAfterRedirect
 	}
 
 	return nil
