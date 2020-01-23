@@ -48,58 +48,58 @@ const (
 )
 
 type Service struct {
-	db                         mongodb.SourceInterface
-	mx                         sync.Mutex
-	cfg                        *config.Config
-	ctx                        context.Context
-	geo                        proto.GeoIpService
-	rep                        recurringpb.RepositoryService
-	tax                        taxpb.TaxService
-	broker                     rabbitmq.BrokerInterface
-	redis                      redis.Cmdable
-	cacher                     database.CacheInterface
-	curService                 currenciespb.CurrencyRatesService
-	smtpCl                     gomail.SendCloser
-	supportedCurrencies        []string
-	currenciesPrecision        map[string]int32
-	project                    *Project
-	payoutDocument             PayoutDocumentServiceInterface
-	royaltyReport              RoyaltyReportServiceInterface
-	orderView                  OrderViewServiceInterface
-	accounting                 AccountingServiceInterface
-	paymentMethod              PaymentMethodInterface
-	paymentSystem              PaymentSystemServiceInterface
-	paymentChannelCostSystem   *PaymentChannelCostSystem
-	paymentChannelCostMerchant *PaymentChannelCostMerchant
-	moneyBackCostSystem        *MoneyBackCostSystem
-	moneyBackCostMerchant      *MoneyBackCostMerchant
-	payoutCostSystem           *PayoutCostSystem
-	priceTable                 PriceTableServiceInterface
-	productService             ProductServiceInterface
-	documentSigner             document_signerpb.DocumentSignerService
-	merchantTariffRates        MerchantTariffRatesInterface
-	keyRepository              KeyRepositoryInterface
-	dashboardRepository        DashboardRepositoryInterface
-	keyProductRepository       KeyProductRepositoryInterface
-	centrifugoPaymentForm      CentrifugoInterface
-	centrifugoDashboard        CentrifugoInterface
-	formatter                  paysuper_i18n.Formatter
-	reporterService            reporterpb.ReporterService
-	postmarkBroker             rabbitmq.BrokerInterface
-	paylinkService             PaylinkServiceInterface
-	operatingCompany           OperatingCompanyInterface
-	paymentMinLimitSystem      PaymentMinLimitSystemInterface
-	casbinService              casbinpb.CasbinService
-	country                    repository.CountryRepositoryInterface
-	refundRepository           repository.RefundRepositoryInterface
-	orderRepository            repository.OrderRepositoryInterface
-	userRoleRepository         repository.UserRoleRepositoryInterface
-	zipCodeRepository          repository.ZipCodeRepositoryInterface
-	userProfileRepository      repository.UserProfileRepositoryInterface
-	turnoverRepository         repository.TurnoverRepositoryInterface
-	priceGroupRepository       repository.PriceGroupRepositoryInterface
-	merchantRepository         repository.MerchantRepositoryInterface
-	merchantBalanceRepository  repository.MerchantBalanceRepositoryInterface
+	db                              mongodb.SourceInterface
+	mx                              sync.Mutex
+	cfg                             *config.Config
+	ctx                             context.Context
+	geo                             proto.GeoIpService
+	rep                             recurringpb.RepositoryService
+	tax                             taxpb.TaxService
+	broker                          rabbitmq.BrokerInterface
+	redis                           redis.Cmdable
+	cacher                          database.CacheInterface
+	curService                      currenciespb.CurrencyRatesService
+	smtpCl                          gomail.SendCloser
+	supportedCurrencies             []string
+	currenciesPrecision             map[string]int32
+	project                         *Project
+	payoutDocument                  PayoutDocumentServiceInterface
+	royaltyReport                   RoyaltyReportServiceInterface
+	orderView                       OrderViewServiceInterface
+	accounting                      AccountingServiceInterface
+	paymentMethod                   PaymentMethodInterface
+	paymentSystem                   PaymentSystemServiceInterface
+	paymentChannelCostSystem        *PaymentChannelCostSystem
+	paymentChannelCostMerchant      *PaymentChannelCostMerchant
+	moneyBackCostSystem             *MoneyBackCostSystem
+	payoutCostSystem                *PayoutCostSystem
+	priceTable                      PriceTableServiceInterface
+	productService                  ProductServiceInterface
+	documentSigner                  document_signerpb.DocumentSignerService
+	merchantTariffRates             MerchantTariffRatesInterface
+	keyRepository                   KeyRepositoryInterface
+	dashboardRepository             DashboardRepositoryInterface
+	keyProductRepository            KeyProductRepositoryInterface
+	centrifugoPaymentForm           CentrifugoInterface
+	centrifugoDashboard             CentrifugoInterface
+	formatter                       paysuper_i18n.Formatter
+	reporterService                 reporterpb.ReporterService
+	postmarkBroker                  rabbitmq.BrokerInterface
+	paylinkService                  PaylinkServiceInterface
+	operatingCompany                OperatingCompanyInterface
+	paymentMinLimitSystem           PaymentMinLimitSystemInterface
+	casbinService                   casbinpb.CasbinService
+	country                         repository.CountryRepositoryInterface
+	refundRepository                repository.RefundRepositoryInterface
+	orderRepository                 repository.OrderRepositoryInterface
+	userRoleRepository              repository.UserRoleRepositoryInterface
+	zipCodeRepository               repository.ZipCodeRepositoryInterface
+	userProfileRepository           repository.UserProfileRepositoryInterface
+	turnoverRepository              repository.TurnoverRepositoryInterface
+	priceGroupRepository            repository.PriceGroupRepositoryInterface
+	merchantRepository              repository.MerchantRepositoryInterface
+	merchantBalanceRepository       repository.MerchantBalanceRepositoryInterface
+	moneyBackCostMerchantRepository repository.MoneyBackCostMerchantRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *billingpb.ResponseErrorMessage) *billingpb.ResponseError {
@@ -164,7 +164,6 @@ func (s *Service) Init() (err error) {
 	s.paymentChannelCostSystem = newPaymentChannelCostSystemService(s)
 	s.paymentChannelCostMerchant = newPaymentChannelCostMerchantService(s)
 	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
-	s.moneyBackCostMerchant = newMoneyBackCostMerchantService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
@@ -188,6 +187,7 @@ func (s *Service) Init() (err error) {
 	s.priceGroupRepository = repository.NewPriceGroupRepository(s.db, s.cacher)
 	s.merchantRepository = repository.NewMerchantRepository(s.db, s.cacher)
 	s.merchantBalanceRepository = repository.NewMerchantBalanceRepository(s.db, s.cacher)
+	s.moneyBackCostMerchantRepository = repository.NewMoneyBackCostMerchantRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {

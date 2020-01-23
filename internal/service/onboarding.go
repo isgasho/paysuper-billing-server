@@ -1479,7 +1479,7 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	if len(costs) > 0 {
-		err = s.moneyBackCostMerchant.MultipleInsert(ctx, costs)
+		err = s.moneyBackCostMerchantRepository.MultipleInsert(ctx, costs)
 
 		if err != nil {
 			rsp.Status = billingpb.ResponseStatusSystemError

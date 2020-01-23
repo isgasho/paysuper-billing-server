@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -11,7 +9,6 @@ import (
 	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
-	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -188,7 +185,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 		MccCode:           billingpb.MccCodeLowRisk,
 	}
 	pucs := []*billingpb.MoneyBackCostMerchant{moneyBackCostMerchant, moneyBackCostMerchant2, anotherMoneyBackCostMerchant}
-	if err := suite.service.moneyBackCostMerchant.MultipleInsert(ctx, pucs); err != nil {
+	if err := suite.service.moneyBackCostMerchantRepository.MultipleInsert(ctx, pucs); err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
 	}
 }
@@ -266,85 +263,6 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GrpcSet_O
 	assert.Equal(suite.T(), res.Item.Id, suite.moneyBackCostMerchantId)
 }
 
-func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_Ok() {
-	req := &billingpb.MoneyBackCostMerchant{
-		MerchantId:     suite.merchantId,
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         billingpb.TariffRegionWorldwide,
-		Country:        "",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3.33,
-		FixAmount:      7.5,
-		IsActive:       true,
-		MccCode:        billingpb.MccCodeLowRisk,
-	}
-
-	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Insert(ctx, req))
-}
-
-func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Insert_ErrorCacheUpdate() {
-	ci := &mocks.CacheInterface{}
-	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
-	ci.On("Delete", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
-	suite.service.cacher = ci
-
-	obj := &billingpb.MoneyBackCostMerchant{
-		MerchantId:     suite.merchantId,
-		Name:           "MASTERCARD",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         billingpb.TariffRegionWorldwide,
-		Country:        "",
-		DaysFrom:       0,
-		PaymentStage:   1,
-		Percent:        3.33,
-		FixAmount:      7.5,
-		IsActive:       true,
-		MccCode:        billingpb.MccCodeLowRisk,
-	}
-	err := suite.service.moneyBackCostMerchant.Insert(ctx, obj)
-
-	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "service unavailable")
-}
-
-func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_UpdateOk() {
-	obj := &billingpb.MoneyBackCostMerchant{
-		Id:             suite.moneyBackCostMerchantId,
-		MerchantId:     suite.merchantId,
-		Name:           "VISA",
-		PayoutCurrency: "USD",
-		UndoReason:     "chargeback",
-		Region:         billingpb.TariffRegionRussiaAndCis,
-		Country:        "AZ",
-		DaysFrom:       0,
-		PaymentStage:   2,
-		Percent:        4,
-		FixAmount:      7,
-		IsActive:       true,
-		MccCode:        billingpb.MccCodeLowRisk,
-	}
-
-	assert.NoError(suite.T(), suite.service.moneyBackCostMerchant.Update(ctx, obj))
-}
-
-func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Get_Ok() {
-	val, err := suite.service.moneyBackCostMerchant.Get(ctx, suite.merchantId, "VISA", "USD", "chargeback", billingpb.TariffRegionRussiaAndCis, "AZ", billingpb.MccCodeLowRisk, 1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val), 2)
-	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
-	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(5))
-
-	val, err = suite.service.moneyBackCostMerchant.Get(ctx, suite.merchantId, "VISA", "USD", "chargeback", billingpb.TariffRegionRussiaAndCis, "", billingpb.MccCodeLowRisk, 1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val), 1)
-	assert.Equal(suite.T(), val[0].Set[0].Country, "")
-	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(3))
-}
-
 func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_getMoneyBackCostMerchant() {
 	req := &billingpb.MoneyBackCostMerchantRequest{
 		MerchantId:     suite.merchantId,
@@ -370,30 +288,4 @@ func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_getMoneyB
 	assert.Equal(suite.T(), val.DaysFrom, int32(30))
 	assert.Equal(suite.T(), val.Percent, float64(10))
 	assert.Equal(suite.T(), val.FixAmount, float64(15))
-}
-
-func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_Delete_Ok() {
-	req := &billingpb.PaymentCostDeleteRequest{
-		Id: suite.moneyBackCostMerchantId,
-	}
-
-	res := &billingpb.ResponseError{}
-	err := suite.service.DeleteMoneyBackCostMerchant(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusOk)
-
-	_, err = suite.service.moneyBackCostMerchant.GetById(ctx, suite.moneyBackCostMerchantId)
-	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionMoneyBackCostMerchant))
-}
-
-func (suite *MoneyBackCostMerchantTestSuite) TestMoneyBackCostMerchant_GetAllMoneyBackCostMerchant_Ok() {
-	req := &billingpb.MoneyBackCostMerchantListRequest{
-		MerchantId: suite.merchantId,
-	}
-	res := &billingpb.MoneyBackCostMerchantListResponse{}
-	err := suite.service.GetAllMoneyBackCostMerchant(context.TODO(), req, res)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusOk)
-	assert.Equal(suite.T(), len(res.Item.Items), 3)
 }

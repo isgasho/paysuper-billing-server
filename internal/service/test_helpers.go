@@ -686,7 +686,7 @@ func helperCreateMerchant(
 		MccCode:           billingpb.MccCodeLowRisk,
 	}
 
-	err = service.moneyBackCostMerchant.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
+	err = service.moneyBackCostMerchantRepository.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostMerchant{merCost1, merCost2, merCost3, merCost4, merCost5, merCost6, merCost7, merCost8})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostMerchant test data failed", "%v", err)
