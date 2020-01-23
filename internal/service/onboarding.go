@@ -1495,11 +1495,7 @@ func (s *Service) SetMerchantTariffRates(
 	}
 
 	merchant.Steps.Tariff = true
-	/*fmt.Println(merchant.Company)
-	  fmt.Println(merchant.IsCompanyComplete())
-	  fmt.Println(merchant.IsContactsComplete())
-	  fmt.Println(merchant.IsBankingComplete())
-	  fmt.Println(merchant.HasTariff())*/
+
 	if merchant.IsDataComplete() {
 		err = s.sendOnboardingLetter(merchant, nil, s.cfg.EmailTemplates.OnboardingVerificationMerchant, merchant.GetAuthorizedEmail())
 		if err != nil {
