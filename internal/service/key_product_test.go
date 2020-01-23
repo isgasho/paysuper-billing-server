@@ -107,7 +107,7 @@ func (suite *KeyProductTestSuite) SetupTest() {
 		suite.FailNow("Billing service initialization failed", "%v", err)
 	}
 
-	suite.NoError(suite.service.merchant.Insert(ctx, &billingpb.Merchant{Id: merchantId, Banking: &billingpb.MerchantBanking{Currency: "USD"}}))
+	suite.NoError(suite.service.merchantRepository.Insert(ctx, &billingpb.Merchant{Id: merchantId, Banking: &billingpb.MerchantBanking{Currency: "USD"}}))
 
 	pgs := []*billingpb.PriceGroup{pgRub, pgUsd, pgEur}
 	if err := suite.service.priceGroupRepository.MultipleInsert(ctx, pgs); err != nil {

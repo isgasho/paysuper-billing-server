@@ -719,9 +719,9 @@ func (h *royaltyHandler) getRoyaltyReportRollingReserves(
 func (h *royaltyHandler) createMerchantRoyaltyReport(ctx context.Context, merchantId primitive.ObjectID) error {
 	zap.L().Info("start generating royalty reports for merchant", zap.String("merchant_id", merchantId.Hex()))
 
-	merchant, err := h.merchant.GetById(ctx, merchantId.Hex())
+	merchant, err := h.merchantRepository.GetById(ctx, merchantId.Hex())
 	if err != nil {
-		return err
+		return merchantErrorNotFound
 	}
 
 	existingReport := h.royaltyReport.GetReportExists(ctx, merchant.Id, merchant.GetPayoutCurrency(), h.from, h.to)
@@ -885,11 +885,11 @@ func (s *Service) RoyaltyReportPdfUploaded(
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(ctx, report.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))
-		return err
+		return merchantErrorNotFound
 	}
 
 	if merchant.HasAuthorizedEmail() == false {
@@ -967,7 +967,7 @@ func (s *Service) RoyaltyReportPdfUploaded(
 }
 
 func (s *Service) sendRoyaltyReportNotification(ctx context.Context, report *billingpb.RoyaltyReport) {
-	merchant, err := s.merchant.GetById(ctx, report.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, report.MerchantId)
 
 	if err != nil {
 		zap.L().Error("Merchant not found", zap.Error(err), zap.String("merchant_id", report.MerchantId))

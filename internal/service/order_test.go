@@ -1459,7 +1459,7 @@ func (suite *OrderTestSuite) SetupTest() {
 	}
 
 	merchants := []*billingpb.Merchant{merchant, merchantAgreement, merchant1}
-	if err := suite.service.merchant.MultipleInsert(context.TODO(), merchants); err != nil {
+	if err := suite.service.merchantRepository.MultipleInsert(context.TODO(), merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 

@@ -159,7 +159,7 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Error_GetById() {
 	repositoryM.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
-	suite.service.merchant = repositoryM
+	suite.service.merchantRepository = repositoryM
 
 	res := &billingpb.GetMerchantsForUserResponse{}
 	err := suite.service.GetMerchantsForUser(context.TODO(), &billingpb.GetMerchantsForUserRequest{
@@ -196,7 +196,7 @@ func (suite *UsersTestSuite) Test_GetMerchantsForUser_Ok_NotEmpty() {
 	repositoryM.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Id: primitive.NewObjectID().Hex(), Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = repositoryM
+	suite.service.merchantRepository = repositoryM
 
 	res := &billingpb.GetMerchantsForUserResponse{}
 	err := suite.service.GetMerchantsForUser(context.TODO(), &billingpb.GetMerchantsForUserRequest{
@@ -451,7 +451,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_GetMerchant() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	res := &billingpb.InviteUserMerchantResponse{}
 	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
@@ -469,7 +469,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_MerchantCompanyIsEmpt
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	res := &billingpb.InviteUserMerchantResponse{}
 	err := suite.service.InviteUserMerchant(context.TODO(), &billingpb.InviteUserMerchantRequest{
@@ -487,7 +487,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_OwnerNotFound() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -511,7 +511,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_UserAlreadyExists() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -538,7 +538,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_AddMerchantUser() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -568,7 +568,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Error_SendEmail() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -604,7 +604,7 @@ func (suite *UsersTestSuite) Test_InviteUserMerchant_Ok() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -751,7 +751,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_GetMerchant() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(nil, errors.New("error"))
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	res := &billingpb.EmptyResponseWithStatus{}
 	err := suite.service.ResendInviteMerchant(context.TODO(), &billingpb.ResendInviteMerchantRequest{
@@ -769,7 +769,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_OwnerNotFound() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -793,7 +793,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_UserNotFound() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -820,7 +820,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_UnableToResend() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -847,7 +847,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Error_SendEmail() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.
@@ -880,7 +880,7 @@ func (suite *UsersTestSuite) Test_ResendInviteMerchant_Ok() {
 	merchRep.
 		On("GetById", mock.Anything, mock.Anything).
 		Return(&billingpb.Merchant{Company: &billingpb.MerchantCompanyInfo{Name: "name"}}, nil)
-	suite.service.merchant = merchRep
+	suite.service.merchantRepository = merchRep
 
 	userRoleRep := &mocks.UserRoleRepositoryInterface{}
 	userRoleRep.

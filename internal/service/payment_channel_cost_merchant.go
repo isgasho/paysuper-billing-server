@@ -97,7 +97,7 @@ func (s *Service) SetPaymentChannelCostMerchant(
 	var err error
 
 	merchant := &billingpb.Merchant{}
-	if merchant, err = s.merchant.GetById(ctx, req.MerchantId); err != nil {
+	if merchant, err = s.merchantRepository.GetById(ctx, req.MerchantId); err != nil {
 		res.Status = billingpb.ResponseStatusNotFound
 		res.Message = merchantErrorNotFound
 		return nil
@@ -176,7 +176,7 @@ func (s *Service) SetPaymentChannelCostMerchant(
 		return nil
 	}
 
-	if err := s.merchant.UpdateTariffs(ctx, merchant.Id, req); err != nil {
+	if err := s.merchantRepository.UpdateTariffs(ctx, merchant.Id, req); err != nil {
 		zap.L().Error(pkg.MethodFinishedWithError, zap.Error(err))
 		res.Status = billingpb.ResponseStatusSystemError
 		res.Message = errorMerchantTariffUpdate

@@ -132,7 +132,7 @@ func (suite *MoneyBackCostMerchantTestSuite) SetupTest() {
 			},
 		},
 	}
-	if err := suite.service.merchant.Insert(ctx, merchant); err != nil {
+	if err := suite.service.merchantRepository.Insert(ctx, merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 

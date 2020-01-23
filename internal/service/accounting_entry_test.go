@@ -145,7 +145,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Ok_RUB_RUB_RUB() {
 
 	merchant := rsp.Item
 	merchant.Banking.Currency = "RUB"
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 	assert.Nil(suite.T(), err)
 
 	orderAmount := float64(100)
@@ -845,7 +845,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_Chargeback_Ok_RUB_RUB
 
 	merchant := rsp.Item
 	merchant.Banking.Currency = "RUB"
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 	assert.Nil(suite.T(), err)
 
 	orderAmount := float64(100)
@@ -1132,7 +1132,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 
 	assert.Equal(suite.T(), req.Type, accountingEntry.Type)
 	assert.Equal(suite.T(), req.MerchantId, accountingEntry.Source.Id)
-	assert.Equal(suite.T(), collectionMerchant, accountingEntry.Source.Type)
+	assert.Equal(suite.T(), repository.CollectionMerchant, accountingEntry.Source.Type)
 	assert.Equal(suite.T(), req.Amount, accountingEntry.Amount)
 	assert.Equal(suite.T(), req.Currency, accountingEntry.Currency)
 	assert.Equal(suite.T(), req.Status, accountingEntry.Status)
@@ -1179,7 +1179,7 @@ func (suite *AccountingEntryTestSuite) TestAccountingEntry_CreateAccountingEntry
 
 	var accountingEntry *billingpb.AccountingEntry
 	err = suite.service.db.Collection(collectionAccountingEntry).
-		FindOne(ctx, bson.M{"source.id": req.MerchantId, "source.type": collectionMerchant}).Decode(&accountingEntry)
+		FindOne(ctx, bson.M{"source.id": req.MerchantId, "source.type": repository.CollectionMerchant}).Decode(&accountingEntry)
 	assert.Error(suite.T(), mongo.ErrNoDocuments, err)
 }
 

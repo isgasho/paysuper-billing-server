@@ -166,7 +166,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) SetupTest() {
 			},
 		},
 	}
-	if err := suite.service.merchant.Insert(context.TODO(), merchant); err != nil {
+	if err := suite.service.merchantRepository.Insert(context.TODO(), merchant); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
@@ -295,7 +295,7 @@ func (suite *PaymentChannelCostMerchantTestSuite) TestPaymentChannelCostMerchant
 	assert.EqualValues(suite.T(), res.Item.MethodFixAmount, 1.01)
 	assert.Equal(suite.T(), res.Item.Id, suite.paymentChannelCostMerchantId)
 
-	merchant, err := suite.service.merchant.GetById(context.TODO(), suite.merchantId)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), suite.merchantId)
 	assert.NoError(suite.T(), err)
 
 	payment := merchant.Tariff.Payment[0]

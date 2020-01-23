@@ -98,9 +98,9 @@ func (s *Service) CreatePayoutDocument(
 	res *billingpb.CreatePayoutDocumentResponse,
 ) error {
 
-	merchant, err := s.merchant.GetById(ctx, req.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 	if err != nil {
-		return err
+		return merchantErrorNotFound
 	}
 
 	if merchant.ManualPayoutsEnabled == req.IsAutoGeneration {
@@ -338,7 +338,7 @@ func (s *Service) AutoCreatePayoutDocuments(
 ) error {
 	zap.L().Info("start auto-creation of payout documents")
 
-	merchants, err := s.merchant.GetMerchantsWithAutoPayouts(ctx)
+	merchants, err := s.merchantRepository.GetMerchantsWithAutoPayouts(ctx)
 	if err != nil {
 		zap.L().Error("GetMerchantsWithAutoPayouts failed", zap.Error(err))
 		return err
@@ -614,11 +614,10 @@ func (s *Service) PayoutDocumentPdfUploaded(
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(ctx, pd.MerchantId)
+	merchant, err := s.merchantRepository.GetById(ctx, pd.MerchantId)
 
 	if err != nil {
-
-		return err
+		return merchantErrorNotFound
 	}
 
 	if merchant.HasAuthorizedEmail() == false {

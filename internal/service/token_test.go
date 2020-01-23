@@ -386,7 +386,7 @@ func (suite *TokenTestSuite) SetupTest() {
 	_, err = suite.service.db.Collection(collectionPaymentMinLimitSystem).InsertMany(context.TODO(), limits)
 	assert.NoError(suite.T(), err)
 
-	err = suite.service.merchant.MultipleInsert(context.TODO(), []*billingpb.Merchant{merchant, merchantWithoutTariffs})
+	err = suite.service.merchantRepository.MultipleInsert(context.TODO(), []*billingpb.Merchant{merchant, merchantWithoutTariffs})
 
 	if err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)

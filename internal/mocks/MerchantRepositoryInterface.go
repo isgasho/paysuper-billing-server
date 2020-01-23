@@ -12,6 +12,50 @@ type MerchantRepositoryInterface struct {
 	mock.Mock
 }
 
+// Find provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4
+func (_m *MerchantRepositoryInterface) Find(_a0 context.Context, _a1 primitive.M, _a2 []string, _a3 int64, _a4 int64) ([]*billingpb.Merchant, error) {
+	ret := _m.Called(_a0, _a1, _a2, _a3, _a4)
+
+	var r0 []*billingpb.Merchant
+	if rf, ok := ret.Get(0).(func(context.Context, primitive.M, []string, int64, int64) []*billingpb.Merchant); ok {
+		r0 = rf(_a0, _a1, _a2, _a3, _a4)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*billingpb.Merchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, primitive.M, []string, int64, int64) error); ok {
+		r1 = rf(_a0, _a1, _a2, _a3, _a4)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindCount provides a mock function with given fields: _a0, _a1
+func (_m *MerchantRepositoryInterface) FindCount(_a0 context.Context, _a1 primitive.M) (int64, error) {
+	ret := _m.Called(_a0, _a1)
+
+	var r0 int64
+	if rf, ok := ret.Get(0).(func(context.Context, primitive.M) int64); ok {
+		r0 = rf(_a0, _a1)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, primitive.M) error); ok {
+		r1 = rf(_a0, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAll provides a mock function with given fields: ctx
 func (_m *MerchantRepositoryInterface) GetAll(ctx context.Context) ([]*billingpb.Merchant, error) {
 	ret := _m.Called(ctx)
@@ -37,6 +81,29 @@ func (_m *MerchantRepositoryInterface) GetAll(ctx context.Context) ([]*billingpb
 
 // GetById provides a mock function with given fields: ctx, id
 func (_m *MerchantRepositoryInterface) GetById(ctx context.Context, id string) (*billingpb.Merchant, error) {
+	ret := _m.Called(ctx, id)
+
+	var r0 *billingpb.Merchant
+	if rf, ok := ret.Get(0).(func(context.Context, string) *billingpb.Merchant); ok {
+		r0 = rf(ctx, id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*billingpb.Merchant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetByUserId provides a mock function with given fields: ctx, id
+func (_m *MerchantRepositoryInterface) GetByUserId(ctx context.Context, id string) (*billingpb.Merchant, error) {
 	ret := _m.Called(ctx, id)
 
 	var r0 *billingpb.Merchant
@@ -104,29 +171,6 @@ func (_m *MerchantRepositoryInterface) GetMerchantsWithAutoPayouts(ctx context.C
 	return r0, r1
 }
 
-// GetPaymentMethod provides a mock function with given fields: ctx, merchantId, method
-func (_m *MerchantRepositoryInterface) GetPaymentMethod(ctx context.Context, merchantId string, method string) (*billingpb.MerchantPaymentMethod, error) {
-	ret := _m.Called(ctx, merchantId, method)
-
-	var r0 *billingpb.MerchantPaymentMethod
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *billingpb.MerchantPaymentMethod); ok {
-		r0 = rf(ctx, merchantId, method)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*billingpb.MerchantPaymentMethod)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, merchantId, method)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // Insert provides a mock function with given fields: ctx, merchant
 func (_m *MerchantRepositoryInterface) Insert(ctx context.Context, merchant *billingpb.Merchant) error {
 	ret := _m.Called(ctx, merchant)
@@ -169,27 +213,13 @@ func (_m *MerchantRepositoryInterface) Update(ctx context.Context, merchant *bil
 	return r0
 }
 
-// UpdatePartial provides a mock function with given fields: ctx, query, update
-func (_m *MerchantRepositoryInterface) UpdatePartial(ctx context.Context, query interface{}, update primitive.M) error {
-	ret := _m.Called(ctx, query, update)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, interface{}, primitive.M) error); ok {
-		r0 = rf(ctx, query, update)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// UpdateTariffs provides a mock function with given fields: ctx, id, req
-func (_m *MerchantRepositoryInterface) UpdateTariffs(ctx context.Context, id string, req *billingpb.PaymentChannelCostMerchant) error {
-	ret := _m.Called(ctx, id, req)
+// UpdateTariffs provides a mock function with given fields: _a0, _a1, _a2
+func (_m *MerchantRepositoryInterface) UpdateTariffs(_a0 context.Context, _a1 string, _a2 *billingpb.PaymentChannelCostMerchant) error {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, *billingpb.PaymentChannelCostMerchant) error); ok {
-		r0 = rf(ctx, id, req)
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		r0 = ret.Error(0)
 	}

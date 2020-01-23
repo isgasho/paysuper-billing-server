@@ -482,7 +482,7 @@ func (s *Service) GetCommonUserProfile(
 
 	if role != nil {
 		rsp.Profile.Role = role
-		rsp.Profile.Merchant, _ = s.merchant.GetById(ctx, role.MerchantId)
+		rsp.Profile.Merchant, _ = s.merchantRepository.GetById(ctx, role.MerchantId)
 		rsp.Profile.Merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(
 			rsp.Profile.Merchant.Id,
 			time.Now().Add(time.Hour*3).Unix(),

@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest/observer"
@@ -358,7 +359,7 @@ func (suite *OnboardingTestSuite) SetupTest() {
 	}
 
 	merchants := []*billingpb.Merchant{merchant, merchantAgreement, merchant1}
-	if err := suite.service.merchant.MultipleInsert(ctx, merchants); err != nil {
+	if err := suite.service.merchantRepository.MultipleInsert(ctx, merchants); err != nil {
 		suite.FailNow("Insert merchant test data failed", "%v", err)
 	}
 
@@ -740,9 +741,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_NewMerchant_Ok()
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
-	id, err := primitive.ObjectIDFromHex(rsp.Id)
-	err = suite.service.db.Collection(collectionMerchant).FindOne(ctx, bson.M{"_id": id}).Decode(&merchant)
-
+	merchant, err = suite.service.merchantRepository.GetById(ctx, rsp.Id)
 	assert.NotNil(suite.T(), merchant)
 	assert.Equal(suite.T(), billingpb.MerchantStatusPending, merchant.Status)
 	assert.Equal(suite.T(), rsp.Contacts.Authorized.Position, merchant.Contacts.Authorized.Position)
@@ -797,10 +796,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchant_O
 	assert.Equal(suite.T(), req.Banking.AccountNumber, rsp.Banking.AccountNumber)
 	assert.NotZero(suite.T(), rsp.CentrifugoToken)
 
-	var merchant *billingpb.Merchant
-	id, err := primitive.ObjectIDFromHex(rsp.Id)
-	err = suite.service.db.Collection(collectionMerchant).FindOne(ctx, bson.M{"_id": id}).Decode(&merchant)
-
+	merchant, err := suite.service.merchantRepository.GetById(ctx, rsp.Id)
+	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.Equal(suite.T(), rsp.Status, merchant.Status)
 	assert.Equal(suite.T(), rsp.Contacts.Authorized.Phone, merchant.Contacts.Authorized.Phone)
@@ -857,7 +854,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_UpdateMerchantNo
 	cmres := &billingpb.ChangeMerchantResponse{}
 	err = suite.service.ChangeMerchant(context.TODO(), req, cmres)
 	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), cmres.Status, billingpb.ResponseStatusForbidden)
+	assert.Equal(suite.T(), billingpb.ResponseStatusForbidden, cmres.Status)
 	assert.Equal(suite.T(), merchantErrorChangeNotAllowed, cmres.Message)
 	assert.Nil(suite.T(), cmres.Item)
 }
@@ -1019,74 +1016,75 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 		},
 	}
 
+	// Create merchant with MerchantStatusDraft status
 	rsp := &billingpb.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
+	// Create merchant with MerchantStatusAgreementSigned status
 	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_1"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
-	id, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	merchant, err := suite.service.getMerchantBy(ctx, bson.M{"_id": id})
+	merchant, err := suite.service.merchantRepository.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 
+	// Create merchant with MerchantStatusAgreementSigning status
 	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_2"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	assert.NoError(suite.T(), err)
-
-	merchant, err = suite.service.getMerchantBy(ctx, bson.M{"_id": oid})
+	merchant, err = suite.service.merchantRepository.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigning
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 
+	// Create merchant with MerchantStatusAgreementSigned status
 	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_3"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
-	merchant, err = suite.service.getMerchantBy(ctx, bson.M{"_id": oid})
+	merchant, err = suite.service.merchantRepository.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 
+	// Create merchant with MerchantStatusAgreementSigned status
 	req.User.Id = primitive.NewObjectID().Hex()
 	req.Company.Name = req.Company.Name + "_4"
 	err = suite.service.ChangeMerchant(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 
-	id, _ = primitive.ObjectIDFromHex(rsp.Item.Id)
-	merchant, err = suite.service.getMerchantBy(ctx, bson.M{"_id": id})
+	merchant, err = suite.service.merchantRepository.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 
+	// List merchants by status
 	req1 := &billingpb.MerchantListingRequest{Statuses: []int32{billingpb.MerchantStatusDraft}}
 	rsp1 := &billingpb.MerchantListingResponse{}
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.EqualValues(suite.T(), 4, rsp1.Count)
+	assert.EqualValues(suite.T(), int64(3), rsp1.Count)
 	assert.Equal(suite.T(), suite.merchant.Id, rsp1.Items[0].Id)
 
 	req1 = &billingpb.MerchantListingRequest{Statuses: []int32{billingpb.MerchantStatusAgreementSigning}}
@@ -1094,21 +1092,21 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_StatusesQuery_Ok(
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(1), rsp1.Count)
+	assert.EqualValues(suite.T(), int64(2), rsp1.Count)
 
 	req1 = &billingpb.MerchantListingRequest{Statuses: []int32{billingpb.MerchantStatusAgreementSigned}}
 	rsp1 = &billingpb.MerchantListingResponse{}
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(3), rsp1.Count)
+	assert.EqualValues(suite.T(), int64(3), rsp1.Count)
 
 	req1 = &billingpb.MerchantListingRequest{Statuses: []int32{billingpb.MerchantStatusAgreementSigning, billingpb.MerchantStatusAgreementSigned}}
 	rsp1 = &billingpb.MerchantListingResponse{}
 	err = suite.service.ListMerchants(context.TODO(), req1, rsp1)
 
 	assert.Nil(suite.T(), err)
-	assert.EqualValues(suite.T(), int32(4), rsp1.Count)
+	assert.EqualValues(suite.T(), int64(5), rsp1.Count)
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_Ok() {
@@ -1304,12 +1302,12 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 	assert.Equal(suite.T(), rsp.Status, billingpb.ResponseStatusOk)
 	assert.Equal(suite.T(), billingpb.MerchantStatusDraft, rsp.Item.Status)
 
-	merchant, err := suite.service.merchant.GetById(ctx, rsp.Item.Id)
+	merchant, err := suite.service.merchantRepository.GetById(ctx, rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigning
-	err = suite.service.merchant.Update(ctx, merchant)
+	err = suite.service.merchantRepository.Update(ctx, merchant)
 	assert.NoError(suite.T(), err)
 
 	reqChangeStatus := &billingpb.MerchantChangeStatusRequest{
@@ -1326,12 +1324,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_Ok() {
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_MerchantPaymentMethodsEmpty_Ok() {
-	var merchant *billingpb.Merchant
-
-	oid, err := primitive.ObjectIDFromHex(suite.merchant1.Id)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), suite.merchant1.Id)
 	assert.NoError(suite.T(), err)
-
-	err = suite.service.db.Collection(collectionMerchant).FindOne(context.TODO(), bson.M{"_id": oid}).Decode(&merchant)
 	assert.NotNil(suite.T(), merchant)
 	assert.Len(suite.T(), merchant.PaymentMethods, 0)
 
@@ -1349,10 +1343,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Merc
 	for _, v := range rsp.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")
 		assert.True(suite.T(), v.PaymentMethod.Name != "")
-		assert.Equal(suite.T(), DefaultPaymentMethodFee, v.Commission.Fee)
+		assert.Equal(suite.T(), pkg.DefaultPaymentMethodFee, v.Commission.Fee)
 		assert.NotNil(suite.T(), v.Commission.PerTransaction)
-		assert.Equal(suite.T(), DefaultPaymentMethodPerTransactionFee, v.Commission.PerTransaction.Fee)
-		assert.Equal(suite.T(), DefaultPaymentMethodCurrency, v.Commission.PerTransaction.Currency)
+		assert.Equal(suite.T(), pkg.DefaultPaymentMethodPerTransactionFee, v.Commission.PerTransaction.Fee)
+		assert.Equal(suite.T(), pkg.DefaultPaymentMethodCurrency, v.Commission.PerTransaction.Currency)
 		assert.True(suite.T(), v.Integration.TerminalId == "")
 		assert.True(suite.T(), v.Integration.TerminalPassword == "")
 		assert.False(suite.T(), v.Integration.Integrated)
@@ -1446,10 +1440,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	for _, v := range rspListMerchantPaymentMethods.PaymentMethods {
 		assert.True(suite.T(), v.PaymentMethod.Id != "")
 		assert.True(suite.T(), v.PaymentMethod.Name != "")
-		assert.Equal(suite.T(), DefaultPaymentMethodFee, v.Commission.Fee)
+		assert.Equal(suite.T(), pkg.DefaultPaymentMethodFee, v.Commission.Fee)
 		assert.NotNil(suite.T(), v.Commission.PerTransaction)
-		assert.Equal(suite.T(), DefaultPaymentMethodPerTransactionFee, v.Commission.PerTransaction.Fee)
-		assert.Equal(suite.T(), DefaultPaymentMethodCurrency, v.Commission.PerTransaction.Currency)
+		assert.Equal(suite.T(), pkg.DefaultPaymentMethodPerTransactionFee, v.Commission.PerTransaction.Fee)
+		assert.Equal(suite.T(), pkg.DefaultPaymentMethodCurrency, v.Commission.PerTransaction.Currency)
 		assert.True(suite.T(), v.Integration.TerminalId == "")
 		assert.True(suite.T(), v.Integration.TerminalPassword == "")
 		assert.False(suite.T(), v.Integration.Integrated)
@@ -1485,7 +1479,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	assert.NotNil(suite.T(), rspMerchantPaymentMethodAdd.Item)
 	assert.True(suite.T(), len(rspMerchantPaymentMethodAdd.Item.PaymentMethod.Id) > 0)
 
-	pm, err := suite.service.merchant.GetPaymentMethod(context.TODO(), rsp.Id, suite.pmBankCard.Id)
+	pm, err := suite.service.getMerchantPaymentMethod(context.TODO(), rsp.Id, suite.pmBankCard.Id)
 	assert.NoError(suite.T(), err)
 
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.PaymentMethod.Id, pm.PaymentMethod.Id)
@@ -1498,11 +1492,8 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_NewM
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.Integration.Integrated, pm.Integration.Integrated)
 	assert.Equal(suite.T(), reqMerchantPaymentMethodAdd.IsActive, pm.IsActive)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
-
-	var merchant *billingpb.Merchant
-	err = suite.service.db.Collection(collectionMerchant).FindOne(context.TODO(), bson.M{"_id": oid}).Decode(&merchant)
 	assert.NotNil(suite.T(), merchant)
 	assert.True(suite.T(), len(merchant.PaymentMethods) > 0)
 
@@ -1587,9 +1578,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchantPaymentMethods_Filt
 
 	assert.Equal(suite.T(), suite.pmQiwi.Id, pm.PaymentMethod.Id)
 	assert.Equal(suite.T(), suite.pmQiwi.Name, pm.PaymentMethod.Name)
-	assert.Equal(suite.T(), DefaultPaymentMethodFee, pm.Commission.Fee)
-	assert.Equal(suite.T(), DefaultPaymentMethodPerTransactionFee, pm.Commission.PerTransaction.Fee)
-	assert.Equal(suite.T(), DefaultPaymentMethodCurrency, pm.Commission.PerTransaction.Currency)
+	assert.Equal(suite.T(), pkg.DefaultPaymentMethodFee, pm.Commission.Fee)
+	assert.Equal(suite.T(), pkg.DefaultPaymentMethodPerTransactionFee, pm.Commission.PerTransaction.Fee)
+	assert.Equal(suite.T(), pkg.DefaultPaymentMethodCurrency, pm.Commission.PerTransaction.Currency)
 	assert.Equal(suite.T(), "", pm.Integration.TerminalId)
 	assert.Equal(suite.T(), "", pm.Integration.TerminalPassword)
 	assert.False(suite.T(), pm.Integration.Integrated)
@@ -1672,9 +1663,9 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantPaymentMethod_NotExi
 
 	assert.Equal(suite.T(), suite.pmQiwi.Id, rsp.Item.PaymentMethod.Id)
 	assert.Equal(suite.T(), suite.pmQiwi.Name, rsp.Item.PaymentMethod.Name)
-	assert.Equal(suite.T(), DefaultPaymentMethodFee, rsp.Item.Commission.Fee)
-	assert.Equal(suite.T(), DefaultPaymentMethodPerTransactionFee, rsp.Item.Commission.PerTransaction.Fee)
-	assert.Equal(suite.T(), DefaultPaymentMethodCurrency, rsp.Item.Commission.PerTransaction.Currency)
+	assert.Equal(suite.T(), pkg.DefaultPaymentMethodFee, rsp.Item.Commission.Fee)
+	assert.Equal(suite.T(), pkg.DefaultPaymentMethodPerTransactionFee, rsp.Item.Commission.PerTransaction.Fee)
+	assert.Equal(suite.T(), pkg.DefaultPaymentMethodCurrency, rsp.Item.Commission.PerTransaction.Currency)
 	assert.Equal(suite.T(), "", rsp.Item.Integration.TerminalId)
 	assert.Equal(suite.T(), "", rsp.Item.Integration.TerminalPassword)
 	assert.False(suite.T(), rsp.Item.Integration.Integrated)
@@ -2116,15 +2107,13 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	assert.Empty(suite.T(), rsp.ReceivedDate)
 	assert.Empty(suite.T(), rsp.StatusLastUpdatedAt)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
-	assert.NoError(suite.T(), err)
-	merchant, err := suite.service.getMerchantBy(context.TODO(), bson.M{"_id": oid})
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigning
 	merchant.AgreementType = pkg.MerchantAgreementTypeESign
-	err = suite.service.merchant.Update(context.TODO(), merchant)
+	err = suite.service.merchantRepository.Update(context.TODO(), merchant)
 
 	req1 := &billingpb.ChangeMerchantDataRequest{
 		MerchantId:           merchant.Id,
@@ -2137,7 +2126,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
-	merchant1, err := suite.service.getMerchantBy(context.TODO(), bson.M{"_id": oid})
+	merchant1, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.False(suite.T(), merchant1.HasPspSignature)
@@ -2153,9 +2142,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_Ok() {
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
-	oid, err = primitive.ObjectIDFromHex(rsp.Id)
-	assert.NoError(suite.T(), err)
-	merchant1, err = suite.service.getMerchantBy(context.TODO(), bson.M{"_id": oid})
+	merchant1, err = suite.service.merchantRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.True(suite.T(), merchant1.HasPspSignature)
@@ -2280,10 +2267,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantS3Agreement_Ok() {
 	data := params["data"].(map[string]interface{})
 	assert.Equal(suite.T(), merchantAgreementReadyToSignMessage, data)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Id)
-	assert.NoError(suite.T(), err)
-
-	merchant1, err := suite.service.getMerchantBy(context.TODO(), bson.M{"_id": oid})
+	merchant1, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant1)
 	assert.Equal(suite.T(), req1.S3AgreementName, merchant1.S3AgreementName)
@@ -2531,15 +2515,12 @@ func (suite *OnboardingTestSuite) TestOnboarding_GetMerchantOnboardingCompleteDa
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	assert.NoError(suite.T(), err)
-
-	merchant, err := suite.service.getMerchantBy(context.TODO(), bson.M{"_id": oid})
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
 	merchant.Status = billingpb.MerchantStatusAgreementSigned
-	err = suite.service.merchant.Update(context.TODO(), merchant)
+	err = suite.service.merchantRepository.Update(context.TODO(), merchant)
 	assert.NoError(suite.T(), err)
 
 	req1 := &billingpb.SetMerchantS3AgreementRequest{
@@ -2696,11 +2677,10 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchant_Upsert_Error() {
 		},
 	}
 
-	cache := &mocks.CacheInterface{}
-	cache.On("Get", mock2.Anything, mock2.Anything).Return(nil)
-	cache.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).
-		Return(errors.New(mocks.SomeError))
-	suite.service.cacher = cache
+	rep := &mocks.MerchantRepositoryInterface{}
+	rep.On("GetByUserId", mock2.Anything, mock2.Anything).Return(nil, mongo.ErrNoDocuments)
+	rep.On("Upsert", mock2.Anything, mock2.Anything).Return(errors.New(mocks.SomeError))
+	suite.service.merchantRepository = rep
 
 	rsp := &billingpb.ChangeMerchantResponse{}
 	err := suite.service.ChangeMerchant(context.TODO(), req, rsp)
@@ -2911,7 +2891,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NotNil(suite.T(), rsp0.Item.Banking)
 	assert.Equal(suite.T(), req0.Banking.Currency, rsp0.Item.Banking.Currency)
 
-	merchant, err := suite.service.merchant.GetById(context.TODO(), rsp0.Item.Id)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.NotNil(suite.T(), merchant.Banking)
@@ -2957,7 +2937,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NotNil(suite.T(), moneyBackCosts.Items)
 	assert.Len(suite.T(), moneyBackCosts.Items, 15)
 
-	merchant, err = suite.service.merchant.GetById(context.TODO(), rsp0.Item.Id)
+	merchant, err = suite.service.merchantRepository.GetById(context.TODO(), rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 	assert.NotNil(suite.T(), merchant.Banking)
@@ -3046,7 +3026,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_ChangeTa
 		MerchantSignatureId: primitive.NewObjectID().Hex(),
 		PsSignatureId:       primitive.NewObjectID().Hex(),
 	}
-	err := suite.service.merchant.Update(context.TODO(), suite.merchant)
+	err := suite.service.merchantRepository.Update(context.TODO(), suite.merchant)
 	assert.NoError(suite.T(), err)
 
 	req := &billingpb.SetMerchantTariffRatesRequest{
@@ -3123,7 +3103,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_SetStatu
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
 
-	merchant, err := suite.service.merchant.GetById(context.TODO(), suite.merchant.Id)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.MerchantStatusPending, merchant.Status)
 }
@@ -3322,10 +3302,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 			rsp.Item.User.RegistrationDate, _ = ptypes.TimestampProto(time.Now())
 		}
 
-		oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-		assert.NoError(suite.T(), err)
-		filter := bson.M{"_id": oid}
-		_, err = suite.service.db.Collection(collectionMerchant).ReplaceOne(context.TODO(), filter, rsp.Item)
+		err = suite.service.merchantRepository.Upsert(context.TODO(), rsp.Item)
 	}
 
 	req2 := &billingpb.MerchantListingRequest{RegistrationDateFrom: time.Now().Add(-49 * time.Hour).Unix()}
@@ -3376,10 +3353,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ListMerchants_QuickSearchQuery_
 			rsp.Item.ReceivedDate, _ = ptypes.TimestampProto(time.Now())
 		}
 
-		oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-		assert.NoError(suite.T(), err)
-		filter := bson.M{"_id": oid}
-		_, err = suite.service.db.Collection(collectionMerchant).ReplaceOne(context.TODO(), filter, rsp.Item)
+		err = suite.service.merchantRepository.Upsert(context.TODO(), rsp.Item)
 	}
 
 	req2 := &billingpb.MerchantListingRequest{ReceivedDateFrom: time.Now().Add(-49 * time.Hour).Unix()}
@@ -3429,7 +3403,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetRejecte
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_SetDeletedStatus_Error() {
 	suite.merchant.Status = billingpb.MerchantStatusAgreementSigned
-	err := suite.service.merchant.Update(context.TODO(), suite.merchant)
+	err := suite.service.merchantRepository.Update(context.TODO(), suite.merchant)
 	assert.NoError(suite.T(), err)
 	req := &billingpb.MerchantChangeStatusRequest{
 		MerchantId: suite.merchant.Id,
@@ -3481,7 +3455,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UpdateMerc
 	merchantMock := &mocks.MerchantRepositoryInterface{}
 	merchantMock.On("GetById", mock2.Anything, mock2.Anything).Return(suite.merchant, nil)
 	merchantMock.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("some error"))
-	suite.service.merchant = merchantMock
+	suite.service.merchantRepository = merchantMock
 
 	rsp := &billingpb.ChangeMerchantStatusResponse{}
 	err := suite.service.ChangeMerchantStatus(context.TODO(), req, rsp)
@@ -3492,7 +3466,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantStatus_UpdateMerc
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_MessageNotFound_Error() {
 	suite.merchant.Status = 999
-	err := suite.service.merchant.Update(context.TODO(), suite.merchant)
+	err := suite.service.merchantRepository.Update(context.TODO(), suite.merchant)
 	assert.NoError(suite.T(), err)
 
 	req := &billingpb.ChangeMerchantDataRequest{
@@ -3533,7 +3507,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_UpdateMercha
 	merchantMock := &mocks.MerchantRepositoryInterface{}
 	merchantMock.On("GetById", mock2.Anything, mock2.Anything).Return(suite.merchant, nil)
 	merchantMock.On("Update", mock2.Anything, mock2.Anything).Return(errors.New("some error"))
-	suite.service.merchant = merchantMock
+	suite.service.merchantRepository = merchantMock
 
 	err := suite.service.ChangeMerchantData(context.TODO(), req, rsp)
 	assert.NoError(suite.T(), err)
@@ -3542,9 +3516,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantData_UpdateMercha
 }
 
 func (suite *OnboardingTestSuite) TestOnboarding_ChangeMerchantManualPayouts_Ok() {
-	oid, err := primitive.ObjectIDFromHex(suite.merchant.Id)
-	assert.NoError(suite.T(), err)
-	merchant1, err := suite.service.getMerchantBy(context.TODO(), bson.M{"_id": oid})
+	merchant1, err := suite.service.merchantRepository.GetById(context.TODO(), suite.merchant.Id)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), merchant1.ManualPayoutsEnabled)
 
@@ -3687,7 +3659,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
-	merchant, err := suite.service.merchant.GetById(context.TODO(), rsp.Item.Id)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 
@@ -3785,7 +3757,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_GenerateMerchantAgreement_Check
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 	assert.Empty(suite.T(), rsp1.Message)
 
-	merchant, err := suite.service.merchant.GetById(context.TODO(), rsp.Item.Id)
+	merchant, err := suite.service.merchantRepository.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), merchant)
 

@@ -103,9 +103,9 @@ var (
 	}
 
 	availableAccountingEntriesSourceTypes = map[string]bool{
-		repository.CollectionOrder:  true,
-		repository.CollectionRefund: true,
-		collectionMerchant:          true,
+		repository.CollectionOrder:    true,
+		repository.CollectionRefund:   true,
+		repository.CollectionMerchant: true,
 	}
 
 	rollingReserveAccountingEntries = map[string]bool{
@@ -205,10 +205,8 @@ func (s *Service) CreateAccountingEntry(
 		countryCode = order.GetCountry()
 	}
 
-	oid, err := primitive.ObjectIDFromHex(req.MerchantId)
-
-	if req.MerchantId != "" && err == nil {
-		merchant, err := s.getMerchantBy(ctx, bson.M{"_id": oid})
+	if req.MerchantId != "" {
+		merchant, err := s.merchantRepository.GetById(ctx, req.MerchantId)
 
 		if err != nil {
 			rsp.Status = billingpb.ResponseStatusNotFound
@@ -272,9 +270,9 @@ func (s *Service) onPaymentNotify(ctx context.Context, order *billingpb.Order) e
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(ctx, order.GetMerchantId())
+	merchant, err := s.merchantRepository.GetById(ctx, order.GetMerchantId())
 	if err != nil {
-		return err
+		return merchantErrorNotFound
 	}
 
 	handler := &accountingEntry{
@@ -301,9 +299,9 @@ func (s *Service) onRefundNotify(ctx context.Context, refund *billingpb.Refund, 
 		return err
 	}
 
-	merchant, err := s.merchant.GetById(ctx, refundOrder.GetMerchantId())
+	merchant, err := s.merchantRepository.GetById(ctx, refundOrder.GetMerchantId())
 	if err != nil {
-		return err
+		return merchantErrorNotFound
 	}
 
 	handler := &accountingEntry{
@@ -362,7 +360,7 @@ func (h *accountingEntry) processManualCorrectionEvent() error {
 	}
 
 	if h.merchant != nil {
-		entry.Source.Type = collectionMerchant
+		entry.Source.Type = repository.CollectionMerchant
 		entry.Source.Id = h.merchant.Id
 		entry.MerchantId = h.merchant.Id
 	}
@@ -1148,7 +1146,7 @@ func (h *accountingEntry) newEntry(entryType string) *billingpb.AccountingEntry 
 				createdTime = ptypes.TimestampNow()
 				source = &billingpb.AccountingEntrySource{
 					Id:   h.merchant.Id,
-					Type: collectionMerchant,
+					Type: repository.CollectionMerchant,
 				}
 				merchantId = h.merchant.Id
 				currency = h.merchant.GetPayoutCurrency()
