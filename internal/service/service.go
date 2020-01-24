@@ -19,7 +19,6 @@ import (
 	"github.com/paysuper/paysuper-proto/go/taxpb"
 	httpTools "github.com/paysuper/paysuper-tools/http"
 	tools "github.com/paysuper/paysuper-tools/number"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
@@ -260,33 +259,6 @@ func (s *Service) getCountryFromAcceptLanguage(acceptLanguage string) (string, s
 
 	it1 := strings.Split(it[0], "-")
 	return it[0], strings.ToUpper(it1[1])
-}
-
-func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {
-	pipeSort := make(bson.M)
-
-	for _, field := range sort {
-		n := 1
-
-		if field == "" {
-			continue
-		}
-
-		sField := strings.Split(field, "")
-
-		if sField[0] == "-" {
-			n = -1
-			field = field[1:]
-		}
-
-		pipeSort[field] = n
-	}
-
-	if len(pipeSort) > 0 {
-		query = append(query, bson.M{"$sort": pipeSort})
-	}
-
-	return query
 }
 
 func (s *Service) getDefaultPaymentMethodCommissions() *billingpb.MerchantPaymentMethodCommissions {

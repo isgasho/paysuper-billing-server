@@ -12,7 +12,6 @@ import (
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
 	mongodb "gopkg.in/paysuper/paysuper-database-mongo.v2"
@@ -396,11 +395,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_Ok()
 	assert.Equal(suite.T(), req.VirtualCurrency, rsp.Item.VirtualCurrency)
 	assert.Equal(suite.T(), billingpb.VatPayerSeller, rsp.Item.VatPayer)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	project, err := suite.service.getProjectBy(context.TODO(), filter)
+	project, err := suite.service.project.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), project)
 
@@ -464,11 +459,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_ExistProject_Ok
 	assert.NotEqual(suite.T(), req.Status, rsp.Item.Status)
 	assert.Equal(suite.T(), billingpb.ProjectStatusDraft, rsp.Item.Status)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	project, err := suite.service.getProjectBy(context.TODO(), filter)
+	project, err := suite.service.project.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), project)
 
@@ -919,11 +910,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_DeleteProject_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp1.Status)
 
-	oid, err := primitive.ObjectIDFromHex(rsp.Item.Id)
-	assert.NoError(suite.T(), err)
-	filter := bson.M{"_id": oid}
-
-	project, err := suite.service.getProjectBy(context.TODO(), filter)
+	project, err := suite.service.project.GetById(context.TODO(), rsp.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ProjectStatusDeleted, project.Status)
 

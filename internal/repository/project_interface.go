@@ -27,4 +27,10 @@ type ProjectRepositoryInterface interface {
 
 	// Count return count of projects by merchant identifier.
 	CountByMerchantId(context.Context, string) (int64, error)
+
+	// Find projects by merchant, quick search and statuses with pagination and sortable.
+	Find(context.Context, string, string, []int32, int64, int64, []string) ([]*billingpb.Project, error)
+
+	// FindCount return count of projects by merchant, quick search and statuses.
+	FindCount(context.Context, string, string, []int32) (int64, error)
 }
