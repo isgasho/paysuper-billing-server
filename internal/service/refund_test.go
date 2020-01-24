@@ -663,7 +663,7 @@ func (suite *RefundTestSuite) SetupTest() {
 		OperatingCompanyId: merchant.OperatingCompanyId,
 	}
 
-	err = suite.service.moneyBackCostSystem.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostSystem{mbSysCost, mbSysCost1, mbSysCost2, mbSysCost3})
+	err = suite.service.moneyBackCostSystemRepository.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostSystem{mbSysCost, mbSysCost1, mbSysCost2, mbSysCost3})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)

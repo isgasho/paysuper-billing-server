@@ -71,7 +71,6 @@ type Service struct {
 	paymentSystem                   PaymentSystemServiceInterface
 	paymentChannelCostSystem        *PaymentChannelCostSystem
 	paymentChannelCostMerchant      *PaymentChannelCostMerchant
-	moneyBackCostSystem             *MoneyBackCostSystem
 	payoutCostSystem                *PayoutCostSystem
 	priceTable                      PriceTableServiceInterface
 	productService                  ProductServiceInterface
@@ -100,6 +99,7 @@ type Service struct {
 	merchantRepository              repository.MerchantRepositoryInterface
 	merchantBalanceRepository       repository.MerchantBalanceRepositoryInterface
 	moneyBackCostMerchantRepository repository.MoneyBackCostMerchantRepositoryInterface
+	moneyBackCostSystemRepository   repository.MoneyBackCostSystemRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *billingpb.ResponseErrorMessage) *billingpb.ResponseError {
@@ -163,7 +163,6 @@ func (s *Service) Init() (err error) {
 	s.paymentSystem = newPaymentSystemService(s)
 	s.paymentChannelCostSystem = newPaymentChannelCostSystemService(s)
 	s.paymentChannelCostMerchant = newPaymentChannelCostMerchantService(s)
-	s.moneyBackCostSystem = newMoneyBackCostSystemService(s)
 	s.payoutCostSystem = newPayoutCostSystemService(s)
 	s.priceTable = newPriceTableService(s)
 	s.productService = newProductService(s)
@@ -188,6 +187,7 @@ func (s *Service) Init() (err error) {
 	s.merchantRepository = repository.NewMerchantRepository(s.db, s.cacher)
 	s.merchantBalanceRepository = repository.NewMerchantBalanceRepository(s.db, s.cacher)
 	s.moneyBackCostMerchantRepository = repository.NewMoneyBackCostMerchantRepository(s.db, s.cacher)
+	s.moneyBackCostSystemRepository = repository.NewMoneyBackCostSystemRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
