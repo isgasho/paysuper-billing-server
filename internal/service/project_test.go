@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/jinzhu/copier"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
@@ -1069,21 +1068,6 @@ func (suite *ProjectTestSuite) TearDownTest() {
 	if err != nil {
 		suite.FailNow("Database close failed", "%v", err)
 	}
-}
-
-func (suite *ProjectTestSuite) TestProject_GetProjectById_Ok() {
-	c, err := suite.service.project.GetById(context.TODO(), suite.project.Id)
-
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), c)
-	assert.Equal(suite.T(), suite.project.Id, c.Id)
-}
-
-func (suite *ProjectTestSuite) TestProject_GetProjectById_NotFound() {
-	_, err := suite.service.project.GetById(context.TODO(), primitive.NewObjectID().Hex())
-
-	assert.Error(suite.T(), err)
-	assert.Errorf(suite.T(), err, fmt.Sprintf(errorNotFound, collectionProject))
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_IncorrectCurrencies_Error() {

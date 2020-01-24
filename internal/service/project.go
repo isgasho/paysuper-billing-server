@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
@@ -15,8 +14,6 @@ import (
 )
 
 const (
-	cacheProjectId = "project:id:%s"
-
 	collectionProject = "project"
 )
 
@@ -584,135 +581,6 @@ func (s *Service) validateRedirectSettings(req *billingpb.Project) error {
 	}
 
 	return nil
-}
-
-func newProjectService(svc *Service) *Project {
-	s := &Project{svc: svc}
-	return s
-}
-
-func (h *Project) Insert(ctx context.Context, project *billingpb.Project) error {
-	_, err := h.svc.db.Collection(collectionProject).InsertOne(ctx, project)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	key := fmt.Sprintf(cacheProjectId, project.Id)
-	err = h.svc.cacher.Set(key, project, 0)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (h *Project) MultipleInsert(ctx context.Context, projects []*billingpb.Project) error {
-	p := make([]interface{}, len(projects))
-	for i, v := range projects {
-		p[i] = v
-	}
-
-	_, err := h.svc.db.Collection(collectionProject).InsertMany(ctx, p)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, p),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (h *Project) Update(ctx context.Context, project *billingpb.Project) error {
-	oid, _ := primitive.ObjectIDFromHex(project.Id)
-	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionProject).ReplaceOne(ctx, filter, project)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	key := fmt.Sprintf(cacheProjectId, project.Id)
-	err = h.svc.cacher.Set(key, project, 0)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (h Project) GetById(ctx context.Context, id string) (*billingpb.Project, error) {
-	var c billingpb.Project
-	key := fmt.Sprintf(cacheProjectId, id)
-	err := h.svc.cacher.Get(key, c)
-
-	if err == nil {
-		return &c, nil
-	}
-
-	oid, _ := primitive.ObjectIDFromHex(id)
-	query := bson.M{"_id": oid}
-	err = h.svc.db.Collection(collectionProject).FindOne(ctx, query).Decode(&c)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, fmt.Errorf(errorNotFound, collectionProject)
-	}
-
-	err = h.svc.cacher.Set(key, c, 0)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, c),
-		)
-	}
-
-	return &c, nil
 }
 
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *billingpb.CheckSkuAndKeyProjectRequest, rsp *billingpb.EmptyResponseWithStatus) error {
