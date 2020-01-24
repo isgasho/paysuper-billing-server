@@ -53,7 +53,7 @@ func (suite *MerchantBalanceTestSuite) TearDownTest() {
 	}
 }
 
-func (suite *MerchantBalanceTestSuite) TestTurnover_NewMerchantBalanceRepository_Ok() {
+func (suite *MerchantBalanceTestSuite) TestMerchantBalance_NewMerchantBalanceRepository_Ok() {
 	repository := NewMerchantBalanceRepository(suite.db, &mocks.CacheInterface{})
 	assert.IsType(suite.T(), &merchantBalanceRepository{}, repository)
 }

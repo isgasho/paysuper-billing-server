@@ -76,9 +76,7 @@ func (r moneyBackCostMerchantRepository) MultipleInsert(ctx context.Context, obj
 	}
 
 	for _, v := range objs {
-		if err := r.updateCaches(v); err != nil {
-			return err
-		}
+		_ = r.updateCaches(v)
 	}
 
 	return nil
@@ -119,11 +117,11 @@ func (r moneyBackCostMerchantRepository) Update(ctx context.Context, obj *billin
 }
 
 func (r moneyBackCostMerchantRepository) GetById(ctx context.Context, id string) (*billingpb.MoneyBackCostMerchant, error) {
-	var c billingpb.MoneyBackCostMerchant
+	obj := billingpb.MoneyBackCostMerchant{}
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, id)
 
-	if err := r.cache.Get(key, c); err == nil {
-		return &c, nil
+	if err := r.cache.Get(key, &obj); err == nil {
+		return &obj, nil
 	}
 
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -132,14 +130,14 @@ func (r moneyBackCostMerchantRepository) GetById(ctx context.Context, id string)
 		zap.L().Error(
 			pkg.ErrorDatabaseInvalidObjectId,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPriceGroup),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostMerchant),
 			zap.String(pkg.ErrorDatabaseFieldQuery, id),
 		)
 		return nil, err
 	}
 
 	query := bson.M{"_id": oid, "is_active": true}
-	err = r.db.Collection(collectionMoneyBackCostMerchant).FindOne(ctx, query).Decode(&c)
+	err = r.db.Collection(collectionMoneyBackCostMerchant).FindOne(ctx, query).Decode(&obj)
 
 	if err != nil {
 		zap.L().Error(
@@ -151,13 +149,13 @@ func (r moneyBackCostMerchantRepository) GetById(ctx context.Context, id string)
 		return nil, err
 	}
 
-	_ = r.cache.Set(key, c, 0)
+	_ = r.cache.Set(key, obj, 0)
 
-	return &c, nil
+	return &obj, nil
 }
 
 func (r moneyBackCostMerchantRepository) GetAllForMerchant(ctx context.Context, merchantId string) (*billingpb.MoneyBackCostMerchantList, error) {
-	var item billingpb.MoneyBackCostMerchantList
+	item := billingpb.MoneyBackCostMerchantList{}
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantAll, merchantId)
 
 	if err := r.cache.Get(key, &item); err == nil {
@@ -170,7 +168,7 @@ func (r moneyBackCostMerchantRepository) GetAllForMerchant(ctx context.Context, 
 		zap.L().Error(
 			pkg.ErrorDatabaseInvalidObjectId,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPriceGroup),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostMerchant),
 			zap.String(pkg.ErrorDatabaseFieldQuery, merchantId),
 		)
 		return nil, err
@@ -218,7 +216,7 @@ func (r moneyBackCostMerchantRepository) GetAllForMerchant(ctx context.Context, 
 	return &item, nil
 }
 
-func (r moneyBackCostMerchantRepository) Get(
+func (r moneyBackCostMerchantRepository) Find(
 	ctx context.Context,
 	merchantId string,
 	name string,
@@ -229,14 +227,25 @@ func (r moneyBackCostMerchantRepository) Get(
 	mccCode string,
 	paymentStage int32,
 ) ([]*internalPkg.MoneyBackCostMerchantSet, error) {
-	var c []*internalPkg.MoneyBackCostMerchantSet
+	c := []*internalPkg.MoneyBackCostMerchantSet{}
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantKey, merchantId, name, payoutCurrency, undoReason, region, country, paymentStage, mccCode)
 
 	if err := r.cache.Get(key, &c); err == nil {
 		return c, nil
 	}
 
-	merchantOid, _ := primitive.ObjectIDFromHex(merchantId)
+	merchantOid, err := primitive.ObjectIDFromHex(merchantId)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorDatabaseInvalidObjectId,
+			zap.Error(err),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostMerchant),
+			zap.String(pkg.ErrorDatabaseFieldQuery, merchantId),
+		)
+		return nil, err
+	}
+
 	matchQuery := bson.M{
 		"merchant_id":     merchantOid,
 		"name":            primitive.Regex{Pattern: "^" + name + "$", Options: "i"},
@@ -319,7 +328,7 @@ func (r moneyBackCostMerchantRepository) Delete(ctx context.Context, obj *billin
 		zap.L().Error(
 			pkg.ErrorDatabaseInvalidObjectId,
 			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionPriceGroup),
+			zap.String(pkg.ErrorDatabaseFieldCollection, collectionMoneyBackCostMerchant),
 			zap.String(pkg.ErrorDatabaseFieldQuery, obj.Id),
 		)
 		return err
@@ -363,36 +372,31 @@ func (r moneyBackCostMerchantRepository) updateCaches(obj *billingpb.MoneyBackCo
 		}
 	}
 
-	keys := []string{
-		fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id),
+	key := fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id)
+
+	err := r.cache.Delete(key)
+
+	if err != nil {
+		zap.L().Error(
+			pkg.ErrorCacheQueryFailed,
+			zap.Error(err),
+			zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+			zap.String(pkg.ErrorCacheFieldKey, key),
+		)
+		return err
 	}
 
-	for _, key := range keys {
-		err := r.cache.Delete(key)
+	if obj.IsActive {
+		err = r.cache.Set(key, obj, 0)
 		if err != nil {
 			zap.L().Error(
 				pkg.ErrorCacheQueryFailed,
 				zap.Error(err),
-				zap.String(pkg.ErrorCacheFieldCmd, "DELETE"),
+				zap.String(pkg.ErrorCacheFieldCmd, "SET"),
 				zap.String(pkg.ErrorCacheFieldKey, key),
+				zap.Any(pkg.ErrorCacheFieldData, obj),
 			)
 			return err
-		}
-	}
-
-	if obj.IsActive {
-		for _, key := range keys {
-			err := r.cache.Set(key, obj, 0)
-			if err != nil {
-				zap.L().Error(
-					pkg.ErrorCacheQueryFailed,
-					zap.Error(err),
-					zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-					zap.String(pkg.ErrorCacheFieldKey, key),
-					zap.Any(pkg.ErrorCacheFieldData, obj),
-				)
-				return err
-			}
 		}
 	}
 

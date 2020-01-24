@@ -20,7 +20,7 @@ type MoneyBackCostMerchantRepositoryInterface interface {
 	Insert(context.Context, *billingpb.MoneyBackCostMerchant) error
 	MultipleInsert(context.Context, []*billingpb.MoneyBackCostMerchant) error
 	Update(context.Context, *billingpb.MoneyBackCostMerchant) error
-	Get(context.Context, string, string, string, string, string, string, string, int32) ([]*internalPkg.MoneyBackCostMerchantSet, error)
+	Find(context.Context, string, string, string, string, string, string, string, int32) ([]*internalPkg.MoneyBackCostMerchantSet, error)
 	GetById(context.Context, string) (*billingpb.MoneyBackCostMerchant, error)
 	Delete(context.Context, *billingpb.MoneyBackCostMerchant) error
 	GetAllForMerchant(context.Context, string) (*billingpb.MoneyBackCostMerchantList, error)

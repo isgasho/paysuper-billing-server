@@ -26,8 +26,8 @@ func (_m *MoneyBackCostMerchantRepositoryInterface) Delete(_a0 context.Context, 
 	return r0
 }
 
-// Get provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7, _a8
-func (_m *MoneyBackCostMerchantRepositoryInterface) Get(_a0 context.Context, _a1 string, _a2 string, _a3 string, _a4 string, _a5 string, _a6 string, _a7 string, _a8 int32) ([]*pkg.MoneyBackCostMerchantSet, error) {
+// Find provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7, _a8
+func (_m *MoneyBackCostMerchantRepositoryInterface) Find(_a0 context.Context, _a1 string, _a2 string, _a3 string, _a4 string, _a5 string, _a6 string, _a7 string, _a8 int32) ([]*pkg.MoneyBackCostMerchantSet, error) {
 	ret := _m.Called(_a0, _a1, _a2, _a3, _a4, _a5, _a6, _a7, _a8)
 
 	var r0 []*pkg.MoneyBackCostMerchantSet

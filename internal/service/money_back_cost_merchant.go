@@ -177,7 +177,7 @@ func (s *Service) getMoneyBackCostMerchant(
 	ctx context.Context,
 	req *billingpb.MoneyBackCostMerchantRequest,
 ) (*billingpb.MoneyBackCostMerchant, error) {
-	val, err := s.moneyBackCostMerchantRepository.Get(
+	val, err := s.moneyBackCostMerchantRepository.Find(
 		ctx,
 		req.MerchantId,
 		req.Name,
