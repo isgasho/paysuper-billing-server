@@ -53,7 +53,7 @@ func (suite *PriceGroupTestSuite) TearDownTest() {
 	}
 }
 
-func (suite *PriceGroupTestSuite) TestTurnover_NewPriceGroupRepository_Ok() {
+func (suite *PriceGroupTestSuite) TestPriceGroup_NewPriceGroupRepository_Ok() {
 	repository := NewPriceGroupRepository(suite.db, &mocks.CacheInterface{})
 	assert.IsType(suite.T(), &priceGroupRepository{}, repository)
 }

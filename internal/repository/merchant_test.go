@@ -54,7 +54,7 @@ func (suite *MerchantTestSuite) TearDownTest() {
 	}
 }
 
-func (suite *MerchantTestSuite) TestTurnover_NewPMerchantRepository_Ok() {
+func (suite *MerchantTestSuite) TestMerchantBalance_NewPMerchantRepository_Ok() {
 	repository := NewMerchantRepository(suite.db, &mocks.CacheInterface{})
 	assert.IsType(suite.T(), &merchantRepository{}, repository)
 }

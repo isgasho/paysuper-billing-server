@@ -2901,7 +2901,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), paymentCosts.Items, 0)
 
-	moneyBackCosts, err := suite.service.moneyBackCostMerchant.GetAllForMerchant(context.TODO(), rsp0.Item.Id)
+	moneyBackCosts, err := suite.service.moneyBackCostMerchantRepository.GetAllForMerchant(context.TODO(), rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.Len(suite.T(), moneyBackCosts.Items, 0)
 
@@ -2932,7 +2932,7 @@ func (suite *OnboardingTestSuite) TestOnboarding_SetMerchantTariffRates_Ok() {
 	assert.NotNil(suite.T(), paymentCosts.Items)
 	assert.Len(suite.T(), paymentCosts.Items, 3)
 
-	moneyBackCosts, err = suite.service.moneyBackCostMerchant.GetAllForMerchant(context.TODO(), rsp0.Item.Id)
+	moneyBackCosts, err = suite.service.moneyBackCostMerchantRepository.GetAllForMerchant(context.TODO(), rsp0.Item.Id)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), moneyBackCosts.Items)
 	assert.Len(suite.T(), moneyBackCosts.Items, 15)
