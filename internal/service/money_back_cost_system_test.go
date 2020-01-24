@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"github.com/paysuper/paysuper-billing-server/internal/config"
 	"github.com/paysuper/paysuper-billing-server/internal/database"
 	"github.com/paysuper/paysuper-billing-server/internal/mocks"
@@ -11,7 +9,6 @@ import (
 	casbinMocks "github.com/paysuper/paysuper-proto/go/casbinpb/mocks"
 	reportingMocks "github.com/paysuper/paysuper-proto/go/reporterpb/mocks"
 	"github.com/stretchr/testify/assert"
-	mock2 "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -155,7 +152,7 @@ func (suite *MoneyBackCostSystemTestSuite) SetupTest() {
 		OperatingCompanyId: suite.operatingCompany.Id,
 	}
 	pucs := []*billingpb.MoneyBackCostSystem{moneyBackCostSystem, moneyBackCostSystem2, anotherMoneyBackCostSystem}
-	if err := suite.service.moneyBackCostSystem.MultipleInsert(ctx, pucs); err != nil {
+	if err := suite.service.moneyBackCostSystemRepository.MultipleInsert(ctx, pucs); err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)
 	}
 }
@@ -233,88 +230,6 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GrpcSet_Ok() 
 	assert.Equal(suite.T(), res.Item.Id, suite.moneyBackCostSystemId)
 }
 
-func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_Ok() {
-	req := &billingpb.MoneyBackCostSystem{
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		UndoReason:         "chargeback",
-		Region:             billingpb.TariffRegionWorldwide,
-		Country:            "",
-		DaysFrom:           0,
-		PaymentStage:       1,
-		Percent:            3.33,
-		FixAmount:          7.5,
-		FixAmountCurrency:  "EUR",
-		IsActive:           true,
-		MccCode:            billingpb.MccCodeLowRisk,
-		OperatingCompanyId: suite.operatingCompany.Id,
-	}
-
-	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Insert(ctx, req))
-}
-
-func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Insert_ErrorCacheUpdate() {
-	ci := &mocks.CacheInterface{}
-	ci.On("Set", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
-	ci.On("Delete", mock2.Anything, mock2.Anything, mock2.Anything).Return(errors.New("service unavailable"))
-	suite.service.cacher = ci
-
-	obj := &billingpb.MoneyBackCostSystem{
-		Name:               "MASTERCARD",
-		PayoutCurrency:     "USD",
-		UndoReason:         "chargeback",
-		Region:             billingpb.TariffRegionWorldwide,
-		Country:            "",
-		DaysFrom:           0,
-		PaymentStage:       1,
-		Percent:            3.33,
-		FixAmount:          7.5,
-		FixAmountCurrency:  "EUR",
-		IsActive:           true,
-		MccCode:            billingpb.MccCodeLowRisk,
-		OperatingCompanyId: suite.operatingCompany.Id,
-	}
-	err := suite.service.moneyBackCostSystem.Insert(ctx, obj)
-
-	assert.Error(suite.T(), err)
-	assert.EqualError(suite.T(), err, "service unavailable")
-}
-
-func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_UpdateOk() {
-	obj := &billingpb.MoneyBackCostSystem{
-		Id:                 suite.moneyBackCostSystemId,
-		Name:               "VISA",
-		PayoutCurrency:     "USD",
-		UndoReason:         "chargeback",
-		Region:             billingpb.TariffRegionRussiaAndCis,
-		Country:            "AZ",
-		DaysFrom:           0,
-		PaymentStage:       2,
-		Percent:            4,
-		FixAmount:          7,
-		FixAmountCurrency:  "EUR",
-		IsActive:           true,
-		MccCode:            billingpb.MccCodeLowRisk,
-		OperatingCompanyId: suite.operatingCompany.Id,
-	}
-
-	assert.NoError(suite.T(), suite.service.moneyBackCostSystem.Update(ctx, obj))
-}
-
-func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Get_Ok() {
-	val, err := suite.service.moneyBackCostSystem.Get(ctx, "VISA", "USD", "chargeback", billingpb.TariffRegionRussiaAndCis, "AZ", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, 1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val), 2)
-	assert.Equal(suite.T(), val[0].Set[0].Country, "AZ")
-	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(5))
-
-	val, err = suite.service.moneyBackCostSystem.Get(ctx, "VISA", "USD", "chargeback", billingpb.TariffRegionRussiaAndCis, "", billingpb.MccCodeLowRisk, suite.operatingCompany.Id, 1)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), len(val), 1)
-	assert.Equal(suite.T(), val[0].Set[0].Country, "")
-	assert.Equal(suite.T(), val[0].Set[0].FixAmount, float64(3))
-}
-
 func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_getMoneyBackCostSystem() {
 	req := &billingpb.MoneyBackCostSystemRequest{
 		Name:               "VISA",
@@ -340,27 +255,4 @@ func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_getMoneyBackC
 	assert.Equal(suite.T(), val.DaysFrom, int32(30))
 	assert.Equal(suite.T(), val.Percent, float64(10))
 	assert.Equal(suite.T(), val.FixAmount, float64(15))
-}
-
-func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_Delete_Ok() {
-	req := &billingpb.PaymentCostDeleteRequest{
-		Id: suite.moneyBackCostSystemId,
-	}
-
-	res := &billingpb.ResponseError{}
-	err := suite.service.DeleteMoneyBackCostSystem(context.TODO(), req, res)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusOk)
-
-	_, err = suite.service.moneyBackCostSystem.GetById(ctx, suite.moneyBackCostSystemId)
-	assert.EqualError(suite.T(), err, fmt.Sprintf(errorNotFound, collectionMoneyBackCostSystem))
-}
-
-func (suite *MoneyBackCostSystemTestSuite) TestMoneyBackCostSystem_GetAllMoneyBackCostSystem_Ok() {
-	res := &billingpb.MoneyBackCostSystemListResponse{}
-	err := suite.service.GetAllMoneyBackCostSystem(context.TODO(), &billingpb.EmptyRequest{}, res)
-
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), res.Status, billingpb.ResponseStatusOk)
-	assert.Equal(suite.T(), len(res.Item.Items), 3)
 }

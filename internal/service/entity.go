@@ -26,7 +26,6 @@ type RoyaltyReport Entity
 type PaymentSystemService Entity
 type PaymentChannelCostSystem Entity
 type PaymentChannelCostMerchant Entity
-type MoneyBackCostSystem Entity
 type Paylink Entity
 type OperatingCompany Entity
 type PaymentMinLimitSystem Entity

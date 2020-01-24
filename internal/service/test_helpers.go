@@ -282,7 +282,7 @@ func helperCreateEntitiesForTests(suite suite.Suite, service *Service) (
 		OperatingCompanyId: operatingCompany.Id,
 	}
 
-	err = service.moneyBackCostSystem.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
+	err = service.moneyBackCostSystemRepository.MultipleInsert(context.TODO(), []*billingpb.MoneyBackCostSystem{sysCost, sysCost2, sysCost3, sysCost4, sysCost5, sysCost6, sysCost7, sysCost8})
 
 	if err != nil {
 		suite.FailNow("Insert MoneyBackCostSystem test data failed", "%v", err)

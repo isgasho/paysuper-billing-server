@@ -374,9 +374,7 @@ func (r moneyBackCostMerchantRepository) updateCaches(obj *billingpb.MoneyBackCo
 
 	key := fmt.Sprintf(cacheMoneyBackCostMerchantKeyId, obj.Id)
 
-	err := r.cache.Delete(key)
-
-	if err != nil {
+	if err := r.cache.Delete(key); err != nil {
 		zap.L().Error(
 			pkg.ErrorCacheQueryFailed,
 			zap.Error(err),
@@ -387,8 +385,7 @@ func (r moneyBackCostMerchantRepository) updateCaches(obj *billingpb.MoneyBackCo
 	}
 
 	if obj.IsActive {
-		err = r.cache.Set(key, obj, 0)
-		if err != nil {
+		if err := r.cache.Set(key, obj, 0); err != nil {
 			zap.L().Error(
 				pkg.ErrorCacheQueryFailed,
 				zap.Error(err),
