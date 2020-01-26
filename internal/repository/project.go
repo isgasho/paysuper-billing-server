@@ -207,9 +207,8 @@ func (r *projectRepository) Find(
 	sort []string,
 ) ([]*billingpb.Project, error) {
 	var (
-		err      error
-		query    = make(bson.M)
-		projects []*billingpb.Project
+		err   error
+		query = make(bson.M)
 	)
 
 	if merchantId != "" {
@@ -319,6 +318,8 @@ func (r *projectRepository) Find(
 		)
 		return nil, err
 	}
+
+	var projects []*billingpb.Project
 
 	err = cursor.All(ctx, &projects)
 
