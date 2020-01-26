@@ -47,15 +47,69 @@ var (
 )
 
 var availablePlatforms = map[string]*billingpb.Platform{
-	"steam":    {Id: "steam", Name: "Steam", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-steam.png", Order: 1},
-	"gog":      {Id: "gog", Name: "GOG", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-gog.png", Order: 2},
-	"uplay":    {Id: "uplay", Name: "Uplay", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.png", Order: 3},
-	"origin":   {Id: "origin", Name: "Origin", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-origin.png", Order: 4},
-	"psn":      {Id: "psn", Name: "PSN", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-psn.png", Order: 5},
-	"xbox":     {Id: "xbox", Name: "XBOX Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.png", Order: 6},
-	"nintendo": {Id: "nintendo", Name: "Nintendo Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.png", Order: 7},
-	"itch":     {Id: "itch", Name: "Itch.io", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-itch.png", Order: 8},
-	"egs":      {Id: "egs", Name: "Epic Games Store", Icon: "https://cdn.pay.super.com/img/logo-platforms/logo-epic.png", Order: 9},
+	"steam": {
+		Id:                       "steam",
+		Name:                     "Steam",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-steam.png",
+		Order:                    1,
+		ActivationInstructionUrl: "https://support.steampowered.com/kb_article.php?ref=7480-WUSF-3601&l=english",
+	},
+	"gog": {
+		Id:                       "gog",
+		Name:                     "GOG",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-gog.png",
+		Order:                    2,
+		ActivationInstructionUrl: "https://www.gog.com/redeem",
+	},
+	"uplay": {
+		Id:                       "uplay",
+		Name:                     "Uplay",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-uplay.png",
+		Order:                    3,
+		ActivationInstructionUrl: "https://support.ubi.com/en-us/Faqs/000025121/How-to-redeem-keys-codes",
+	},
+	"origin": {
+		Id:                       "origin",
+		Name:                     "Origin",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-origin.png",
+		Order:                    4,
+		ActivationInstructionUrl: "https://help.ea.com/en-us/help/origin/origin/origin-code-redemption-faq/#redeemcode",
+	},
+	"psn": {
+		Id:                       "psn",
+		Name:                     "PSN",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-psn.png",
+		Order:                    5,
+		ActivationInstructionUrl: "https://id.sonyentertainmentnetwork.com/id/management/#/p/commerce/content/redeem_code",
+	},
+	"xbox": {
+		Id:                       "xbox",
+		Name:                     "XBOX Store",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-xbox.png",
+		Order:                    6,
+		ActivationInstructionUrl: "https://redeem.microsoft.com",
+	},
+	"nintendo": {
+		Id:                       "nintendo",
+		Name:                     "Nintendo Store",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-nintendo.png",
+		Order:                    7,
+		ActivationInstructionUrl: "https://ec.nintendo.com/redeem/#/",
+	},
+	"itch": {
+		Id:                       "itch",
+		Name:                     "Itch.io",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-itch.png",
+		Order:                    8,
+		ActivationInstructionUrl: "https://itch.io/docs/creators/download-keys",
+	},
+	"egs": {
+		Id:                       "egs",
+		Name:                     "Epic Games Store",
+		Icon:                     "https://cdn.pay.super.com/img/logo-platforms/logo-epic.png",
+		Order:                    9,
+		ActivationInstructionUrl: "https://www.epicgames.com/store/en-US/redeem",
+	},
 }
 
 func (s *Service) CreateOrUpdateKeyProduct(

@@ -1949,9 +1949,14 @@ func (s *Service) getPayloadForReceipt(ctx context.Context, order *billingpb.Ord
 }
 
 func (s *Service) sendMailWithCode(_ context.Context, order *billingpb.Order, key *billingpb.Key) {
-	var platformIconUrl = ""
+	platformIconUrl := ""
+	activationInstructionUrl := ""
+	platformName := ""
+
 	if platform, ok := availablePlatforms[order.PlatformId]; ok {
 		platformIconUrl = platform.Icon
+		activationInstructionUrl = platform.ActivationInstructionUrl
+		platformName = platform.Name
 	}
 
 	for _, item := range order.Items {
@@ -1960,9 +1965,12 @@ func (s *Service) sendMailWithCode(_ context.Context, order *billingpb.Order, ke
 			payload := &postmarkpb.Payload{
 				TemplateAlias: s.cfg.EmailTemplates.ActivationGameKey,
 				TemplateModel: map[string]string{
-					"code":          key.Code,
-					"platform_icon": platformIconUrl,
-					"product_name":  item.Name,
+					"code":                       key.Code,
+					"platform_icon":              platformIconUrl,
+					"product_name":               item.Name,
+					"activation_instruction_url": activationInstructionUrl,
+					"platform_name":              platformName,
+					"receipt_url":                order.ReceiptUrl,
 				},
 				To: order.ReceiptEmail,
 			}
