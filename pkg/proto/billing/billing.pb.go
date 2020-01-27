@@ -1107,10 +1107,14 @@ func (m *ProjectOrder) GetRedirectSettings() *ProjectRedirectSettings {
 }
 
 type MerchantContact struct {
-	// @inject_tag: validate:"required" json:"authorized"
-	Authorized *MerchantContactAuthorized `protobuf:"bytes,1,opt,name=authorized,proto3" json:"authorized" validate:"required"`
-	// @inject_tag: validate:"required" json:"technical"
-	Technical            *MerchantContactTechnical `protobuf:"bytes,2,opt,name=technical,proto3" json:"technical" validate:"required"`
+	// @inject_tag: validate:"required" json:"authorized" required:"true"
+	//
+	// Information about contacts of the merchant's authorised person.
+	Authorized *MerchantContactAuthorized `protobuf:"bytes,1,opt,name=authorized,proto3" json:"authorized" validate:"required" required:"true"`
+	// @inject_tag: validate:"required" json:"technical" required:"true"
+	//
+	// Information about contacts of the merchant's technical person.
+	Technical            *MerchantContactTechnical `protobuf:"bytes,2,opt,name=technical,proto3" json:"technical" validate:"required" required:"true"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                    `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                     `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1156,12 +1160,18 @@ func (m *MerchantContact) GetTechnical() *MerchantContactTechnical {
 }
 
 type MerchantContactTechnical struct {
-	// @inject_tag: json:"name" validate:"required,company_name,max=60"
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" validate:"required,company_name,max=60"`
-	// @inject_tag: json:"email" validate:"required,email,max=100"
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" validate:"required,email,max=100"`
-	// @inject_tag: json:"phone" validate:"required,numeric,max=20"
-	Phone                string   `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone" validate:"required,numeric,max=20"`
+	// @inject_tag: json:"name" validate:"required,company_name,max=60" required:"true"
+	//
+	// The technical person's full name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" validate:"required,company_name,max=60" required:"true"`
+	// @inject_tag: json:"email" validate:"required,email,max=100" required:"true"
+	//
+	// The technical person's email address.
+	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" validate:"required,email,max=100" required:"true"`
+	// @inject_tag: json:"phone" validate:"required,numeric,max=20" required:"true"
+	//
+	// The technical person's phone.
+	Phone                string   `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone" validate:"required,numeric,max=20" required:"true"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1214,13 +1224,21 @@ func (m *MerchantContactTechnical) GetPhone() string {
 }
 
 type MerchantContactAuthorized struct {
-	// @inject_tag: json:"name" validate:"required,company_name,max=60"
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" validate:"required,company_name,max=60"`
-	// @inject_tag: json:"email" validate:"required,email,max=100"
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" validate:"required,email,max=100"`
-	// @inject_tag: json:"phone" validate:"required,numeric,max=20"
-	Phone string `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone" validate:"required,numeric,max=20"`
+	// @inject_tag: json:"name" validate:"required,company_name,max=60" required:"true"
+	//
+	// The authorised person's full name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" validate:"required,company_name,max=60" required:"true"`
+	// @inject_tag: json:"email" validate:"required,email,max=100" required:"true"
+	//
+	// The authorised person's email address.
+	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" validate:"required,email,max=100" required:"true"`
+	// @inject_tag: json:"phone" validate:"required,numeric,max=20" required:"true"
+	//
+	// The authorised person's phone.
+	Phone string `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone" validate:"required,numeric,max=20" required:"true"`
 	// @inject_tag: json:"position" validate:"required,company_name,max=30"
+	//
+	// The authorised person's position in the company.
 	Position             string   `protobuf:"bytes,4,opt,name=position,proto3" json:"position" validate:"required,company_name,max=30"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1281,19 +1299,33 @@ func (m *MerchantContactAuthorized) GetPosition() string {
 }
 
 type MerchantBanking struct {
-	// @inject_tag: json:"currency" validate:"required,alpha,len=3"
-	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3"`
-	// @inject_tag: json:"name" validate:"required,city,max=60"
-	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" validate:"required,city,max=60"`
-	// @inject_tag: json:"address" validate:"required,max=60"
-	Address string `protobuf:"bytes,3,opt,name=address,proto3" json:"address" validate:"required,max=60"`
-	// @inject_tag: json:"account_number" bson:"account_number" validate:"required,iban"
-	AccountNumber string `protobuf:"bytes,4,opt,name=account_number,json=accountNumber,proto3" json:"account_number" bson:"account_number" validate:"required,iban"`
-	// @inject_tag: json:"swift" validate:"required,swift"
-	Swift string `protobuf:"bytes,5,opt,name=swift,proto3" json:"swift" validate:"required,swift"`
+	// @inject_tag: json:"currency" validate:"required,alpha,len=3" required:"true"
+	//
+	// The merchant's bank account currency.
+	Currency string `protobuf:"bytes,1,opt,name=currency,proto3" json:"currency" validate:"required,alpha,len=3" required:"true"`
+	// @inject_tag: json:"name" validate:"required,city,max=60" required:"true"
+	//
+	// The merchant's bank name.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name" validate:"required,city,max=60" required:"true"`
+	// @inject_tag: json:"address" validate:"required,max=60" required:"true"
+	//
+	// The merchant's bank address.
+	Address string `protobuf:"bytes,3,opt,name=address,proto3" json:"address" validate:"required,max=60" required:"true"`
+	// @inject_tag: json:"account_number" bson:"account_number" validate:"required,iban" required:"true"
+	//
+	// The merchant's bank account number.
+	AccountNumber string `protobuf:"bytes,4,opt,name=account_number,json=accountNumber,proto3" json:"account_number" bson:"account_number" validate:"required,iban" required:"true"`
+	// @inject_tag: json:"swift" validate:"required,swift" required:"true"
+	//
+	// The merchant's bank SWIFT code.
+	Swift string `protobuf:"bytes,5,opt,name=swift,proto3" json:"swift" validate:"required,swift" required:"true"`
 	// @inject_tag: json:"details"
+	//
+	// Additional details about the merchant's bank account.
 	Details string `protobuf:"bytes,6,opt,name=details,proto3" json:"details"`
 	// @inject_tag: json:"correspondent_account" bson:"correspondent_account" validate:"omitempty,numeric,max=30"
+	//
+	// The bank correspondent account.
 	CorrespondentAccount string   `protobuf:"bytes,7,opt,name=correspondent_account,json=correspondentAccount,proto3" json:"correspondent_account" bson:"correspondent_account" validate:"omitempty,numeric,max=30"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1376,8 +1408,12 @@ func (m *MerchantBanking) GetCorrespondentAccount() string {
 
 type MerchantLastPayout struct {
 	// @inject_tag: json:"date"
+	//
+	// The date of the last payout to the merchant.
 	Date *timestamp.Timestamp `protobuf:"bytes,1,opt,name=date,proto3" json:"date"`
 	// @inject_tag: json:"amount"
+	//
+	// The amount of the last payout to the merchant.
 	Amount               float64  `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1424,17 +1460,29 @@ func (m *MerchantLastPayout) GetAmount() float64 {
 }
 
 type MerchantUser struct {
-	// @inject_tag: json:"id" validate:"required"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required"`
-	// @inject_tag: json:"email" validate:"required,email"
-	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" validate:"required,email"`
+	// @inject_tag: json:"id" validate:"required" required:"true"
+	//
+	// The unique identifier for the merchant user.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required" required:"true"`
+	// @inject_tag: json:"email" validate:"required,email" required:"true"
+	//
+	// The merchant's email address.
+	Email string `protobuf:"bytes,2,opt,name=email,proto3" json:"email" validate:"required,email" required:"true"`
 	// @inject_tag: json:"first_name"
+	//
+	// The merchant's first name.
 	FirstName string `protobuf:"bytes,3,opt,name=first_name,json=firstName,proto3" json:"first_name"`
 	// @inject_tag: json:"last_name"
+	//
+	// The merchant's last name.
 	LastName string `protobuf:"bytes,4,opt,name=last_name,json=lastName,proto3" json:"last_name"`
 	// @inject_tag: json:"profile_id"
+	//
+	// The primary onboarding profile identifier for the merchant.
 	ProfileId string `protobuf:"bytes,5,opt,name=profile_id,json=profileId,proto3" json:"profile_id"`
 	// @inject_tag: json:"registration_date"
+	//
+	// The date of the merchant's confirmation.
 	RegistrationDate     *timestamp.Timestamp `protobuf:"bytes,6,opt,name=registration_date,json=registrationDate,proto3" json:"registration_date"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1509,27 +1557,49 @@ func (m *MerchantUser) GetRegistrationDate() *timestamp.Timestamp {
 }
 
 type MerchantCompanyInfo struct {
-	// @inject_tag: json:"name" validate:"required,company_name,max=60"
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" validate:"required,company_name,max=60"`
-	// @inject_tag: json:"alternative_name" bson:"alternative_name" validate:"required,company_name,max=60"
-	AlternativeName string `protobuf:"bytes,2,opt,name=alternative_name,json=alternativeName,proto3" json:"alternative_name" bson:"alternative_name" validate:"required,company_name,max=60"`
-	// @inject_tag: json:"website" validate:"required,url"
-	Website string `protobuf:"bytes,3,opt,name=website,proto3" json:"website" validate:"required,url"`
-	// @inject_tag: json:"country" validate:"required,alpha,len=2"
-	Country string `protobuf:"bytes,4,opt,name=country,proto3" json:"country" validate:"required,alpha,len=2"`
+	// @inject_tag: json:"name" validate:"required,company_name,max=60" required:"true"
+	//
+	// The merchant's company name.
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name" validate:"required,company_name,max=60" required:"true"`
+	// @inject_tag: json:"alternative_name" bson:"alternative_name" validate:"required,company_name,max=60" required:"true"
+	//
+	// The merchant's company alternative name.
+	AlternativeName string `protobuf:"bytes,2,opt,name=alternative_name,json=alternativeName,proto3" json:"alternative_name" bson:"alternative_name" validate:"required,company_name,max=60" required:"true"`
+	// @inject_tag: json:"website" validate:"required,url" required:"true"
+	//
+	// The merchant's company website.
+	Website string `protobuf:"bytes,3,opt,name=website,proto3" json:"website" validate:"required,url" required:"true"`
+	// @inject_tag: json:"country" validate:"required,alpha,len=2" required:"true"
+	//
+	// The merchant's company country. Two-letter country code in ISO 3166-1, in uppercase (for instance US).
+	Country string `protobuf:"bytes,4,opt,name=country,proto3" json:"country" validate:"required,alpha,len=2" required:"true"`
 	// @inject_tag: json:"state"
+	//
+	// The merchant's company state.
 	State string `protobuf:"bytes,5,opt,name=state,proto3" json:"state"`
-	// @inject_tag: json:"zip" validate:"required,max=30"
-	Zip string `protobuf:"bytes,6,opt,name=zip,proto3" json:"zip" validate:"required,max=30"`
+	// @inject_tag: json:"zip" validate:"required,max=30" required:"true"
+	//
+	// The merchant's company ZIP code.
+	Zip string `protobuf:"bytes,6,opt,name=zip,proto3" json:"zip" validate:"required,max=30" required:"true"`
 	// @inject_tag: json:"city" validate:"required,city,max=60"
+	//
+	// The merchant's company city.
 	City string `protobuf:"bytes,7,opt,name=city,proto3" json:"city" validate:"required,city,max=60"`
 	// @inject_tag: json:"address" validate:"required,max=100"
+	//
+	// The merchant's company address.
 	Address string `protobuf:"bytes,8,opt,name=address,proto3" json:"address" validate:"required,max=100"`
 	// @inject_tag: json:"address_additional" bson:"address_additional" validate:"omitempty,max=100"
+	//
+	// The merchant's company additional address.
 	AddressAdditional string `protobuf:"bytes,9,opt,name=address_additional,json=addressAdditional,proto3" json:"address_additional" bson:"address_additional" validate:"omitempty,max=100"`
-	// @inject_tag: json:"registration_number" bson:"registration_number" validate:"required,max=100"
-	RegistrationNumber string `protobuf:"bytes,10,opt,name=registration_number,json=registrationNumber,proto3" json:"registration_number" bson:"registration_number" validate:"required,max=100"`
+	// @inject_tag: json:"registration_number" bson:"registration_number" validate:"required,max=100" required:"true"
+	//
+	// The merchant's company registration number.
+	RegistrationNumber string `protobuf:"bytes,10,opt,name=registration_number,json=registrationNumber,proto3" json:"registration_number" bson:"registration_number" validate:"required,max=100" required:"true"`
 	// @inject_tag: json:"tax_id" bson:"tax_id"
+	//
+	// The unique identifier for the merchant's company tax.
 	TaxId                string   `protobuf:"bytes,11,opt,name=tax_id,json=taxId,proto3" json:"tax_id" bson:"tax_id"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1841,6 +1911,8 @@ type MerchantTariff struct {
 	// @inject_tag: json:"-"
 	Payout *MerchantTariffRatesSettingsItem `protobuf:"bytes,2,opt,name=payout,proto3" json:"-"`
 	// @inject_tag: json:"home_region"
+	//
+	// The merchant's region name.
 	HomeRegion           string   `protobuf:"bytes,3,opt,name=home_region,json=homeRegion,proto3" json:"home_region"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -1895,89 +1967,170 @@ func (m *MerchantTariff) GetHomeRegion() string {
 
 type Merchant struct {
 	// @inject_tag: bson:"_id"
+	//
+	// The unique identifier for the merchant.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty" bson:"_id"`
 	// @inject_tag: json:"user"
+	//
+	// Information about the merchant owner from the primary onboarding profile.
 	User *MerchantUser `protobuf:"bytes,2,opt,name=user,proto3" json:"user"`
 	// @inject_tag: json:"company"
+	//
+	// Information about the merchant's company.
 	Company *MerchantCompanyInfo `protobuf:"bytes,3,opt,name=company,proto3" json:"company"`
 	// @inject_tag: json:"contacts"
+	//
+	// The merchant's contacts.
 	Contacts *MerchantContact `protobuf:"bytes,15,opt,name=contacts,proto3" json:"contacts"`
 	// @inject_tag: json:"banking"
+	//
+	// The merchant's bank data.
 	Banking *MerchantBanking `protobuf:"bytes,16,opt,name=banking,proto3" json:"banking"`
 	// @inject_tag: json:"status"
+	//
+	// The merchant's status. Available values: 0 - The merchant've just been created and the merchant profile have not been filled yet.
+	//3 - The agreement with the merchant was signed by the merchant owner.
+	//4 - The agreement with the merchant was signed by PaySuper.
+	//5 - The merchant is removed.
+	//6 - The merchant is marked as a fraud and will be removed.
+	//7 - The merchant must fill the onboarding.
+	//8 - The merchant has passed the onboarding and is waiting the agreement to be signed.
 	Status int32 `protobuf:"varint,17,opt,name=status,proto3" json:"status"`
 	// @inject_tag: json:"created_at"
+	//
+	// The date of the merchant creation.
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
 	// @inject_tag: json:"updated_at"
+	//
+	// The date of the merchant update.
 	UpdatedAt *timestamp.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
 	// @inject_tag: json:"first_payment_at"
+	//
+	// The date when the first payment has been made to one of the merchant's projects.
 	FirstPaymentAt *timestamp.Timestamp `protobuf:"bytes,20,opt,name=first_payment_at,json=firstPaymentAt,proto3" json:"first_payment_at"`
 	// @inject_tag: json:"-"
 	IsVatEnabled bool `protobuf:"varint,21,opt,name=is_vat_enabled,json=isVatEnabled,proto3" json:"-"`
 	// @inject_tag: json:"-"
 	IsCommissionToUserEnabled bool `protobuf:"varint,22,opt,name=is_commission_to_user_enabled,json=isCommissionToUserEnabled,proto3" json:"-"`
 	// @inject_tag: json:"has_merchant_signature"
+	//
+	// Has a true value if the merchant has signed the license agreement.
 	HasMerchantSignature bool `protobuf:"varint,23,opt,name=has_merchant_signature,json=hasMerchantSignature,proto3" json:"has_merchant_signature"`
 	// @inject_tag: json:"has_psp_signature"
+	//
+	// Has a true value if PaySuper has signed the license agreement.
 	HasPspSignature bool `protobuf:"varint,24,opt,name=has_psp_signature,json=hasPspSignature,proto3" json:"has_psp_signature"`
 	// @inject_tag: json:"last_payout"
+	//
+	// The date of the last payout to the merchant.
 	LastPayout *MerchantLastPayout `protobuf:"bytes,25,opt,name=last_payout,json=lastPayout,proto3" json:"last_payout"`
 	// @inject_tag: json:"is_signed"
+	//
+	// Has a true value if the license agreement is completely signed.
 	IsSigned bool `protobuf:"varint,26,opt,name=is_signed,json=isSigned,proto3" json:"is_signed"`
 	// @inject_tag: json:"payment_methods"
+	//
+	// The list of the merchant's payment methods.
 	PaymentMethods map[string]*MerchantPaymentMethod `protobuf:"bytes,28,rep,name=payment_methods,json=paymentMethods,proto3" json:"payment_methods" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// @inject_tag: json:"agreement_type"
+	//
+	// The type of the agreement selected by the merchant. Available values: 0 - not selected, 1 - paper agreement, 2 - e-sign agreement.
 	AgreementType int32 `protobuf:"varint,29,opt,name=agreement_type,json=agreementType,proto3" json:"agreement_type"`
 	// @inject_tag: json:"agreement_sent_via_mail"
+	//
+	// Has a true value if the license agreement is sent via post.
 	AgreementSentViaMail bool `protobuf:"varint,30,opt,name=agreement_sent_via_mail,json=agreementSentViaMail,proto3" json:"agreement_sent_via_mail"`
 	// @inject_tag: json:"mail_tracking_link"
+	//
+	// The post link to the tracking package with the license agreement.
 	MailTrackingLink string `protobuf:"bytes,31,opt,name=mail_tracking_link,json=mailTrackingLink,proto3" json:"mail_tracking_link"`
 	// @inject_tag: json:"-"
 	S3AgreementName string `protobuf:"bytes,32,opt,name=s3_agreement_name,json=s3AgreementName,proto3" json:"-"`
 	// @inject_tag: json:"payout_cost_amount" bson:"payout_cost_amount" validate:"numeric,gte=0"
+	//
+	// The payout cost.
 	PayoutCostAmount float64 `protobuf:"fixed64,33,opt,name=payout_cost_amount,json=payoutCostAmount,proto3" json:"payout_cost_amount" bson:"payout_cost_amount" validate:"numeric,gte=0"`
-	//@inject_tag: json:"payout_cost_currency" bson:"payout_cost_currency" validate:"required,alpha,len=3"
-	PayoutCostCurrency string `protobuf:"bytes,34,opt,name=payout_cost_currency,json=payoutCostCurrency,proto3" json:"payout_cost_currency" bson:"payout_cost_currency" validate:"required,alpha,len=3"`
+	//@inject_tag: json:"payout_cost_currency" bson:"payout_cost_currency" validate:"required,alpha,len=3" required:"true"
+	//
+	// The currency of the payout cost.
+	PayoutCostCurrency string `protobuf:"bytes,34,opt,name=payout_cost_currency,json=payoutCostCurrency,proto3" json:"payout_cost_currency" bson:"payout_cost_currency" validate:"required,alpha,len=3" required:"true"`
 	// @inject_tag: json:"min_payout_amount" bson:"min_payout_amount" validate:"numeric,gte=0"
+	//
+	// The minimum payout amount.
 	MinPayoutAmount float64 `protobuf:"fixed64,35,opt,name=min_payout_amount,json=minPayoutAmount,proto3" json:"min_payout_amount" bson:"min_payout_amount" validate:"numeric,gte=0"`
 	// @inject_tag: json:"rolling_reserve_amount" bson:"rolling_reserve_amount" validate:"numeric,gte=0,lte=100"
+	//
+	// The rolling reserve threshold.
 	RollingReserveThreshold float64 `protobuf:"fixed64,36,opt,name=rolling_reserve_threshold,json=rollingReserveThreshold,proto3" json:"rolling_reserve_amount" bson:"rolling_reserve_amount" validate:"numeric,gte=0,lte=100"`
 	// @inject_tag: json:"rolling_reserve_days" bson:"rolling_reserve_days" validate:"numeric,gte=0"
+	//
+	// The rolling reserve period.
 	RollingReserveDays int32 `protobuf:"varint,37,opt,name=rolling_reserve_days,json=rollingReserveDays,proto3" json:"rolling_reserve_days" bson:"rolling_reserve_days" validate:"numeric,gte=0"`
 	// @inject_tag: json:"rolling_reserve_chargeback_transactions_threshold" bson:"rolling_reserve_chargeback_transactions_threshold" validate:"numeric,gte=0,lte=100"
+	//
+	// The rolling reserve threshold for the chargeback transactions.
 	RollingReserveChargebackTransactionsThreshold float64 `protobuf:"fixed64,38,opt,name=rolling_reserve_chargeback_transactions_threshold,json=rollingReserveChargebackTransactionsThreshold,proto3" json:"rolling_reserve_chargeback_transactions_threshold" bson:"rolling_reserve_chargeback_transactions_threshold" validate:"numeric,gte=0,lte=100"`
 	// @inject_tag: json:"item_min_cost_amount" bson:"item_min_cost_amount" validate:"numeric,gte=0"
+	//
+	// The minimum cost of the item.
 	ItemMinCostAmount float64 `protobuf:"fixed64,39,opt,name=item_min_cost_amount,json=itemMinCostAmount,proto3" json:"item_min_cost_amount" bson:"item_min_cost_amount" validate:"numeric,gte=0"`
-	//@inject_tag: json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3"
-	ItemMinCostCurrency string `protobuf:"bytes,40,opt,name=item_min_cost_currency,json=itemMinCostCurrency,proto3" json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3"`
-	CentrifugoToken     string `protobuf:"bytes,41,opt,name=centrifugo_token,json=centrifugoToken,proto3" json:"centrifugo_token,omitempty"`
+	//@inject_tag: json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3" required:"true"
+	//
+	// The currency of the minimum cost of the item.
+	ItemMinCostCurrency string `protobuf:"bytes,40,opt,name=item_min_cost_currency,json=itemMinCostCurrency,proto3" json:"item_min_cost_currency" bson:"item_min_cost_currency" validate:"required,alpha,len=3" required:"true"`
+	// The merchant authorisation token to connect to the Centrifugo channel.
+	CentrifugoToken string `protobuf:"bytes,41,opt,name=centrifugo_token,json=centrifugoToken,proto3" json:"centrifugo_token,omitempty"`
 	//@inject_tag: json:"-"
 	AgreementSignatureData *MerchantAgreementSignatureData `protobuf:"bytes,43,opt,name=agreement_signature_data,json=agreementSignatureData,proto3" json:"-"`
 	//@inject_tag: json:"-"
 	Steps *MerchantCompletedSteps `protobuf:"bytes,46,opt,name=steps,proto3" json:"-"`
 	//@inject_tag: json:"agreement_template"
+	//
+	// The unique identifier for the template of the license agreement stored in HelloSign.
 	AgreementTemplate string `protobuf:"bytes,47,opt,name=agreement_template,json=agreementTemplate,proto3" json:"agreement_template"`
 	// @inject_tag: json:"received_date"
+	//
+	// The date when the merchant owner has signed the license agreement.
 	ReceivedDate *timestamp.Timestamp `protobuf:"bytes,48,opt,name=received_date,json=receivedDate,proto3" json:"received_date"`
 	// @inject_tag: json:"status_last_updated_at"
+	//
+	// The date when the merchant's status has been last updated.
 	StatusLastUpdatedAt *timestamp.Timestamp `protobuf:"bytes,49,opt,name=status_last_updated_at,json=statusLastUpdatedAt,proto3" json:"status_last_updated_at"`
 	// @inject_tag: json:"has_projects"
+	//
+	// Has a true value if the merchant has created projects.
 	HasProjects bool `protobuf:"varint,50,opt,name=has_projects,json=hasProjects,proto3" json:"has_projects"`
 	// @inject_tag: json:"agreement_number"
+	//
+	// The license agreement number.
 	AgreementNumber string `protobuf:"bytes,51,opt,name=agreement_number,json=agreementNumber,proto3" json:"agreement_number"`
 	// @inject_tag: json:"minimal_payout_limit"
+	//
+	// The minimum payout limit.
 	MinimalPayoutLimit float32 `protobuf:"fixed32,52,opt,name=minimal_payout_limit,json=minimalPayoutLimit,proto3" json:"minimal_payout_limit"`
 	// @inject_tag: json:"tariff"
+	//
+	// The merchant's tariff.
 	Tariff *MerchantTariff `protobuf:"bytes,53,opt,name=tariff,proto3" json:"tariff"`
 	// @inject_tag: json:"manual_payouts_enabled"
+	//
+	// Has a true value if the merchant can manually make a payout.
 	ManualPayoutsEnabled bool `protobuf:"varint,54,opt,name=manual_payouts_enabled,json=manualPayoutsEnabled,proto3" json:"manual_payouts_enabled"`
 	// @inject_tag: json:"mcc_code"
+	//
+	// The Merchant Category Code (MCC).
 	MccCode string `protobuf:"bytes,55,opt,name=mcc_code,json=mccCode,proto3" json:"mcc_code"`
 	// @inject_tag: json:"operating_company_id"
+	//
+	// The unique identifier for the operation company.
 	OperatingCompanyId string `protobuf:"bytes,56,opt,name=operating_company_id,json=operatingCompanyId,proto3" json:"operating_company_id"`
 	// @inject_tag: json:"merchant_operations_type" validate:"oneof=high-risk low-risk"
+	//
+	// The merchant's operations type. Available values: low-risk, high-risk.
 	MerchantOperationsType string `protobuf:"bytes,57,opt,name=merchant_operations_type,json=merchantOperationsType,proto3" json:"merchant_operations_type" validate:"oneof=high-risk low-risk"`
 	// @inject_tag: json:"dont_charge_vat"
+	//
+	// Has a true value if the merchant doesn't pay any taxes.
 	DontChargeVat        bool     `protobuf:"varint,58,opt,name=dont_charge_vat,json=dontChargeVat,proto3" json:"dont_charge_vat"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -3825,7 +3978,7 @@ type OrderItem struct {
 	PlatformId string `protobuf:"bytes,13,opt,name=platform_id,json=platformId,proto3" json:"platform_id" validate:"omitempty,min=3" bson:"platform_id"`
 	//@inject_tag: validate:"omitempty,min=5" json:"code" bson:"code"
 	//
-	// The game code.
+	// The activation code.
 	Code                 string   `protobuf:"bytes,14,opt,name=code,proto3" json:"code" validate:"omitempty,min=5" bson:"code"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -5134,8 +5287,12 @@ func (m *PaymentFormPaymentMethod) GetSavedCards() []*SavedCard {
 
 type MerchantPaymentMethodPerTransactionCommission struct {
 	// @inject_tag: validate:"omitempty,numeric,gte=0" json:"fee"
+	//
+	// The transaction commission.
 	Fee float64 `protobuf:"fixed64,1,opt,name=fee,proto3" json:"fee" validate:"omitempty,numeric,gte=0"`
 	// @inject_tag: json:"currency"
+	//
+	// The currency of the transaction commission.
 	Currency             string   `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -5187,9 +5344,13 @@ func (m *MerchantPaymentMethodPerTransactionCommission) GetCurrency() string {
 
 type MerchantPaymentMethodCommissions struct {
 	// @inject_tag: validate:"omitempty,numeric,gte=0,lte=100" json:"fee"
+	//
+	// The payment method commission.
 	Fee float64 `protobuf:"fixed64,1,opt,name=fee,proto3" json:"fee" validate:"omitempty,numeric,gte=0,lte=100"`
-	// @inject_tag: validate:"required" json:"per_transaction"
-	PerTransaction       *MerchantPaymentMethodPerTransactionCommission `protobuf:"bytes,2,opt,name=per_transaction,json=perTransaction,proto3" json:"per_transaction" validate:"required"`
+	// @inject_tag: validate:"required" json:"per_transaction" required:"true"
+	//
+	// Information about the transaction commission.
+	PerTransaction       *MerchantPaymentMethodPerTransactionCommission `protobuf:"bytes,2,opt,name=per_transaction,json=perTransaction,proto3" json:"per_transaction" validate:"required" required:"true"`
 	XXX_NoUnkeyedLiteral struct{}                                       `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte                                         `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32                                          `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -5302,10 +5463,14 @@ func (m *MerchantPaymentMethodIntegration) GetIntegrated() bool {
 }
 
 type MerchantPaymentMethodIdentification struct {
-	// @inject_tag: validate:"required,hexadecimal,len=24" json:"id"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24"`
-	// @inject_tag: validate:"required" json:"name"
-	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name" validate:"required"`
+	// @inject_tag: validate:"required,hexadecimal,len=24" json:"id" required:"true"
+	//
+	// The unique identifier for the merchant payment method.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24" required:"true"`
+	// @inject_tag: validate:"required" json:"name" required:"true"
+	//
+	// The merchant payment method's name.
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name" validate:"required" required:"true"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -5351,13 +5516,17 @@ func (m *MerchantPaymentMethodIdentification) GetName() string {
 }
 
 type MerchantPaymentMethod struct {
-	PaymentMethod        *MerchantPaymentMethodIdentification `protobuf:"bytes,3,opt,name=payment_method,json=paymentMethod,proto3" json:"payment_method,omitempty"`
-	Commission           *MerchantPaymentMethodCommissions    `protobuf:"bytes,4,opt,name=commission,proto3" json:"commission,omitempty"`
-	Integration          *MerchantPaymentMethodIntegration    `protobuf:"bytes,5,opt,name=integration,proto3" json:"integration,omitempty"`
-	IsActive             bool                                 `protobuf:"varint,6,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}                             `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_unrecognized     []byte                               `json:"-" bson:"-" structure:"-" validate:"-"`
-	XXX_sizecache        int32                                `json:"-" bson:"-" structure:"-" validate:"-"`
+	// The merchant's payment method data.
+	PaymentMethod *MerchantPaymentMethodIdentification `protobuf:"bytes,3,opt,name=payment_method,json=paymentMethod,proto3" json:"payment_method,omitempty"`
+	// The merchant's payment method commissions.
+	Commission *MerchantPaymentMethodCommissions `protobuf:"bytes,4,opt,name=commission,proto3" json:"commission,omitempty"`
+	//@inject_tag: json:"-"
+	Integration *MerchantPaymentMethodIntegration `protobuf:"bytes,5,opt,name=integration,proto3" json:"-"`
+	// Has a true value if the merchant's payment method is active.
+	IsActive             bool     `protobuf:"varint,6,opt,name=is_active,json=isActive,proto3" json:"is_active,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
+	XXX_sizecache        int32    `json:"-" bson:"-" structure:"-" validate:"-"`
 }
 
 func (m *MerchantPaymentMethod) Reset()         { *m = MerchantPaymentMethod{} }
@@ -12162,8 +12331,12 @@ func (m *Id) GetId() string {
 
 type RangeInt struct {
 	//@inject_tag: json:"from"
+	//
+	// The lower boundary value of the range.
 	From int32 `protobuf:"varint,1,opt,name=from,proto3" json:"from"`
 	//@inject_tag: json:"to"
+	//
+	// The upper boundary value of the range.
 	To                   int32    `protobuf:"varint,2,opt,name=to,proto3" json:"to"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -12511,19 +12684,34 @@ func (m *MerchantTariffRatesSettings) GetMccCode() string {
 
 type Key struct {
 	//@inject_tag: json:"id" bson:"_id"
+	//
+	// The unique identifier for the key.
 	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" bson:"_id"`
 	//@inject_tag: json:"code" validate:"required,max=50"
+	//
+	// The activation code.
 	Code string `protobuf:"bytes,2,opt,name=code,proto3" json:"code" validate:"required,max=50"`
 	//@inject_tag: validate:"required,hexadecimal,len=24"
+	//
+	// The unique identifier for the key's product.
 	KeyProductId string `protobuf:"bytes,3,opt,name=key_product_id,json=keyProductId,proto3" json:"key_product_id,omitempty" validate:"required,hexadecimal,len=24"`
 	//@inject_tag: validate:"required,max=255"
+	//
+	// The unique identifier for the platform.
 	PlatformId string `protobuf:"bytes,5,opt,name=platform_id,json=platformId,proto3" json:"platform_id,omitempty" validate:"required,max=255"`
 	//@inject_tag: validate:"omitempty,hexadecimal,len=24"
-	OrderId   string               `protobuf:"bytes,6,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"omitempty,hexadecimal,len=24"`
+	//
+	// The unique identifier for the order when redeeming the code (can be empty).
+	OrderId string `protobuf:"bytes,6,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty" validate:"omitempty,hexadecimal,len=24"`
+	// The date the key has been created.
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	//@inject_tag: validate:"omitempty"
+	//
+	// The date the key has been reserved.
 	ReservedTo *timestamp.Timestamp `protobuf:"bytes,8,opt,name=reserved_to,json=reservedTo,proto3" json:"reserved_to,omitempty" validate:"omitempty"`
 	//@inject_tag: validate:"omitempty"
+	//
+	// The date the key has been redeemed.
 	RedeemedAt           *timestamp.Timestamp `protobuf:"bytes,9,opt,name=redeemed_at,json=redeemedAt,proto3" json:"redeemed_at,omitempty" validate:"omitempty"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -13641,12 +13829,20 @@ func (m *ImageCollection) GetUseOneForAll() bool {
 
 type ProductPrice struct {
 	// @inject_tag: json:"amount" validate:"required,numeric,gt=0"
+	//
+	// The product's price.
 	Amount float64 `protobuf:"fixed64,1,opt,name=amount,proto3" json:"amount" validate:"required,numeric,gt=0"`
 	//@inject_tag: json:"currency" validate:"omitempty,alpha,len=3"
+	//
+	// The product's price currency. Three-letter Currency Code ISO 4217, in uppercase.
 	Currency string `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency" validate:"omitempty,alpha,len=3"`
 	//@inject_tag: json:"region" validate:"omitempty,region_price"
+	//
+	// The product's price region.
 	Region string `protobuf:"bytes,3,opt,name=region,proto3" json:"region" validate:"omitempty,region_price"`
 	//@inject_tag: json:"is_virtual_currency" bson:"is_virtual_currency"
+	//
+	// Has a true value if the product has the virtual currency.
 	IsVirtualCurrency    bool     `protobuf:"varint,4,opt,name=is_virtual_currency,json=isVirtualCurrency,proto3" json:"is_virtual_currency" bson:"is_virtual_currency"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte   `json:"-" bson:"-" structure:"-" validate:"-"`
@@ -14401,25 +14597,45 @@ func (m *PaymentMinLimitSystem) GetUpdatedAt() *timestamp.Timestamp {
 }
 
 type UserRole struct {
-	//@inject_tag: json:"id" validate:"required,hexadecimal,len=24"
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24"
-	MerchantId string `protobuf:"bytes,3,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"role" validate:"required"
-	Role string `protobuf:"bytes,4,opt,name=role,proto3" json:"role" validate:"required"`
+	//@inject_tag: json:"id" validate:"required,hexadecimal,len=24" required:"true"
+	//
+	// The unique identifier for the user's role.
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id" validate:"required,hexadecimal,len=24" required:"true"`
+	//@inject_tag: json:"merchant_id" validate:"required,hexadecimal,len=24" required:"true"
+	//
+	// The unique identifier for the merchant (only for merchant users).
+	MerchantId string `protobuf:"bytes,3,opt,name=merchant_id,json=merchantId,proto3" json:"merchant_id" validate:"required,hexadecimal,len=24" required:"true"`
+	//@inject_tag: json:"role" validate:"required" required:"true"
+	//
+	// The user's role.
+	Role string `protobuf:"bytes,4,opt,name=role,proto3" json:"role" validate:"required" required:"true"`
 	//@inject_tag: json:"status" bson:"status" validate="oneof=invited accepted"
+	//
+	// The user's invitation status. Available values: invited, approved.
 	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status" bson:"status"`
-	//@inject_tag: json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24"
-	UserId string `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24"`
-	//@inject_tag: json:"first_name" bson:"first_name"  validate:"required"
-	FirstName string `protobuf:"bytes,7,opt,name=first_name,json=firstName,proto3" json:"first_name" bson:"first_name" validate:"required"`
-	//@inject_tag: json:"last_name" bson:"last_name" validate:"required"
-	LastName string `protobuf:"bytes,8,opt,name=last_name,json=lastName,proto3" json:"last_name" bson:"last_name" validate:"required"`
-	//@inject_tag: json:"email" bson:"email" validate:"required,email"
-	Email string `protobuf:"bytes,9,opt,name=email,proto3" json:"email" bson:"email" validate:"required,email"`
+	//@inject_tag: json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24" required:"true"
+	//
+	// The unique identifier for the user.
+	UserId string `protobuf:"bytes,6,opt,name=user_id,json=userId,proto3" json:"user_id" bson:"user_id" validate:"required,hexadecimal,len=24" required:"true"`
+	//@inject_tag: json:"first_name" bson:"first_name"  validate:"required" required:"true"
+	//
+	// The user's first name.
+	FirstName string `protobuf:"bytes,7,opt,name=first_name,json=firstName,proto3" json:"first_name" bson:"first_name" validate:"required" required:"true"`
+	//@inject_tag: json:"last_name" bson:"last_name" validate:"required" required:"true"
+	//
+	// The user's last name.
+	LastName string `protobuf:"bytes,8,opt,name=last_name,json=lastName,proto3" json:"last_name" bson:"last_name" validate:"required" required:"true"`
+	//@inject_tag: json:"email" bson:"email" validate:"required,email" required:"true"
+	//
+	// The user's email address.
+	Email string `protobuf:"bytes,9,opt,name=email,proto3" json:"email" bson:"email" validate:"required,email" required:"true"`
 	// @inject_tag: json:"created_at"
+	//
+	// The date of the user's role creation.
 	CreatedAt *timestamp.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at"`
 	// @inject_tag: json:"updated_at"
+	//
+	// The date of the user's role update.
 	UpdatedAt            *timestamp.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at"`
 	XXX_NoUnkeyedLiteral struct{}             `json:"-" bson:"-" structure:"-" validate:"-"`
 	XXX_unrecognized     []byte               `json:"-" bson:"-" structure:"-" validate:"-"`
