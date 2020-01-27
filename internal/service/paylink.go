@@ -320,17 +320,12 @@ func (s *Service) CreateOrUpdatePaylink(
 	pl.Name = req.Name
 	pl.NoExpiryDate = req.NoExpiryDate
 
-	projectOid, _ := primitive.ObjectIDFromHex(pl.ProjectId)
-	merchantOid, _ := primitive.ObjectIDFromHex(pl.MerchantId)
-	dbQuery := bson.M{"_id": projectOid, "merchant_id": merchantOid}
-	_, err = s.getProjectBy(ctx, dbQuery)
-	if err != nil {
-		if e, ok := err.(*billingpb.ResponseErrorMessage); ok {
-			res.Status = billingpb.ResponseStatusBadData
-			res.Message = e
-			return nil
-		}
-		return err
+	project, err := s.project.GetById(ctx, pl.ProjectId)
+
+	if err != nil || project.MerchantId != pl.MerchantId {
+		res.Status = billingpb.ResponseStatusBadData
+		res.Message = projectErrorNotFound
+		return nil
 	}
 
 	if pl.NoExpiryDate == false {

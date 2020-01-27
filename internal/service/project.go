@@ -2,22 +2,14 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/paysuper/paysuper-billing-server/internal/helper"
 	"github.com/paysuper/paysuper-billing-server/pkg"
 	"github.com/paysuper/paysuper-proto/go/billingpb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	"net/http"
-)
-
-const (
-	cacheProjectId = "project:id:%s"
-
-	collectionProject = "project"
 )
 
 var (
@@ -61,15 +53,11 @@ func (s *Service) ChangeProject(
 	}
 
 	if req.Id != "" {
-		oid, _ := primitive.ObjectIDFromHex(req.Id)
-		merchantOid, _ := primitive.ObjectIDFromHex(req.MerchantId)
-		filter := bson.M{"_id": oid, "merchant_id": merchantOid}
-		project, err = s.getProjectBy(ctx, filter)
+		project, err = s.project.GetById(ctx, req.Id)
 
 		if err != nil || project.MerchantId != req.MerchantId {
 			rsp.Status = billingpb.ResponseStatusNotFound
 			rsp.Message = projectErrorNotFound
-
 			return nil
 		}
 	}
@@ -212,19 +200,11 @@ func (s *Service) GetProject(
 	req *billingpb.GetProjectRequest,
 	rsp *billingpb.ChangeProjectResponse,
 ) error {
-	oid, _ := primitive.ObjectIDFromHex(req.ProjectId)
-	query := bson.M{"_id": oid}
+	project, err := s.project.GetById(ctx, req.ProjectId)
 
-	if req.MerchantId != "" {
-		query["merchant_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
-	}
-
-	project, err := s.getProjectBy(ctx, query)
-
-	if err != nil || project.MerchantId != req.MerchantId {
+	if err != nil || (req.MerchantId != "" && project.MerchantId != req.MerchantId) {
 		rsp.Status = billingpb.ResponseStatusNotFound
 		rsp.Message = projectErrorNotFound
-
 		return nil
 	}
 
@@ -241,101 +221,23 @@ func (s *Service) ListProjects(
 	req *billingpb.ListProjectsRequest,
 	rsp *billingpb.ListProjectsResponse,
 ) error {
-	var projects []*billingpb.Project
-	query := make(bson.M)
-
-	if req.MerchantId != "" {
-		query["merchant_id"], _ = primitive.ObjectIDFromHex(req.MerchantId)
-	}
-
-	if req.QuickSearch != "" {
-		query["$or"] = []bson.M{
-			{"name": bson.M{"$elemMatch": bson.M{"value": primitive.Regex{Pattern: req.QuickSearch, Options: "i"}}}},
-			{"id_string": primitive.Regex{Pattern: req.QuickSearch, Options: "i"}},
-		}
-	}
-
-	if len(req.Statuses) > 0 {
-		query["status"] = bson.M{"$in": req.Statuses}
-	}
-
-	count, err := s.db.Collection(collectionProject).CountDocuments(ctx, query)
+	count, err := s.project.FindCount(ctx, req.MerchantId, req.QuickSearch, req.Statuses)
 
 	if err != nil {
-		zap.S().Errorf("Query to count projects failed", "err", err.Error(), "query", query)
 		return projectErrorUnknown
 	}
 
-	afQuery := []bson.M{
-		{"$match": query},
-		{
-			"$lookup": bson.M{
-				"from":         collectionProduct,
-				"localField":   "_id",
-				"foreignField": "project_id",
-				"as":           "products",
-			},
-		},
-		{
-			"$project": bson.M{
-				"_id":                         "$_id",
-				"merchant_id":                 "$merchant_id",
-				"name":                        "$name",
-				"callback_protocol":           "$callback_protocol",
-				"callback_currency":           "$callback_currency",
-				"create_order_allowed_urls":   "$create_order_allowed_urls",
-				"allow_dynamic_notify_urls":   "$allow_dynamic_notify_urls",
-				"allow_dynamic_redirect_urls": "$allow_dynamic_redirect_urls",
-				"limits_currency":             "$limits_currency",
-				"min_payment_amount":          "$min_payment_amount",
-				"max_payment_amount":          "$max_payment_amount",
-				"notify_emails":               "$notify_emails",
-				"is_products_checkout":        "$is_products_checkout",
-				"secret_key":                  "$secret_key",
-				"signature_required":          "$signature_required",
-				"send_notify_email":           "$send_notify_email",
-				"url_check_account":           "$url_check_account",
-				"url_process_payment":         "$url_process_payment",
-				"url_redirect_fail":           "$url_redirect_fail",
-				"url_redirect_success":        "$url_redirect_success",
-				"status":                      "$status",
-				"created_at":                  "$created_at",
-				"updated_at":                  "$updated_at",
-				"products_count":              bson.M{"$size": "$products"},
-				"cover":                       "$cover",
-				"currencies":                  "$currencies",
-				"short_description":           "$short_description",
-				"full_description":            "$full_description",
-				"localizations":               "$localizations",
-				"virtual_currency":            "$virtual_currency",
-				"vat_payer":                   "$vat_payer",
-				"redirect_settings":           "$redirect_settings",
-			},
-		},
-		{"$skip": req.Offset},
-		{"$limit": req.Limit},
-	}
-
-	if len(req.Sort) > 0 {
-		afQuery = s.mgoPipeSort(afQuery, req.Sort)
-	}
-
-	cursor, err := s.db.Collection(collectionProject).Aggregate(ctx, afQuery)
+	projects, err := s.project.Find(
+		ctx,
+		req.MerchantId,
+		req.QuickSearch,
+		req.Statuses,
+		int64(req.Offset),
+		int64(req.Limit),
+		req.Sort,
+	)
 
 	if err != nil {
-		zap.S().Errorf("Query to find projects failed", "err", err.Error(), "query", afQuery)
-		return projectErrorUnknown
-	}
-
-	err = cursor.All(ctx, &projects)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorQueryCursorExecutionFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
 		return projectErrorUnknown
 	}
 
@@ -354,10 +256,7 @@ func (s *Service) DeleteProject(
 	req *billingpb.GetProjectRequest,
 	rsp *billingpb.ChangeProjectResponse,
 ) error {
-	oid, _ := primitive.ObjectIDFromHex(req.ProjectId)
-	query := bson.M{"_id": oid}
-
-	project, err := s.getProjectBy(ctx, query)
+	project, err := s.project.GetById(ctx, req.ProjectId)
 
 	if err != nil || req.MerchantId != project.MerchantId {
 		rsp.Status = billingpb.ResponseStatusNotFound
@@ -384,20 +283,6 @@ func (s *Service) DeleteProject(
 	}
 
 	return nil
-}
-
-func (s *Service) getProjectBy(ctx context.Context, query bson.M) (project *billingpb.Project, err error) {
-	err = s.db.Collection(collectionProject).FindOne(ctx, query).Decode(&project)
-
-	if err != nil {
-		if err != mongo.ErrNoDocuments {
-			zap.S().Errorf("Query to find project failed", "err", err.Error(), "query", query)
-		}
-
-		return project, projectErrorNotFound
-	}
-
-	return
 }
 
 func (s *Service) createProject(ctx context.Context, req *billingpb.Project) (*billingpb.Project, error) {
@@ -498,25 +383,6 @@ func (s *Service) updateProject(ctx context.Context, req *billingpb.Project, pro
 	return nil
 }
 
-func (s *Service) getProjectsCountByMerchant(ctx context.Context, merchantId string) int32 {
-	oid, _ := primitive.ObjectIDFromHex(merchantId)
-	query := bson.M{"merchant_id": oid}
-	count, err := s.db.Collection(collectionProject).CountDocuments(ctx, query)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-
-		return 0
-	}
-
-	return int32(count)
-}
-
 func (s *Service) validateProjectVirtualCurrency(virtualCurrency *billingpb.ProjectVirtualCurrency, payoutCurrency string) error {
 	if _, ok := virtualCurrency.Name[DefaultLanguage]; !ok {
 		return projectErrorVirtualCurrencyNameDefaultLangRequired
@@ -584,135 +450,6 @@ func (s *Service) validateRedirectSettings(req *billingpb.Project) error {
 	}
 
 	return nil
-}
-
-func newProjectService(svc *Service) *Project {
-	s := &Project{svc: svc}
-	return s
-}
-
-func (h *Project) Insert(ctx context.Context, project *billingpb.Project) error {
-	_, err := h.svc.db.Collection(collectionProject).InsertOne(ctx, project)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	key := fmt.Sprintf(cacheProjectId, project.Id)
-	err = h.svc.cacher.Set(key, project, 0)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (h *Project) MultipleInsert(ctx context.Context, projects []*billingpb.Project) error {
-	p := make([]interface{}, len(projects))
-	for i, v := range projects {
-		p[i] = v
-	}
-
-	_, err := h.svc.db.Collection(collectionProject).InsertMany(ctx, p)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationInsert),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, p),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (h *Project) Update(ctx context.Context, project *billingpb.Project) error {
-	oid, _ := primitive.ObjectIDFromHex(project.Id)
-	filter := bson.M{"_id": oid}
-	_, err := h.svc.db.Collection(collectionProject).ReplaceOne(ctx, filter, project)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.String(pkg.ErrorDatabaseFieldOperation, pkg.ErrorDatabaseFieldOperationUpdate),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	key := fmt.Sprintf(cacheProjectId, project.Id)
-	err = h.svc.cacher.Set(key, project, 0)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, project),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (h Project) GetById(ctx context.Context, id string) (*billingpb.Project, error) {
-	var c billingpb.Project
-	key := fmt.Sprintf(cacheProjectId, id)
-	err := h.svc.cacher.Get(key, c)
-
-	if err == nil {
-		return &c, nil
-	}
-
-	oid, _ := primitive.ObjectIDFromHex(id)
-	query := bson.M{"_id": oid}
-	err = h.svc.db.Collection(collectionProject).FindOne(ctx, query).Decode(&c)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorDatabaseQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorDatabaseFieldCollection, collectionProject),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, query),
-		)
-		return nil, fmt.Errorf(errorNotFound, collectionProject)
-	}
-
-	err = h.svc.cacher.Set(key, c, 0)
-
-	if err != nil {
-		zap.L().Error(
-			pkg.ErrorCacheQueryFailed,
-			zap.Error(err),
-			zap.String(pkg.ErrorCacheFieldCmd, "SET"),
-			zap.String(pkg.ErrorCacheFieldKey, key),
-			zap.Any(pkg.ErrorDatabaseFieldQuery, c),
-		)
-	}
-
-	return &c, nil
 }
 
 func (s *Service) CheckSkuAndKeyProject(ctx context.Context, req *billingpb.CheckSkuAndKeyProjectRequest, rsp *billingpb.EmptyResponseWithStatus) error {
