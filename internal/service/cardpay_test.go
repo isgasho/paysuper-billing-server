@@ -76,10 +76,11 @@ var (
 type CardPayTestSuite struct {
 	suite.Suite
 
-	cfg         *config.Config
-	handler     *cardPay
-	logObserver *zap.Logger
-	zapRecorder *observer.ObservedLogs
+	cfg          *config.Config
+	handler      Gate
+	typedHandler *cardPay
+	logObserver  *zap.Logger
+	zapRecorder  *observer.ObservedLogs
 }
 
 func Test_CardPay(t *testing.T) {
@@ -102,13 +103,16 @@ func (suite *CardPayTestSuite) SetupTest() {
 	suite.logObserver = zap.New(core)
 	zap.ReplaceGlobals(suite.logObserver)
 
-	suite.handler = &cardPay{}
+	suite.handler = newCardPayHandler()
+	handler, ok := suite.handler.(*cardPay)
+	assert.True(suite.T(), ok)
+	suite.typedHandler = handler
 }
 
 func (suite *CardPayTestSuite) TearDownTest() {}
 
 func (suite *CardPayTestSuite) TestCardPay_GetCardPayOrder_Ok() {
-	res, err := suite.handler.getCardPayOrder(
+	res, err := suite.typedHandler.getCardPayOrder(
 		orderSimpleBankCard,
 		suite.cfg.GetRedirectUrlSuccess(nil),
 		suite.cfg.GetRedirectUrlFail(nil),
@@ -123,7 +127,7 @@ func (suite *CardPayTestSuite) TestCardPay_GetCardPayOrder_Ok() {
 }
 
 func (suite *CardPayTestSuite) TestCardPay_CreatePayment_Mock_Ok() {
-	suite.handler.httpClient = mocks.NewCardPayHttpClientStatusOk()
+	suite.typedHandler.httpClient = mocks.NewCardPayHttpClientStatusOk()
 	url, err := suite.handler.CreatePayment(
 		orderSimpleBankCard,
 		suite.cfg.GetRedirectUrlSuccess(nil),
