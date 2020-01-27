@@ -1036,7 +1036,7 @@ func helperMakeRefund(suite suite.Suite, service *Service, order *billingpb.Orde
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}

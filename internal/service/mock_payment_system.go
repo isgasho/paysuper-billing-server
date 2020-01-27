@@ -16,15 +16,15 @@ import (
 type PaymentSystemMockOk struct{}
 type PaymentSystemMockError struct{}
 
-func NewPaymentSystemMockOk() PaymentSystem {
+func NewPaymentSystemMockOk() Gate {
 	return &PaymentSystemMockOk{}
 }
 
-func NewPaymentSystemMockError() PaymentSystem {
+func NewPaymentSystemMockError() Gate {
 	return &PaymentSystemMockError{}
 }
 
-func NewCardPayMock() PaymentSystem {
+func NewCardPayMock() Gate {
 	cpMock := &mocks.PaymentSystem{}
 	cpMock.On("CreatePayment", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 		Return(

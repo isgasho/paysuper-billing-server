@@ -261,7 +261,6 @@ func (s *Service) OrderCreateProcess(
 	req *billingpb.OrderCreateRequest,
 	rsp *billingpb.OrderCreateProcessResponse,
 ) error {
-
 	rsp.Status = billingpb.ResponseStatusOk
 
 	processor := &OrderCreateRequestProcessor{
@@ -1063,7 +1062,7 @@ func (s *Service) PaymentCreateProcess(
 		return nil
 	}
 
-	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, order)
+	h, err := s.paymentSystemGateway.getGateway(order.PaymentMethod.Handler)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err.Error())
@@ -1153,7 +1152,7 @@ func (s *Service) PaymentCallbackProcess(
 	}
 
 	switch ps.Handler {
-	case pkg.PaymentSystemHandlerCardPay, paymentSystemHandlerCardPayMock:
+	case billingpb.PaymentSystemHandlerCardPay, paymentSystemHandlerCardPayMock:
 		data = &billingpb.CardPayPaymentCallback{}
 		err := json.Unmarshal(req.Request, data)
 
@@ -1165,7 +1164,7 @@ func (s *Service) PaymentCallbackProcess(
 		return orderErrorPaymentMethodNotFound
 	}
 
-	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, order)
+	h, err := s.paymentSystemGateway.getGateway(ps.Handler)
 
 	if err != nil {
 		return err

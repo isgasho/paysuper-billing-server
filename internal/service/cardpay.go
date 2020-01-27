@@ -40,8 +40,6 @@ const (
 )
 
 var (
-	cardPayTokens = map[string]*cardPayToken{}
-
 	successRefundResponseStatuses = map[string]bool{
 		billingpb.CardPayPaymentResponseStatusAuthorized: true,
 		billingpb.CardPayPaymentResponseStatusInProgress: true,
@@ -54,6 +52,7 @@ var (
 type cardPay struct {
 	mu         sync.Mutex
 	httpClient *http.Client
+	tokens     map[string]*cardPayToken
 }
 
 type cardPayTransport struct {
@@ -236,8 +235,9 @@ func (m *CardPayRefundResponse) IsSuccessStatus() bool {
 	return ok && v == true
 }
 
-func newCardPayHandler() PaymentSystem {
+func newCardPayHandler() Gate {
 	return &cardPay{
+		tokens: make(map[string]*cardPayToken),
 		httpClient: &http.Client{
 			Transport: &cardPayTransport{},
 			Timeout:   defaultHttpClientTimeout * time.Second,
@@ -536,7 +536,7 @@ func (h *cardPay) auth(order *billingpb.Order) error {
 	}
 
 	b, err := ioutil.ReadAll(rsp.Body)
-	rsp.Body.Close()
+	_ = rsp.Body.Close()
 
 	if err != nil {
 		zap.L().Error(
@@ -562,7 +562,7 @@ func (h *cardPay) refresh(order *billingpb.Order) error {
 	data := url.Values{
 		cardPayRequestFieldGrantType:    []string{cardPayGrantTypeRefreshToken},
 		cardPayRequestFieldTerminalCode: []string{order.PaymentMethod.Params.TerminalId},
-		cardPayRequestFieldRefreshToken: []string{cardPayTokens[order.PaymentMethod.ExternalId].RefreshToken},
+		cardPayRequestFieldRefreshToken: []string{h.tokens[order.PaymentMethod.ExternalId].RefreshToken},
 	}
 
 	qUrl, err := h.getUrl(order.GetPaymentSystemApiUrl(), pkg.PaymentSystemActionRefresh)
@@ -628,24 +628,24 @@ func (h *cardPay) getUrl(apiUrl, action string) (string, error) {
 
 func (h *cardPay) setToken(b []byte, pmKey string) error {
 	h.mu.Lock()
-	defer h.mu.Unlock()
+	token := new(cardPayToken)
+	err := json.Unmarshal(b, &token)
 
-	var token *cardPayToken
-
-	if err := json.Unmarshal(b, &token); err != nil {
+	if err != nil {
 		return err
 	}
 
 	token.AccessTokenExpireTime = time.Now().Add(time.Second * time.Duration(token.AccessTokenExpire))
 	token.RefreshTokenExpireTime = time.Now().Add(time.Second * time.Duration(token.RefreshTokenExpire))
 
-	cardPayTokens[pmKey] = token
+	h.tokens[pmKey] = token
+	h.mu.Unlock()
 
 	return nil
 }
 
 func (h *cardPay) getToken(order *billingpb.Order) *cardPayToken {
-	token, ok := cardPayTokens[order.PaymentMethod.ExternalId]
+	token, ok := h.tokens[order.PaymentMethod.ExternalId]
 
 	if !ok {
 		return nil
@@ -667,7 +667,7 @@ func (h *cardPay) getToken(order *billingpb.Order) *cardPayToken {
 		return nil
 	}
 
-	return cardPayTokens[order.PaymentMethod.ExternalId]
+	return h.tokens[order.PaymentMethod.ExternalId]
 }
 
 func (h *cardPay) getCardPayOrder(
@@ -911,7 +911,7 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 		zap.L().Error(
 			"marshal refund request failed",
 			zap.Error(err),
-			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
 			zap.Any(pkg.LogFieldRequest, data),
 			zap.Any("refund", refund),
 		)
@@ -926,7 +926,7 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 			zap.Error(err),
 			zap.String("method", pkg.CardPayPaths[pkg.PaymentSystemActionRefund].Method),
 			zap.String("url", u),
-			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
 			zap.ByteString(pkg.LogFieldRequest, b),
 			zap.Any("refund", refund),
 		)
@@ -946,7 +946,7 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 		zap.L().Error(
 			"refund request failed",
 			zap.Error(err),
-			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
 			zap.Any(pkg.LogFieldRequest, data),
 			zap.Any("refund", refund),
 		)
@@ -957,7 +957,7 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 		zap.L().Error(
 			"refund response returned with bad http status",
 			zap.Error(err),
-			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
 			zap.Any(pkg.LogFieldRequest, data),
 			zap.Any("refund", refund),
 		)
@@ -970,7 +970,7 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 		zap.L().Error(
 			"refund response body can't be read",
 			zap.Error(err),
-			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
 			zap.Any(pkg.LogFieldRequest, data),
 			zap.Any("refund", refund),
 		)
@@ -984,7 +984,7 @@ func (h *cardPay) CreateRefund(order *billingpb.Order, refund *billingpb.Refund)
 		zap.L().Error(
 			"refund response contain invalid json",
 			zap.Error(err),
-			zap.String(pkg.LogFieldHandler, pkg.PaymentSystemHandlerCardPay),
+			zap.String(pkg.LogFieldHandler, billingpb.PaymentSystemHandlerCardPay),
 			zap.Any(pkg.LogFieldRequest, data),
 			zap.ByteString(pkg.LogFieldResponse, b),
 			zap.Any("refund", refund),

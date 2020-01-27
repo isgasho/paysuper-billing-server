@@ -950,10 +950,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
+	order.PaymentMethod.Handler = "not_exist_payment_system"
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = "not_exist_payment_system"
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	req2 := &billingpb.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
@@ -1016,10 +1014,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
+	order.PaymentMethod.Handler = "mock_error"
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = "mock_error"
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	req2 := &billingpb.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
@@ -1507,7 +1503,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -1647,7 +1643,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	hash.Write([]byte(refundReq + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      []byte(refundReq),
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -1873,7 +1869,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -1994,7 +1990,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2110,7 +2106,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2191,7 +2187,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 
 	err = suite.service.updateOrder(context.TODO(), order)
 
-	suite.paySys.Handler = pkg.PaymentSystemHandlerCardPay
+	suite.paySys.Handler = billingpb.PaymentSystemHandlerCardPay
 	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	refundReq := &billingpb.CardPayRefundCallback{
@@ -2227,7 +2223,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2320,7 +2316,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 
 	err = suite.service.updateOrder(context.TODO(), order)
 
-	suite.paySys.Handler = pkg.PaymentSystemHandlerCardPay
+	suite.paySys.Handler = billingpb.PaymentSystemHandlerCardPay
 	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	refundReq := &billingpb.CardPayRefundCallback{
@@ -2356,7 +2352,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2525,7 +2521,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2698,7 +2694,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
