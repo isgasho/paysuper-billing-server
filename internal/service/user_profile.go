@@ -487,7 +487,9 @@ func (s *Service) GetCommonUserProfile(
 			rsp.Profile.Merchant.Id,
 			time.Now().Add(time.Hour*3).Unix(),
 		)
-		rsp.Profile.Merchant.HasProjects = s.getProjectsCountByMerchant(ctx, rsp.Profile.Merchant.Id) > 0
+
+		projectCount, _ := s.project.CountByMerchantId(ctx, rsp.Profile.Merchant.Id)
+		rsp.Profile.Merchant.HasProjects = projectCount > 0
 
 		if role.Role != billingpb.RoleMerchantOwner &&
 			role.Role != billingpb.RoleMerchantAccounting &&

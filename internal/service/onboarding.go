@@ -107,8 +107,10 @@ func (s *Service) GetMerchantBy(
 		return nil
 	}
 
+	projectCount, _ := s.project.CountByMerchantId(ctx, merchant.Id)
+
 	merchant.CentrifugoToken = s.centrifugoDashboard.GetChannelToken(merchant.Id, time.Now().Add(time.Hour*3).Unix())
-	merchant.HasProjects = s.getProjectsCountByMerchant(ctx, merchant.Id) > 0
+	merchant.HasProjects = projectCount > 0
 
 	rsp.Status = billingpb.ResponseStatusOk
 	rsp.Item = merchant

@@ -16,7 +16,6 @@ type Entity struct {
 
 type Currency Entity
 type Commission Entity
-type Project Entity
 type PaymentMethod Entity
 
 type PayoutDocument Entity

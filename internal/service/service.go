@@ -19,7 +19,6 @@ import (
 	"github.com/paysuper/paysuper-proto/go/taxpb"
 	httpTools "github.com/paysuper/paysuper-tools/http"
 	tools "github.com/paysuper/paysuper-tools/number"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 	"gopkg.in/ProtocolONE/rabbitmq.v1/pkg"
 	"gopkg.in/gomail.v2"
@@ -62,7 +61,6 @@ type Service struct {
 	smtpCl                          gomail.SendCloser
 	supportedCurrencies             []string
 	currenciesPrecision             map[string]int32
-	project                         *Project
 	payoutDocument                  PayoutDocumentServiceInterface
 	royaltyReport                   RoyaltyReportServiceInterface
 	orderView                       OrderViewServiceInterface
@@ -100,6 +98,7 @@ type Service struct {
 	merchantBalanceRepository       repository.MerchantBalanceRepositoryInterface
 	moneyBackCostMerchantRepository repository.MoneyBackCostMerchantRepositoryInterface
 	moneyBackCostSystemRepository   repository.MoneyBackCostSystemRepositoryInterface
+	project                         repository.ProjectRepositoryInterface
 }
 
 func newBillingServerResponseError(status int32, message *billingpb.ResponseErrorMessage) *billingpb.ResponseError {
@@ -159,7 +158,6 @@ func (s *Service) Init() (err error) {
 	s.royaltyReport = newRoyaltyReport(s)
 	s.orderView = newOrderView(s)
 	s.accounting = newAccounting(s)
-	s.project = newProjectService(s)
 	s.paymentSystem = newPaymentSystemService(s)
 	s.paymentChannelCostSystem = newPaymentChannelCostSystemService(s)
 	s.paymentChannelCostMerchant = newPaymentChannelCostMerchantService(s)
@@ -188,6 +186,7 @@ func (s *Service) Init() (err error) {
 	s.merchantBalanceRepository = repository.NewMerchantBalanceRepository(s.db, s.cacher)
 	s.moneyBackCostMerchantRepository = repository.NewMoneyBackCostMerchantRepository(s.db, s.cacher)
 	s.moneyBackCostSystemRepository = repository.NewMoneyBackCostSystemRepository(s.db, s.cacher)
+	s.project = repository.NewProjectRepository(s.db, s.cacher)
 
 	sCurr, err := s.curService.GetSupportedCurrencies(context.TODO(), &currenciespb.EmptyRequest{})
 	if err != nil {
@@ -260,33 +259,6 @@ func (s *Service) getCountryFromAcceptLanguage(acceptLanguage string) (string, s
 
 	it1 := strings.Split(it[0], "-")
 	return it[0], strings.ToUpper(it1[1])
-}
-
-func (s *Service) mgoPipeSort(query []bson.M, sort []string) []bson.M {
-	pipeSort := make(bson.M)
-
-	for _, field := range sort {
-		n := 1
-
-		if field == "" {
-			continue
-		}
-
-		sField := strings.Split(field, "")
-
-		if sField[0] == "-" {
-			n = -1
-			field = field[1:]
-		}
-
-		pipeSort[field] = n
-	}
-
-	if len(pipeSort) > 0 {
-		query = append(query, bson.M{"$sort": pipeSort})
-	}
-
-	return query
 }
 
 func (s *Service) getDefaultPaymentMethodCommissions() *billingpb.MerchantPaymentMethodCommissions {
