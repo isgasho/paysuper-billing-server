@@ -86,6 +86,7 @@ type Service struct {
 	operatingCompany                OperatingCompanyInterface
 	paymentMinLimitSystem           PaymentMinLimitSystemInterface
 	casbinService                   casbinpb.CasbinService
+	paymentSystemGateway            *Gateway
 	country                         repository.CountryRepositoryInterface
 	refundRepository                repository.RefundRepositoryInterface
 	orderRepository                 repository.OrderRepositoryInterface
@@ -173,6 +174,7 @@ func (s *Service) Init() (err error) {
 	s.paylinkService = newPaylinkService(s)
 	s.operatingCompany = newOperatingCompanyService(s)
 	s.paymentMinLimitSystem = newPaymentMinLimitSystem(s)
+	s.paymentSystemGateway = s.newPaymentSystemGateway()
 
 	s.refundRepository = repository.NewRefundRepository(s.db)
 	s.orderRepository = repository.NewOrderRepository(s.db)

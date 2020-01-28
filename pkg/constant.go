@@ -30,8 +30,6 @@ const (
 	PaymentSystemErrorCreateRefundFailed   = "refund can't be create. try request later"
 	PaymentSystemErrorCreateRefundRejected = "refund create request rejected"
 
-	PaymentSystemHandlerCardPay = "cardpay"
-
 	MerchantAgreementTypeESign = 2
 
 	ObjectTypeUser = "user"

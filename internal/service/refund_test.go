@@ -950,10 +950,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemNotExists_Err
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
+	order.PaymentMethod.Handler = "not_exist_payment_system"
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = "not_exist_payment_system"
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	req2 := &billingpb.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
@@ -1016,10 +1014,8 @@ func (suite *RefundTestSuite) TestRefund_CreateRefund_PaymentSystemReturnError_E
 	assert.NotNil(suite.T(), order)
 
 	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
+	order.PaymentMethod.Handler = "mock_error"
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = "mock_error"
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	req2 := &billingpb.CreateRefundRequest{
 		OrderId:    rsp.Uuid,
@@ -1507,7 +1503,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Ok() {
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -1647,7 +1643,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnmarshalError() 
 	hash.Write([]byte(refundReq + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      []byte(refundReq),
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -1873,7 +1869,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_RefundNotFound_Er
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -1994,7 +1990,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2006,76 +2002,31 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderNotFound_Err
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSystemHandler_Error() {
-	req := &billingpb.OrderCreateRequest{
-		Type:        pkg.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billingpb.OrderUser{
-			Email: "some_email@unit.com",
-			Ip:    "127.0.0.1",
-			Phone: "123456789",
-		},
-	}
-
-	rsp0 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, billingpb.ResponseStatusOk)
-	rsp := rsp0.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         rsp.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-	}
-
-	rsp1 := &billingpb.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
-	assert.NoError(suite.T(), err)
-
-	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-
-	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
-	order.Tax = &billingpb.OrderTax{
-		Type:     taxTypeVat,
-		Rate:     20,
-		Amount:   10,
-		Currency: "RUB",
-	}
-	err = suite.service.updateOrder(context.TODO(), order)
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.pmBankCard)
 
 	req2 := &billingpb.CreateRefundRequest{
-		OrderId:    rsp.Uuid,
+		OrderId:    order.Uuid,
 		Amount:     10,
 		CreatorId:  primitive.NewObjectID().Hex(),
 		Reason:     "unit test",
 		MerchantId: suite.project.MerchantId,
 	}
 	rsp2 := &billingpb.CreateRefundResponse{}
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
+	err := suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
 	assert.Empty(suite.T(), rsp2.Message)
 
+	order.Tax = &billingpb.OrderTax{
+		Type:     taxTypeVat,
+		Rate:     20,
+		Amount:   10,
+		Currency: "RUB",
+	}
+	order.PaymentMethod.Params.Currency = "USD"
+	order.PaymentMethod.Handler = "fake_payment_system_handler"
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = "fake_payment_system_handler"
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
+	assert.NoError(suite.T(), err)
 
 	refundReq := &billingpb.CardPayRefundCallback{
 		MerchantOrder: &billingpb.CardPayMerchantOrder{
@@ -2110,7 +2061,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2122,51 +2073,21 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_UnknownPaymentSys
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundError() {
-	req := &billingpb.OrderCreateRequest{
-		Type:        pkg.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billingpb.OrderUser{
-			Email: "some_email@unit.com",
-			Ip:    "127.0.0.1",
-			Phone: "123456789",
-		},
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.pmBankCard)
+
+	req2 := &billingpb.CreateRefundRequest{
+		OrderId:    order.Uuid,
+		Amount:     10,
+		CreatorId:  primitive.NewObjectID().Hex(),
+		Reason:     "unit test",
+		MerchantId: suite.project.MerchantId,
 	}
-
-	rsp0 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, billingpb.ResponseStatusOk)
-	rsp := rsp0.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         rsp.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-	}
-
-	rsp1 := &billingpb.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
+	rsp2 := &billingpb.CreateRefundResponse{}
+	err := suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
 
-	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-
-	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
 	order.Tax = &billingpb.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -2174,25 +2095,9 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 		Currency: "RUB",
 	}
 	order.PaymentMethod.Params.Currency = "USD"
+	order.PaymentMethod.Handler = billingpb.PaymentSystemHandlerCardPay
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	req2 := &billingpb.CreateRefundRequest{
-		OrderId:    rsp.Uuid,
-		Amount:     10,
-		CreatorId:  primitive.NewObjectID().Hex(),
-		Reason:     "unit test",
-		MerchantId: suite.project.MerchantId,
-	}
-	rsp2 := &billingpb.CreateRefundResponse{}
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-
-	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	refundReq := &billingpb.CardPayRefundCallback{
 		MerchantOrder: &billingpb.CardPayMerchantOrder{
@@ -2227,7 +2132,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2253,51 +2158,21 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_ProcessRefundErro
 }
 
 func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_Ok() {
-	req := &billingpb.OrderCreateRequest{
-		Type:        pkg.OrderType_simple,
-		ProjectId:   suite.project.Id,
-		Currency:    "RUB",
-		Amount:      100,
-		Account:     "unit test",
-		Description: "unit test",
-		OrderId:     primitive.NewObjectID().Hex(),
-		User: &billingpb.OrderUser{
-			Email: "some_email@unit.com",
-			Ip:    "127.0.0.1",
-			Phone: "123456789",
-		},
+	order := helperCreateAndPayOrder(suite.Suite, suite.service, 100, "RUB", "RU", suite.project, suite.pmBankCard)
+
+	req2 := &billingpb.CreateRefundRequest{
+		OrderId:    order.Uuid,
+		CreatorId:  primitive.NewObjectID().Hex(),
+		Reason:     "unit test",
+		MerchantId: suite.project.MerchantId,
 	}
-
-	rsp0 := &billingpb.OrderCreateProcessResponse{}
-	err := suite.service.OrderCreateProcess(context.TODO(), req, rsp0)
-	assert.Nil(suite.T(), err)
-	assert.Equal(suite.T(), rsp0.Status, billingpb.ResponseStatusOk)
-	rsp := rsp0.Item
-
-	expireYear := time.Now().AddDate(1, 0, 0)
-
-	createPaymentRequest := &billingpb.PaymentCreateRequest{
-		Data: map[string]string{
-			billingpb.PaymentCreateFieldOrderId:         rsp.Uuid,
-			billingpb.PaymentCreateFieldPaymentMethodId: suite.pmBankCard.Id,
-			billingpb.PaymentCreateFieldEmail:           "test@unit.unit",
-			billingpb.PaymentCreateFieldPan:             "4000000000000002",
-			billingpb.PaymentCreateFieldCvv:             "123",
-			billingpb.PaymentCreateFieldMonth:           "02",
-			billingpb.PaymentCreateFieldYear:            expireYear.Format("2006"),
-			billingpb.PaymentCreateFieldHolder:          "Mr. Card Holder",
-		},
-	}
-
-	rsp1 := &billingpb.PaymentCreateResponse{}
-	err = suite.service.PaymentCreateProcess(context.TODO(), createPaymentRequest, rsp1)
+	rsp2 := &billingpb.CreateRefundResponse{}
+	err := suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
+	assert.Empty(suite.T(), rsp2.Message)
 
-	order, err := suite.service.orderRepository.GetById(context.TODO(), rsp.Id)
-	assert.NoError(suite.T(), err)
-	assert.NotNil(suite.T(), order)
-
-	order.PrivateStatus = recurringpb.OrderStatusPaymentSystemComplete
+	order.PaymentMethod.Handler = billingpb.PaymentSystemHandlerCardPay
 	order.Tax = &billingpb.OrderTax{
 		Type:     taxTypeVat,
 		Rate:     20,
@@ -2305,23 +2180,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 		Currency: "RUB",
 	}
 	err = suite.service.updateOrder(context.TODO(), order)
-
-	req2 := &billingpb.CreateRefundRequest{
-		OrderId:    rsp.Uuid,
-		CreatorId:  primitive.NewObjectID().Hex(),
-		Reason:     "unit test",
-		MerchantId: suite.project.MerchantId,
-	}
-	rsp2 := &billingpb.CreateRefundResponse{}
-	err = suite.service.CreateRefund(context.TODO(), req2, rsp2)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp2.Status)
-	assert.Empty(suite.T(), rsp2.Message)
-
-	err = suite.service.updateOrder(context.TODO(), order)
-
-	suite.paySys.Handler = pkg.PaymentSystemHandlerCardPay
-	err = suite.service.paymentSystem.Update(context.TODO(), suite.paySys)
 
 	refundReq := &billingpb.CardPayRefundCallback{
 		MerchantOrder: &billingpb.CardPayMerchantOrder{
@@ -2356,7 +2215,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_TemporaryStatus_O
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2525,7 +2384,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_OrderFullyRefunde
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}
@@ -2698,7 +2557,7 @@ func (suite *RefundTestSuite) TestRefund_ProcessRefundCallback_Chargeback_Ok() {
 	hash.Write([]byte(string(b) + order.PaymentMethod.Params.SecretCallback))
 
 	req3 := &billingpb.CallbackRequest{
-		Handler:   pkg.PaymentSystemHandlerCardPay,
+		Handler:   billingpb.PaymentSystemHandlerCardPay,
 		Body:      b,
 		Signature: hex.EncodeToString(hash.Sum(nil)),
 	}

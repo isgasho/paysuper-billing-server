@@ -8198,7 +8198,7 @@ func (suite *OrderTestSuite) TestOrder_DeclineOrder_Ok() {
 	paymentSystem, err := suite.service.paymentSystem.GetById(context.TODO(), suite.paymentMethod.PaymentSystemId)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentSystem)
-	paymentSystem.Handler = pkg.PaymentSystemHandlerCardPay
+	paymentSystem.Handler = billingpb.PaymentSystemHandlerCardPay
 	err = suite.service.paymentSystem.Update(context.TODO(), paymentSystem)
 	assert.NoError(suite.T(), err)
 
@@ -8326,7 +8326,7 @@ func (suite *OrderTestSuite) TestOrder_SuccessOrderCentrifugoPaymentSystemError_
 	paymentSystem, err := suite.service.paymentSystem.GetById(context.TODO(), suite.paymentMethod.PaymentSystemId)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), paymentSystem)
-	paymentSystem.Handler = pkg.PaymentSystemHandlerCardPay
+	paymentSystem.Handler = billingpb.PaymentSystemHandlerCardPay
 	err = suite.service.paymentSystem.Update(context.TODO(), paymentSystem)
 	assert.NoError(suite.T(), err)
 

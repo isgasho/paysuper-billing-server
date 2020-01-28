@@ -63,7 +63,7 @@ func (s *Service) CreateRefund(
 		return nil
 	}
 
-	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, processor.checked.order)
+	h, err := s.paymentSystemGateway.getGateway(processor.checked.order.PaymentMethod.Handler)
 
 	if err != nil {
 		zap.S().Errorw(pkg.MethodFinishedWithError, "err", err)
@@ -179,7 +179,7 @@ func (s *Service) ProcessRefundCallback(
 	var refundId string
 
 	switch req.Handler {
-	case pkg.PaymentSystemHandlerCardPay:
+	case billingpb.PaymentSystemHandlerCardPay:
 		data = &billingpb.CardPayRefundCallback{}
 		err := json.Unmarshal(req.Body, &data)
 
@@ -218,7 +218,7 @@ func (s *Service) ProcessRefundCallback(
 		return nil
 	}
 
-	h, err := s.NewPaymentSystem(ctx, s.cfg.PaymentSystemConfig, order)
+	h, err := s.paymentSystemGateway.getGateway(order.PaymentMethod.Handler)
 
 	if err != nil {
 		zap.L().Error(
