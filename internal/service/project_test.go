@@ -1508,7 +1508,7 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_LimitAmounts_Er
 	assert.Equal(suite.T(), projectErrorLimitCurrencyRequired, rsp.Message)
 }
 
-func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_WithoutRedirectSettings_Error() {
+func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_WithoutRedirectSettings_DefaultSettings_Ok() {
 	req := new(billingpb.Project)
 	err := copier.Copy(&req, &projectMock)
 	assert.NoError(suite.T(), err)
@@ -1517,9 +1517,17 @@ func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_With
 	err = suite.service.ChangeProject(context.TODO(), req, rsp)
 
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), billingpb.ResponseStatusBadData, rsp.Status)
-	assert.Equal(suite.T(), rsp.Message, projectErrorRedirectSettingsIsRequired)
-	assert.Nil(suite.T(), rsp.Item)
+	assert.Equal(suite.T(), billingpb.ResponseStatusOk, rsp.Status)
+	assert.Empty(suite.T(), rsp.Message)
+	assert.NotNil(suite.T(), rsp.Item)
+
+	project, err := suite.service.project.GetById(context.TODO(), rsp.Item.Id)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), rsp.Item.RedirectSettings, project.RedirectSettings)
+	assert.Equal(suite.T(), project.RedirectSettings.Mode, pkg.ProjectRedirectModeAny)
+	assert.Equal(suite.T(), project.RedirectSettings.Usage, pkg.ProjectRedirectUsageAny)
+	assert.Zero(suite.T(), project.RedirectSettings.Delay)
+	assert.Zero(suite.T(), project.RedirectSettings.ButtonCaption)
 }
 
 func (suite *ProjectCRUDTestSuite) TestProjectCRUD_ChangeProject_NewProject_WithRedirectSettings_WithoutRedirectMode_Error() {
