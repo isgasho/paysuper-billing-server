@@ -33,7 +33,6 @@ var (
 	projectErrorButtonCaptionAllowedOnlyForAfterRedirect         = newBillingServerErrorMsg("pr000018", "caption for redirect button can't be set with non zero delay for auto redirect")
 	projectErrorRedirectModeIsRequired                           = newBillingServerErrorMsg("pr000019", "redirect mode must be selected")
 	projectErrorRedirectUsageIsRequired                          = newBillingServerErrorMsg("pr000020", "type of redirect usage must be selected")
-	projectErrorRedirectSettingsIsRequired                       = newBillingServerErrorMsg("pr000021", "redirect settings is required")
 )
 
 func (s *Service) ChangeProject(
@@ -151,13 +150,7 @@ func (s *Service) ChangeProject(
 		}
 	}
 
-	if project == nil {
-		if req.RedirectSettings == nil {
-			rsp.Status = billingpb.ResponseStatusBadData
-			rsp.Message = projectErrorRedirectSettingsIsRequired
-			return nil
-		}
-
+	if req.RedirectSettings != nil {
 		err = s.validateRedirectSettings(req)
 
 		if err != nil {
@@ -165,19 +158,18 @@ func (s *Service) ChangeProject(
 			rsp.Message = err.(*billingpb.ResponseErrorMessage)
 			return nil
 		}
-
-		project, err = s.createProject(ctx, req)
 	} else {
-		if req.RedirectSettings != nil {
-			err = s.validateRedirectSettings(req)
-
-			if err != nil {
-				rsp.Status = billingpb.ResponseStatusBadData
-				rsp.Message = err.(*billingpb.ResponseErrorMessage)
-				return nil
+		if project == nil {
+			req.RedirectSettings = &billingpb.ProjectRedirectSettings{
+				Mode:  pkg.ProjectRedirectModeAny,
+				Usage: pkg.ProjectRedirectUsageAny,
 			}
 		}
+	}
 
+	if project == nil {
+		project, err = s.createProject(ctx, req)
+	} else {
 		err = s.updateProject(ctx, req, project)
 	}
 
